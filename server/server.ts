@@ -7,7 +7,7 @@ export class Server extends BaseServer {
 
   constructor(manifest: Manifest) {
     super(manifest);
-    frameworkAPI.registerStaticRoute(path.join(__dirname, '..', '..', 'dist'));
+    frameworkAPI.registerStaticRoute(path.join(__dirname, '..', '..', 'dist'), '/dist');
     frameworkAPI.setStaticViewEngine('ejs')
   }
   public test(req, res, next) {
