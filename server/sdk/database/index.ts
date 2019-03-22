@@ -13,7 +13,7 @@ export default class DatabaseSDK {
     private url: string;
     private connection: any;
 
-    initialize(pluginId: string, url: string) {
+    initialize(pluginId: string, url?: string) {
         this.pluginId = pluginId;
         this.url = url;
         this.connection = frameworkAPI.getCouchDBInstance(this.pluginId);
@@ -21,6 +21,10 @@ export default class DatabaseSDK {
 
     createDatabase(database: string) {
         return this.connection.db.create(database);
+    }
+
+    get(database: string, Id: string) {
+        return this.connection.db.use(database).get(Id);
     }
 
     insert(database: string, Id: string, doc: any) {
