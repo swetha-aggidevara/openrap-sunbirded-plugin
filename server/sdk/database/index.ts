@@ -1,8 +1,8 @@
 /**
  * @author Harish Kumar Gangula <harishg@ilimi.in>
  */
-
-import * as nano from 'nano';
+import { frameworkAPI } from '@project-sunbird/ext-framework-server/api';
+import { manifest } from '../../manifest'
 
 /**
 * This SDK helps in performing operations with database and to create them
@@ -17,7 +17,7 @@ export default class DatabaseSDK {
     initialize(pluginId: string, url: string) {
         this.pluginId = pluginId;
         this.url = url;
-        this.connection = nano(this.url);
+        this.connection = frameworkAPI.getCouchDBInstance(manifest.id);
     }
 
     createDatabase(database: string) {
