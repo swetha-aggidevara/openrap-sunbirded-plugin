@@ -3,6 +3,7 @@
  */
 import * as fs from 'fs-extra';
 import * as path from 'path';
+import * as zlib from 'zlib';
 
 /**
  * This SDK provides methods to handle file deleting , folder creation and deletion prefixed with pluginId
@@ -11,7 +12,11 @@ import * as path from 'path';
 
 export default class FileSDK {
 
-    constructor(private pluginId: string) { }
+    private pluginId: string;
+
+    initialize(pluginId: string): void {
+        this.pluginId = pluginId;
+    }
 
     /**
      * 
@@ -50,5 +55,23 @@ export default class FileSDK {
             promises.push(fs.ensureDir(path.join(__dirname, this.pluginId, folder)))
         })
         return Promise.all(promises);
+    }
+
+    /**
+     * @param file_path
+     * @param  dest_path
+     * This method will unzip the file to dest folder 
+     * @returns Promise
+     */
+    unzipFile(file_path: string, dest_path: string) {
+        return new Promise((resolve, reject) => {
+            const fileContents = fs.createReadStream(path.join(__dirname, file_path));
+            const writeStream = fs.createWriteStream(path.join(__dirname, dest_path));
+            const unzip = zlib.createGunzip();
+            fileContents.pipe(unzip).pipe(writeStream).on('finish', (err) => {
+                if (err) return reject(err);
+                else resolve();
+            })
+        })
     }
 }

@@ -5,9 +5,8 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
-    "build": "rm -rf ./dist && tsc --noImplicitUseStrict && cp package.json ./dist",
-    "test": "echo 'go to '../test' folder to execute test cases!'",
-    "prepare-data": "rm -rf ./dist && tsc --noImplicitUseStrict && node ./dist/build/index.js"
+    "build": "rm -rf ./dist && tsc --noImplicitUseStrict && cp package.json ./dist && node ./dist/build/index.js",
+    "test": "echo 'go to '../test' folder to execute test cases!'"
   },
   "dependencies": {
     "@project-sunbird/ext-framework-server": "^0.1.13",

@@ -1,6 +1,5 @@
 import watchr from 'watchr';
 
-
 export default class FolderWatcher {
 
     private watchers: any[] = [];
