@@ -5,11 +5,11 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
-    "build": "rm -rf ./dist && tsc --noImplicitUseStrict  && ./node_modules/.bin/cpx package.json ./dist && cp -r db/**/* ./dist && node ./dist/build/index.js",
+    "build": "rm -rf ./dist && tsc --noImplicitUseStrict  && ./node_modules/.bin/cpx package.json ./dist && cp -r ./db/**/* ./dist && node ./dist/build/index.js",
     "test": "echo 'go to '../test' folder to execute test cases!'"
   },
   "dependencies": {
-    "@project-sunbird/ext-framework-server": "^0.1.13",
+    "@project-sunbird/ext-framework-server": "0.1.15",
     "@project-sunbird/form-service": "0.0.12",
     "chokidar": "^2.1.5",
     "fs-extra": "^7.0.1",

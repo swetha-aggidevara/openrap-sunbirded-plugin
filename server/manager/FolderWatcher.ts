@@ -13,8 +13,7 @@ export default class FolderWatcher {
         try {
             this.watchers[this.pluginId + '_' + folderPath] =
                 chokidar.watch(folderPath, {
-                    ignored: /(^|[\/\\])\../,
-                    persistent: true
+                    ignored: /(^|[\/\\])\../ // to ignore dot files
                 });
         } catch (err) {
             console.log("Error while adding the watcher to ", folderPath)
