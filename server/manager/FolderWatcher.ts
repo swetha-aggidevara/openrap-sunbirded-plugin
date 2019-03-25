@@ -1,4 +1,4 @@
-import watchr from 'watchr';
+import * as chokidar from 'chokidar';
 
 export default class FolderWatcher {
 
@@ -9,8 +9,18 @@ export default class FolderWatcher {
         this.pluginId = pluginId;
     }
 
-    addWatcher(folderPath, listener, callback) {
-        this.watchers[this.pluginId + '_' + folderPath] = watchr.open(folderPath, listener, callback)
+    addWatcher(folderPath) {
+        try {
+            this.watchers[this.pluginId + '_' + folderPath] =
+                chokidar.watch(folderPath, {
+                    ignored: /(^|[\/\\])\../,
+                    persistent: true
+                });
+        } catch (err) {
+            console.log("Error while adding the watcher to ", folderPath)
+        }
+
+        return this.watchers[this.pluginId + '_' + folderPath];
     }
 
     removeWatcher(folderPath) {

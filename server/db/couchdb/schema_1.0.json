@@ -1,0 +1,23 @@
+{
+    "type": "couchdb",
+    "config": {},
+    "databases": [
+        {
+            "name": "content",
+            "indexes": [
+                {
+                    "index": {
+                        "fields": [
+                            "board",
+                            "medium",
+                            "gradeLevel",
+                            "subject",
+                            "dialcodes"
+                        ]
+                    },
+                    "name": "search"
+                }
+            ]
+        }
+    ]
+}
