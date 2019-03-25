@@ -14,7 +14,7 @@ export class Framework {
     public insert() {
         let response;
         response = fs.readFileSync(path.join(__dirname, '..', 'data', 'frameworks', 'NCFCOPY.json'));
-        this.databaseSdk.insert('bmmdg_framework', 'NCFCOPY', response);
+        this.databaseSdk.insert('framework', 'NCFCOPY', response);
 
     }
 }

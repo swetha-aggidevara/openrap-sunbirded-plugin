@@ -18,7 +18,7 @@ export class ResourceBundle {
     public insert() {
         this.files.forEach(element => {
             let response = fs.readFileSync(element);
-            this.databaseSdk.insert('bmmdg_resourcebundle', `${element}`, response);
+            this.databaseSdk.insert('resourcebundle', `${element}`, response);
 
         });
     }

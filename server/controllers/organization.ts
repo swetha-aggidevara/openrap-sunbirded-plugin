@@ -14,7 +14,7 @@ export class Organization {
     public insert() {
         let response;
         response = fs.readFileSync(path.join(__dirname, '..', 'data', 'organizations', 'ORG_001.json'));
-        this.databaseSdk.insert('bmmdg_orgsearch', 'orgSearch', response);
+        this.databaseSdk.insert('orgsearch', 'orgSearch', response);
 
     }
 }

@@ -14,7 +14,7 @@ export class Page  {
     public insert() {
         let response;
         response = fs.readFileSync(path.join(__dirname, '..', 'data', 'pages', 'web_Explore.json'));
-        this.databaseSdk.insert('bmmdg_pages', 'pages', response)
+        this.databaseSdk.insert('pages', 'pages', response)
 
     }
 }
