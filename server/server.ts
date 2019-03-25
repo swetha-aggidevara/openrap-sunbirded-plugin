@@ -29,7 +29,8 @@ export class Server extends BaseServer {
 
     async initialize(manifest: Manifest) {
 
-        //insertConfig()
+        await this.insertConfig(manifest)
+
 
 
 
@@ -39,12 +40,17 @@ export class Server extends BaseServer {
 
         await this.setupDirectories()
 
+        /* used to listen for content added to downloads folder and unzip them to 
+            content_files
+            and inserts metadata to content database
+        */
         this.contentManager.initialize(manifest.id,
             this.fileSDK.geAbsolutePath(this.contentFilesPath),
             this.fileSDK.geAbsolutePath(this.downloadsFolderPath))
 
-        frameworkAPI.registerStaticRoute(this.fileSDK.geAbsolutePath(this.contentFilesPath));
-        frameworkAPI.registerStaticRoute(path.join(__dirname, '..', '..', 'dist'), '/dist');
+        frameworkAPI.registerStaticRoute(path.join(__dirname, this.contentFilesPath));
+
+        frameworkAPI.registerStaticRoute(path.join(__dirname, '..', '..', 'portal'));
         frameworkAPI.setStaticViewEngine('ejs')
 
 
@@ -57,5 +63,9 @@ export class Server extends BaseServer {
         await this.fileSDK.createFolder(this.downloadsFolderPath)
     }
 
+
+    private async insertConfig(manifest: Manifest) {
+
+    }
 }
 
