@@ -1,0 +1,16 @@
+{
+    "type": "couchdb",
+    "config": {
+    },
+    "databases": [
+      {
+        "name": "pages",
+        "indexes": [
+          {
+            "index": { "fields": ["pages"] },
+            "name": "pages"
+          }
+        ]
+      }
+    ]
+  }

@@ -1,0 +1,16 @@
+{
+    "type": "couchdb",
+    "config": {
+    },
+    "databases": [
+      {
+        "name": "resourceBundle",
+        "indexes": [
+          {
+            "index": { "fields": ["en"] },
+            "name": "en"
+          }
+        ]
+      }
+    ]
+  }
