@@ -9,7 +9,11 @@ import { Framework } from './controllers/framework';
 import { Organization } from './controllers/organization';
 import { Page } from './controllers/page';
 import { ResourceBundle } from './controllers/resourceBundle';
+import { Channel } from './controllers/channel';
+import { Form } from './controllers/form';
 import DatabaseSDK from './sdk/database';
+
+import { enableLogger } from './logger'
 
 export class Server extends BaseServer {
 
@@ -27,25 +31,29 @@ export class Server extends BaseServer {
 
     constructor(manifest: Manifest) {
         super(manifest);
-        this.initialize(manifest).catch(err => {
-            console.log("Error while initializing open rap sunbird ed plugin", err);
-        })
+
+        // Added timeout since db creation is async and it is taking time and insertion is failing
+        setTimeout(() => {
+            this.initialize(manifest).catch(err => {
+                console.log("Error while initializing open rap sunbird ed plugin", err);
+            })
+        }, 5000)
+
     }
-
-
 
     async initialize(manifest: Manifest) {
 
         this.insertConfig(manifest)
+
+        // enable logger
+        enableLogger('info');
+
         await this.insertConfig(manifest)
-
-
-
 
 
         //registerAcrossAllSDKS()
         this.fileSDK.initialize(manifest.id);
-
+        this.databaseSdk.initialize(manifest.id);
 
         await this.setupDirectories()
 
@@ -71,24 +79,23 @@ export class Server extends BaseServer {
         await this.fileSDK.createFolder(this.contentFilesPath)
         await this.fileSDK.createFolder(this.downloadsFolderPath)
     }
-    insertConfig(manifest: Manifest) {
-        const framework = new Framework(manifest);
-        const organization = new Organization(manifest);
-
-        const page = new Page(manifest);
-
-        const resourceBundle = new ResourceBundle(manifest);
-
-        this.databaseSdk.initialize(manifest.id);
-        framework.insert();
-        organization.insert();
-        page.insert();
-        resourceBundle.insert();
-    }
-
 
     private async insertConfig(manifest: Manifest) {
+        const framework = new Framework(manifest);
+        const organization = new Organization(manifest);
+        const page = new Page(manifest);
+        const resourceBundle = new ResourceBundle(manifest);
+        const channel = new Channel(manifest);
+        const form = new Form(manifest);
+
+        resourceBundle.insert();
+        framework.insert();
+        organization.insert();
+        channel.insert();
+        form.insert();
+        page.insert();
 
     }
+
 }
 

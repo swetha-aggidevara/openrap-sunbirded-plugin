@@ -5,6 +5,8 @@ import * as path from 'path';
 import * as glob from 'glob';
 import * as _ from 'lodash';
 import DatabaseSDK from './../sdk/database';
+import * as fs from 'fs';
+import { logger } from './../logger';
 
 export default class ContentManager {
 
@@ -31,15 +33,39 @@ export default class ContentManager {
         this.fileSDK.initialize(pluginId);
 
         this.watcher = this.folderWatcher.addWatcher(this.downloadsFolderPath);
-        this.watcher
-            .on('add', path => {
-                console.log(`File ${path} has been added`)
+        this.watcher.on('ready', () => {
+            this.watcher
+                .on('add', path => {
+                    console.log(`File ${path} has been added`)
+                    fs.stat(path, (err, stat) => {
+                        if (err) {
+                            logger.error('Error watching file for copy completion. ERR: ' + err.message);
+                            logger.error('Error file not processed. PATH: ' + path);
+                        } else {
+                            logger.info('File copy started...');
+                            setTimeout(this.checkFileCopyComplete.bind(this), 30000, path, stat);
+                        }
+                    });
+
+                })
+                .on('unlink', path => console.log(`File ${path} has been removed`));
+        })
+    }
+
+    checkFileCopyComplete(path, prev) {
+        fs.stat(path, (err, stat) => {
+            if (err) {
+                logger.info('File stats error ', err);
+            }
+            if (stat.mtime.getTime() === prev.mtime.getTime()) {
+                logger.info('File copy complete => beginning processing for file', path);
                 this.onCreate(path)
-            })
-            .on('change', path => console.log(`File ${path} has been changed`))
-            .on('unlink', path => console.log(`File ${path} has been removed`));
-
-
+            }
+            else {
+                //TODO: This time need to move to env's
+                setTimeout(this.checkFileCopyComplete, 30000, path, stat);
+            }
+        });
     }
 
 
@@ -69,7 +95,8 @@ export default class ContentManager {
                 let metaData = items[0];
                 metaData.baseDir = path.join('content_files', path.basename(filePath, path.extname(filePath)));
                 //insert metadata to content database
-                await this.dbSDK.insert('content', metaData.identifier, metaData)
+                // TODO 
+                await this.dbSDK.insert('content', metaData, metaData.identifier)
             }
 
 
@@ -77,14 +104,6 @@ export default class ContentManager {
         } catch (error) {
             console.log("Error while importing files which are added to downloads folder ", error);
         }
-
-    }
-
-    onUpdate(filePath, currentStat, previousStat) {
-
-    }
-
-    onDelete(filePath, currentStat) {
 
     }
 

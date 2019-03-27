@@ -1,23 +1,23 @@
 const config = {
-    baseUrl: "https://dev.sunbirded.org/",
+    baseUrl: "https://diksha.gov.in/",
     resourceBundles: {
         url: "resourcebundles/v1/read/",
-        files: ['en', 'hi', 'ur'],
+        files: ['en', 'hi'],
         dest_folder: 'resourceBundles'
     },
     organizations: {
         url: "api/org/v1/search",
-        ids: ["ORG_001"],
+        ids: ["ntp"],
         dest_folder: 'organizations'
     },
     channels: {
         url: "api/channel/v1/read/",
-        ids: ["b00bc992ef25f1a9a8d63291e20efc8d"],
+        ids: ["505c7c48ac6dc1edc9b08f21db5a571d"],
         dest_folder: 'channels'
     },
     frameworks: {
         url: "api/framework/v1/read/",
-        ids: ['NCFCOPY'],
+        ids: ['NCF'],
         dest_folder: "frameworks"
     },
     forms: {
@@ -27,13 +27,13 @@ const config = {
                 "type": "content",
                 "action": "search",
                 "subType": "resourcebundle",
-                "rootOrgId": "b00bc992ef25f1a9a8d63291e20efc8d"
+                "rootOrgId": "505c7c48ac6dc1edc9b08f21db5a571d"
             },
             {
                 "type": "content",
                 "action": "search",
                 "subType": "explore",
-                "rootOrgId": "b00bc992ef25f1a9a8d63291e20efc8d"
+                "rootOrgId": "505c7c48ac6dc1edc9b08f21db5a571d"
             }
         ],
         dest_folder: "forms"
@@ -44,10 +44,9 @@ const config = {
             {
                 "source": "web",
                 "name": "Explore",
-                "filters":
-                {
-                    "channel": "b00bc992ef25f1a9a8d63291e20efc8d",
-                    "board": ["NCERT"]
+                "filters": {
+                    "channel": "505c7c48ac6dc1edc9b08f21db5a571d",
+                    "board": ["CBSE"]
                 },
                 "softConstraints": { "badgeAssertions": 98, "board": 99, "channel": 100 },
                 "mode": "soft"

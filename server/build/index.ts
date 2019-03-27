@@ -20,7 +20,7 @@ let init = async () => {
 let getOrgs = async () => {
     for (let id of config.organizations.ids) {
         let result = await axios.post(baseUrl + config.organizations.url,
-            { "request": { "filters": { "id": id, "isRootOrg": true } } })
+            { "request": { "filters": { "slug": id, "isRootOrg": true } } })
 
         await fse.ensureFile(path.join(files_path, config.organizations.dest_folder, id + '.json'))
         await fse.writeJson(path.join(files_path, config.organizations.dest_folder, id + '.json'), result.data)

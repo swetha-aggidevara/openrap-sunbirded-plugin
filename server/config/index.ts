@@ -10,7 +10,7 @@
 class Config {
     private config: object;
     constructor() {
-        this.config = {}
+        this.config = process.env
     }
 
     /**

@@ -27,29 +27,36 @@ export default class DatabaseSDK {
         return this.connection.db.use(database).get(Id);
     }
 
-    insert(database: string, Id: string, doc: any) {
-        return this.connection.db.use(database).insert(doc, Id);
+    insert(database: string, doc: any, Id?: string) {
+        if (Id) {
+            return this.connection.db.use(database).insert(doc, Id);
+        }
+        return this.connection.db.use(database).insert(doc);
     }
 
-    async update(database, docId, doc) {
-        let db = this.connection.use(database);
-        let docResponse = db.get(docId);
+    async update(database: string, docId, doc) {
+        let db = this.connection.db.use(database);
+        let docResponse = await db.get(docId);
         let result = await db.insert({ ...docResponse, ...doc });
         return result;
     }
 
-    async delete(database, docId) {
-        let db = this.connection.use(database);
-        let doc = db.get(docId);
+    async delete(database: string, docId) {
+        let db = this.connection.db.use(database);
+        let doc = await db.get(docId);
         let result = await db.destroy(doc._id, doc._rev);
         return result;
     }
 
-    createView(database, viewConfig) {
-        return this.connection.use(database).insert(viewConfig)
+    createView(database: string, viewConfig) {
+        return this.connection.db.use(database).insert(viewConfig)
     }
 
-    createIndex(database, indexDef) {
-        this.connection.use(database).createIndex(indexDef);
+    createIndex(database: string, indexDef) {
+        return this.connection.db.use(database).createIndex(indexDef);
+    }
+
+    find(database: string, searchObj: Object) {
+        return this.connection.db.use(database).find(searchObj);
     }
 }
