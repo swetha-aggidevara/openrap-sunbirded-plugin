@@ -90,6 +90,18 @@
                     }
                 }
             ]
+        },
+        {
+            "name": "telemetry",
+            "indexes": [
+                {
+                    "index": {
+                        "fields": [
+                            "syncStatus"
+                        ]
+                    }
+                }
+            ]
         }
     ]
 }

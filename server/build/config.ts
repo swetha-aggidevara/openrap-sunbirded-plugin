@@ -17,7 +17,7 @@ const config = {
     },
     frameworks: {
         url: "api/framework/v1/read/",
-        ids: ['NCF'],
+        ids: ['NCF', "pb_k-12", "as_k-12", "hr_k-12", "mh_k-12_1", "dl_k-12_1", "ts_k-12", "mn_k-12", "tn_k-12_5", "rj_k-12", "sk_k-12_1", "jk_k-12", "gj_k-12", "cg_k-12", "jh_k-12", "nl_k-12", "ga_k-12", "up_k-12", "ka_k-12", "ap_k-12_1", "ncert_k-12"],
         dest_folder: "frameworks"
     },
     forms: {

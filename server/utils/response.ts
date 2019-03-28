@@ -40,6 +40,21 @@ export default class Response {
                 responseCode: "RESOURCE_NOT_FOUND",
                 result: {}
             }
+        } else if (responseCode === 400) {
+            resObj = {
+                id: id,
+                ver: "1.0",
+                ts: new Date().toISOString(),
+                params: {
+                    resmsgid: uuid.v4(),
+                    msgid: uuid.v4(),
+                    status: "failed",
+                    err: "ERR_BAD_REQUEST",
+                    errmsg: "Error while processing the request "
+                },
+                responseCode: "CLIENT_ERROR",
+                result: {}
+            }
         } else {
             resObj = {
                 id: id,

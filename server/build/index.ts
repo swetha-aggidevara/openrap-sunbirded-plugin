@@ -3,7 +3,7 @@ import axios from 'axios';
 import * as fse from 'fs-extra';
 import * as path from 'path';
 
-const files_path = path.join(__dirname, '..', 'data');
+const files_path = path.join(__dirname, '..', '..', 'data');
 const baseUrl = config.baseUrl
 
 let init = async () => {

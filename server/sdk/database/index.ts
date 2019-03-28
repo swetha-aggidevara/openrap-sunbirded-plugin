@@ -59,4 +59,8 @@ export default class DatabaseSDK {
     find(database: string, searchObj: Object) {
         return this.connection.db.use(database).find(searchObj);
     }
+
+    bulk(database: string, documents: Object[]) {
+        return this.connection.db.use(database).bulk({ docs: documents });
+    }
 }

@@ -12,7 +12,7 @@ import { ResourceBundle } from './controllers/resourceBundle';
 import { Channel } from './controllers/channel';
 import { Form } from './controllers/form';
 import DatabaseSDK from './sdk/database';
-
+import config from './config'
 import { enableLogger } from './logger'
 
 export class Server extends BaseServer {
@@ -61,6 +61,8 @@ export class Server extends BaseServer {
             content_files
             and inserts metadata to content database
         */
+        config.set('content_files_path', this.fileSDK.geAbsolutePath(this.contentFilesPath))
+        config.set('downloads_path', this.fileSDK.geAbsolutePath(this.downloadsFolderPath))
         this.contentManager.initialize(manifest.id,
             this.fileSDK.geAbsolutePath(this.contentFilesPath),
             this.fileSDK.geAbsolutePath(this.downloadsFolderPath))

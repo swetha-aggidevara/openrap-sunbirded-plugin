@@ -10,13 +10,13 @@ import { Framework } from './controllers/framework';
 import { Page } from './controllers/page';
 import Tenant from './controllers/tenant';
 import Content from './controllers/content';
-
+import Telemetry from './controllers/telemetry';
 
 export class Router {
 	init(app: any, manifest: Manifest, auth?: any) {
 		const server = frameworkAPI.getPluginInstance(manifest.id);
 		//portal static routes
-		app.all(['/', '/explore', '/play/*'], (req, res) => {
+		app.all(['/', '/explore', '/explore/*', '/play/*'], (req, res) => {
 			const locals = this.getLocals();
 			_.forIn(locals, (value, key) => {
 				res.locals[key] = value;
@@ -49,8 +49,20 @@ export class Router {
 		let tenant = new Tenant()
 		app.get(['/v1/tenant/info/', '/v1/tenant/info/:id'], (req, res) => { tenant.get(req, res) })
 
-		let content = new Content();
+		let content = new Content(manifest);
 		app.get('/api/content/v1/read/:id', (req, res) => { content.get(req, res) })
+		app.post('/api/content/v1/search', (req, res) => { content.search(req, res) })
+
+		app.post('/api/content/v1/import', (req, res) => { content.import(req, res) })
+
+		let telemetry = new Telemetry(manifest);
+
+		app.post('/content/data/v1/telemetry', (req, res) => { telemetry.addEvents(req, res) })
+		app.post('/action/data/v3/telemetry', (req, res) => { telemetry.addEvents(req, res) })
+
+
+
+
 
 	}
 
@@ -62,14 +74,14 @@ export class Router {
 		locals.theme = ''
 		locals.defaultPortalLanguage = 'en'
 		locals.instance = 'dev'
-		locals.appId = 'local.sunbird.offline-app'
-		locals.defaultTenant = process.env.channel || 'ntp'
+		locals.appId = process.env.PDATA_ID
+		locals.defaultTenant = process.env.CHANNEL || 'ntp'
 		locals.exploreButtonVisibility = 'true'
 		locals.helpLinkVisibility = null
 		locals.defaultTenantIndexStatus = null
 		locals.extContWhitelistedDomains = null
 		locals.buildNumber = '1.15.0'
-		locals.apiCacheTtl = '0'
+		locals.apiCacheTtl = '600'
 		locals.cloudStorageUrls = null
 		locals.userUploadRefLink = null
 		locals.deviceRegisterApi = null

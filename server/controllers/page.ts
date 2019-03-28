@@ -20,12 +20,13 @@ export class Page {
     @Inject
     private fileSDK: FileSDK;
 
-    @Inject
+
     private content: Content;
 
 
     constructor(manifest: Manifest) {
         this.databaseSdk.initialize(manifest.id);
+        this.content = new Content(manifest);
     }
 
     public insert() {
