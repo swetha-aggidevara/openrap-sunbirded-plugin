@@ -74,6 +74,7 @@ export class Server extends BaseServer {
             this.fileSDK.geAbsolutePath(this.downloadsFolderPath))
 
         frameworkAPI.registerStaticRoute(this.fileSDK.geAbsolutePath(this.contentFilesPath), '/contentPlayer/preview/content_files');
+        frameworkAPI.registerStaticRoute(this.fileSDK.geAbsolutePath(this.contentFilesPath), '/contentPlayer/preview/content_files/*/content-plugins');
         frameworkAPI.registerStaticRoute(path.join(__dirname, '..', '..', 'contentPlayer', 'preview'), '/contentPlayer/preview');
         frameworkAPI.registerStaticRoute(this.fileSDK.geAbsolutePath(this.contentFilesPath), '/content_files');
         frameworkAPI.registerStaticRoute(path.join(__dirname, '..', '..', 'portal'));
