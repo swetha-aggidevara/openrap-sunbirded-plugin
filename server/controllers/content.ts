@@ -6,20 +6,36 @@ import Response from './../utils/response';
 import { Manifest } from "@project-sunbird/ext-framework-server/models";
 import * as Busboy from 'busboy';
 import * as fs from 'fs';
-import { logger } from "../logger";
+import { logger } from '@project-sunbird/ext-framework-server/logger';
 import * as path from 'path';
+import FileSDK from "../sdk/file";
+import ContentManager from "../manager/ContentManager";
 
 export default class Content {
+
+    private contentFilesPath: string = 'content_files';
+    private downloadsFolderPath: string = 'downloads';
 
     @Inject
     private databaseSdk: DatabaseSDK;
 
+    @Inject
+    private fileSDK: FileSDK;
+
+    @Inject
+    private contentManager: ContentManager;
+
     constructor(manifest: Manifest) {
-        this.databaseSdk.initialize(manifest.id)
+        this.databaseSdk.initialize(manifest.id);
+        this.fileSDK.initialize(manifest.id);
+        this.contentManager.initialize(manifest.id,
+            this.fileSDK.geAbsolutePath(this.contentFilesPath),
+            this.fileSDK.geAbsolutePath(this.downloadsFolderPath));
     }
 
     searchInDB(filters) {
-        let modifiedFilters = _.mapValues(filters, (v) => ({ '$in': v }));
+        let modifiedFilters: Object = _.mapValues(filters, (v) => ({ '$in': v }));
+        modifiedFilters['visibility'] = 'Default';
         let dbFilters = {
             selector: modifiedFilters,
             limit: parseInt(config.get('CONTENT_SEARCH_LIMIT'), 10)
@@ -89,13 +105,23 @@ export default class Content {
     import(req: any, res: any): any {
         let downloadsPath = config.get('downloads_path');
         let busboy = new Busboy({ headers: req.headers });
+
         busboy.on('file', (fieldname, file, filename, encoding, mimetype) => {
-            logger.info('Uploading of file ' + path.join(downloadsPath, filename) + "started");
+            let filePath = path.join(downloadsPath, filename);
+            req.filePath = filePath
+            logger.info(`Uploading of file  ${filePath} started`);
             file.pipe(fs.createWriteStream(path.join(downloadsPath, filename)));
         });
         busboy.on('finish', () => {
-            logger.info('Upload complete');
-            res.send({ success: true })
+            logger.info(`Upload complete of the file ${req.filePath}`);
+            this.contentManager.onCreate(req.filePath).then(data => {
+                logger.info(`File extraction successful for file ${req.filePath}`);
+                res.send({ success: true })
+            }).catch(error => {
+                logger.error(`Error while file extraction  of file ${req.filePath}`, error);
+                res.send({ error: true })
+            })
+
         });
 
         return req.pipe(busboy);

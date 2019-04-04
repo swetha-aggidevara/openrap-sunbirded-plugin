@@ -63,4 +63,8 @@ export default class DatabaseSDK {
     bulk(database: string, documents: Object[]) {
         return this.connection.db.use(database).bulk({ docs: documents });
     }
+
+    list(database: string, options: Object) {
+        return this.connection.db.use(database).list(options);
+    }
 }

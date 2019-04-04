@@ -3,7 +3,7 @@
  */
 import * as fse from 'fs-extra';
 import * as path from 'path';
-import * as unzipper from 'unzipper';
+import * as DecompressZip from 'decompress-zip';
 
 /**
  * This SDK provides methods to handle file deleting , folder creation and deletion prefixed with pluginId
@@ -17,7 +17,7 @@ export default class FileSDK {
 
     initialize(pluginId: string): void {
         this.pluginId = pluginId;
-        this.prefixPath = path.join(__dirname, '..', '..', '..', this.pluginId);
+        this.prefixPath = path.join(__dirname, '..', '..', '..', '..');
     }
 
     /**
@@ -77,13 +77,18 @@ export default class FileSDK {
         }
 
         return new Promise((resolve, reject) => {
-            fse.createReadStream(filePath).pipe(unzipper.Extract({ path: destFolderName }))
-                .on('error', (err) => {
-                    reject(err.message)
-                })
-                .on('close', () => {
-                    resolve(path.join(destPath, destFolderName))
-                })
+            let unzipper = new DecompressZip(filePath)
+            unzipper.on('error', function (err) {
+                reject(err.message)
+            });
+
+            unzipper.on('extract', function (log) {
+                resolve(path.join(destFolderName))
+            });
+
+            unzipper.extract({
+                path: destFolderName
+            });
         })
     }
 

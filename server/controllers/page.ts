@@ -9,7 +9,7 @@ import * as uuid from 'uuid';
 import Response from './../utils/response';
 import config from './../config'
 import Content from './content';
-import { logger } from '../logger';
+import { logger } from '@project-sunbird/ext-framework-server/logger';
 
 
 

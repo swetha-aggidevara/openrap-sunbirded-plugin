@@ -16,7 +16,7 @@ export class Router {
 	init(app: any, manifest: Manifest, auth?: any) {
 		const server = frameworkAPI.getPluginInstance(manifest.id);
 		//portal static routes
-		app.all(['/', '/explore', '/explore/*', '/play/*'], (req, res) => {
+		app.all(['/', '/explore', '/explore/*', '/play/*', '/import/content', '/get', '/get/*'], (req, res) => {
 			const locals = this.getLocals();
 			_.forIn(locals, (value, key) => {
 				res.locals[key] = value;
@@ -51,6 +51,8 @@ export class Router {
 
 		let content = new Content(manifest);
 		app.get('/api/content/v1/read/:id', (req, res) => { content.get(req, res) })
+		app.get('/api/course/v1/hierarchy/:id', (req, res) => { content.get(req, res) })
+
 		app.post('/api/content/v1/search', (req, res) => { content.search(req, res) })
 
 		app.post('/api/content/v1/import', (req, res) => { content.import(req, res) })
@@ -60,7 +62,7 @@ export class Router {
 		app.post('/content/data/v1/telemetry', (req, res) => { telemetry.addEvents(req, res) })
 		app.post('/action/data/v3/telemetry', (req, res) => { telemetry.addEvents(req, res) })
 
-
+		app.post('/api/v1/device/registry/:id', (req, res) => { telemetry.registerDevice(req, res) })
 
 
 
@@ -88,6 +90,8 @@ export class Router {
 		locals.googleCaptchaSiteKey = null
 		locals.videoMaxSize = null
 		locals.reportsLocation = null
+		locals.deviceRegisterApi = '/api/v1/device/registry/'
+
 		return locals;
 	}
 }

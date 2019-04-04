@@ -13,7 +13,8 @@ import { Channel } from './controllers/channel';
 import { Form } from './controllers/form';
 import DatabaseSDK from './sdk/database';
 import config from './config'
-import { enableLogger } from './logger'
+import { logger } from '@project-sunbird/ext-framework-server/logger';
+import TelemetrySDK from './sdk/telemetry';
 
 export class Server extends BaseServer {
 
@@ -29,13 +30,17 @@ export class Server extends BaseServer {
     @Inject
     private fileSDK: FileSDK;
 
+    @Inject
+    private telemetrySDK: TelemetrySDK;
+
     constructor(manifest: Manifest) {
         super(manifest);
 
         // Added timeout since db creation is async and it is taking time and insertion is failing
         setTimeout(() => {
             this.initialize(manifest).catch(err => {
-                console.log("Error while initializing open rap sunbird ed plugin", err);
+                logger.error("Error while initializing open rap sunbird ed plugin", err);
+                this.sunbirded_plugin_initialized = true;
             })
         }, 5000)
 
@@ -46,7 +51,7 @@ export class Server extends BaseServer {
         this.insertConfig(manifest)
 
         // enable logger
-        enableLogger('info');
+        //enableLogger('info');
 
         await this.insertConfig(manifest)
 
@@ -54,6 +59,7 @@ export class Server extends BaseServer {
         //registerAcrossAllSDKS()
         this.fileSDK.initialize(manifest.id);
         this.databaseSdk.initialize(manifest.id);
+        this.telemetrySDK.initialize(manifest.id);
 
         await this.setupDirectories()
 
@@ -67,9 +73,11 @@ export class Server extends BaseServer {
             this.fileSDK.geAbsolutePath(this.contentFilesPath),
             this.fileSDK.geAbsolutePath(this.downloadsFolderPath))
 
-        frameworkAPI.registerStaticRoute(path.join(__dirname, this.contentFilesPath));
-
+        frameworkAPI.registerStaticRoute(this.fileSDK.geAbsolutePath(this.contentFilesPath), '/contentPlayer/preview/content_files');
+        frameworkAPI.registerStaticRoute(path.join(__dirname, '..', '..', 'contentPlayer', 'preview'), '/contentPlayer/preview');
+        frameworkAPI.registerStaticRoute(this.fileSDK.geAbsolutePath(this.contentFilesPath), '/content_files');
         frameworkAPI.registerStaticRoute(path.join(__dirname, '..', '..', 'portal'));
+        frameworkAPI.registerStaticRoute(path.join(__dirname, '..', '..', 'sunbird-plugins'), '/sunbird-plugins');
         frameworkAPI.setStaticViewEngine('ejs')
 
 
