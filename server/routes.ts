@@ -83,7 +83,7 @@ export class Router {
 		locals.defaultTenantIndexStatus = null
 		locals.extContWhitelistedDomains = null
 		locals.buildNumber = '1.15.0'
-		locals.apiCacheTtl = '600'
+		locals.apiCacheTtl = '5'
 		locals.cloudStorageUrls = null
 		locals.userUploadRefLink = null
 		locals.deviceRegisterApi = null

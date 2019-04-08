@@ -43,8 +43,8 @@ export class Page {
     }
 
     get(req: any, res: any) {
-        let reqBody = req.body;
 
+        let reqBody = req.body;
         let pageReqObject = {
             selector: {
                 name: _.get(reqBody, 'request.name')
@@ -52,6 +52,7 @@ export class Page {
         }
 
         let pageReqFilter = _.get(reqBody, 'request.filters');
+        let mode = _.get(reqBody, 'request.mode');
         let contentSearchFields = config.get('CONTENT_SEARCH_FIELDS').split(',');
 
         let filters = _.pick(pageReqFilter, contentSearchFields);
@@ -66,23 +67,26 @@ export class Page {
             let page = data[0];
 
             let sectionPromises = [];
-            let sections = [];
             page.sections.forEach((section) => {
                 let searchQuery = JSON.parse(section.searchQuery);
                 let sectionFilters = _.get(searchQuery, 'request.filters');
                 sectionFilters = _.pick(sectionFilters, contentSearchFields);
                 sectionFilters = _.mapValues(sectionFilters, function (v) { return _.isString(v) ? [v] : v; });
                 let dbFilter = {}
-
-                _.forEach(contentSearchFields, (v) => {
-                    sectionFilters[v] = sectionFilters[v] || [];
-                    filters[v] = filters[v] || [];
-                    let uniqFilter = _.uniq(_.concat(sectionFilters[v], filters[v]));
-                    if (uniqFilter && uniqFilter.length) {
-                        dbFilter[v] = uniqFilter;
-                    }
-                })
-
+                //  If mode is soft we are not adding the filters from the request object 
+                //  else we will concat and uniq the filters and if is not empty then
+                if (mode === 'soft') {
+                    dbFilter = sectionFilters;
+                } else {
+                    _.forEach(contentSearchFields, (v) => {
+                        sectionFilters[v] = sectionFilters[v] || [];
+                        filters[v] = filters[v] || [];
+                        let uniqFilter = _.uniq(_.concat(sectionFilters[v], filters[v]));
+                        if (uniqFilter && uniqFilter.length) {
+                            dbFilter[v] = uniqFilter;
+                        }
+                    })
+                }
                 sectionPromises.push(this.getSection(dbFilter, section));
             })
             Promise.all(sectionPromises)
@@ -115,7 +119,6 @@ export class Page {
     }
 
     getSection(filter, section) {
-
         return new Promise((resolve, reject) => {
             this.content.searchInDB(filter).then(data => {
                 if (data.docs.length) {

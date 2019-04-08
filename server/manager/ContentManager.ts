@@ -1,4 +1,3 @@
-import FolderWatcher from './FolderWatcher';
 import { Inject } from 'typescript-ioc';
 import FileSDK from './../sdk/file';
 import * as path from 'path';
@@ -74,8 +73,13 @@ export default class ContentManager {
                 //insert the resources to content db
                 if (!_.isEmpty(resources)) {
                     await resources.forEach(async (resource) => {
-                        resource.baseDir = 'content_files/' + resource.identifier;
-                        resource.appIcon = resource.appIcon ? `content_files/${resource.identifier}/${resource.appIcon}` : resource.appIcon;
+                        if (_.indexOf(['application/vnd.ekstep.ecml-archive', 'application/vnd.ekstep.html-archive'], resource.mimeType) >= 0) {
+                            resource.baseDir = `content_files/${resource.identifier}`;
+                        } else {
+                            resource.baseDir = 'content_files';
+                        }
+
+                        resource.appIcon = resource.appIcon ? `content_files/${resource.appIcon}` : resource.appIcon;
                         await this.dbSDK.update('content', resource.identifier, resource).catch(async (error) => {
                             logger.error('Error while updating the content from db before inserting ', error);
                             await this.dbSDK.insert('content', resource, resource.identifier);
@@ -91,7 +95,6 @@ export default class ContentManager {
                         logger.error('Error while reading the directory when importing collection', err)
                     } else {
                         files.forEach(async (file) => {
-                            // Do whatever you want to do with the file
                             fs.lstat(path.join(parentDirPath, file), async (err, stats) => {
                                 if (err) {
                                     logger.error('Error while reading files from collection directory', err)
@@ -117,21 +120,23 @@ export default class ContentManager {
                                         await fse.ensureFile(path.join(parentDirPath, file, 'manifest.json')).catch(err => {
                                             if (err) {
                                                 logger.error(`Error while creating manifest for file ${file}`, err);
-                                                throw err;
                                             }
                                         })
                                         await fse.outputJson(path.join(parentDirPath, file, 'manifest.json'), manifest).catch(err => {
                                             if (err) {
                                                 logger.error(`Error while updating manifest for file ${file} with manifest ${manifest}`, err);
-                                                throw err;
                                             }
                                         })
                                         await fse.copy(path.join(parentDirPath, file), path.join(this.contentFilesPath, file)).catch(err => {
                                             if (err) {
                                                 logger.error(`Error while copying the folder ${path.join(parentDirPath, file)} to content files from collection`, err);
-                                                throw err;
                                             }
                                         })
+                                        let zipFilePath = glob.sync(path.join(this.contentFilesPath, file, '**', '*.zip'), {});
+                                        if (zipFilePath.length > 0) {
+                                            // unzip the file if we have zip file
+                                            await this.fileSDK.unzipFile(zipFilePath[0], path.join(this.contentFilesPath, file), false)
+                                        }
                                     }
                                 }
                             })

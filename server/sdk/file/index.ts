@@ -4,6 +4,7 @@
 import * as fse from 'fs-extra';
 import * as path from 'path';
 import * as DecompressZip from 'decompress-zip';
+import * as _ from 'lodash';
 
 /**
  * This SDK provides methods to handle file deleting , folder creation and deletion prefixed with pluginId
@@ -120,5 +121,13 @@ export default class FileSDK {
 
     geAbsolutePath(file_path) {
         return path.join(this.prefixPath, file_path);
+    }
+
+    move(source: string, destination: string, options?: any) {
+        let defaultOptions = { overwrite: true };
+        if (!_.isEmpty(options)) {
+            defaultOptions = { ...defaultOptions, ...options };
+        }
+        return fse.move(path.join(this.prefixPath, source), path.join(this.prefixPath, destination), defaultOptions)
     }
 }

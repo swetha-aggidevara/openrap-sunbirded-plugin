@@ -1,5 +1,5 @@
 const config = {
-    baseUrl: "https://diksha.gov.in/",
+    baseUrl: "https://dev.sunbirded.org/",
     resourceBundles: {
         url: "resourcebundles/v1/read/",
         files: ['en', 'hi'],

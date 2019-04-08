@@ -15,6 +15,7 @@ import DatabaseSDK from './sdk/database';
 import config from './config'
 import { logger } from '@project-sunbird/ext-framework-server/logger';
 import TelemetrySDK from './sdk/telemetry';
+import { async } from 'rxjs/internal/scheduler/async';
 
 export class Server extends BaseServer {
 
@@ -37,12 +38,12 @@ export class Server extends BaseServer {
         super(manifest);
 
         // Added timeout since db creation is async and it is taking time and insertion is failing
-        setTimeout(() => {
-            this.initialize(manifest).catch(err => {
-                logger.error("Error while initializing open rap sunbird ed plugin", err);
-                this.sunbirded_plugin_initialized = true;
-            })
-        }, 5000)
+
+        this.initialize(manifest).catch(err => {
+            logger.error("Error while initializing open rap sunbird ed plugin", err);
+            this.sunbirded_plugin_initialized = true;
+        })
+
 
     }
 
@@ -50,11 +51,9 @@ export class Server extends BaseServer {
 
         this.insertConfig(manifest)
 
-        // enable logger
-        //enableLogger('info');
-
-        await this.insertConfig(manifest)
-
+        setTimeout(async () => {
+            await this.insertConfig(manifest)
+        }, 5000)
 
         //registerAcrossAllSDKS()
         this.fileSDK.initialize(manifest.id);

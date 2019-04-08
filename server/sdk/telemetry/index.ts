@@ -19,6 +19,9 @@ import uuid = require("uuid");
 import * as zlib from 'zlib';
 import * as fs from 'fs';
 import { async } from "rxjs/internal/scheduler/async";
+import config from "../../config";
+import axios from 'axios';
+import * as jwt from 'jsonwebtoken';
 
 @Singleton
 export default class TelemetrySDK {
@@ -129,36 +132,121 @@ export default class TelemetrySDK {
     private periodicSync() {
         let interval = parseInt(process.env.TELEMETRY_SYNC_INTERVAL, 10)
         setInterval(() => {
+            // check if system is online
             isOnline().then((online: boolean) => {
                 if (online) {
-                    fs.readdir(this.telemetryFolderPath, async (err, files) => {
-                        if (err) {
-                            logger.error('Error while reading gzip files from telemetry folder ', err)
-                        } else {
-                            //filtering file so that only gz files are taken
-                            let filteredFiles = _.filter(files, (file) => {
-                                return _.endsWith(file, '.gz');
-                            })
 
-                            logger.info('files list', filteredFiles)
-                        }
-                    });
+                    this.sync().catch(err => {
+                        logger.error('Error while syncing the events', err);
+                    })
                 }
             })
         }, (interval * 60 * 1000))
 
-        // check if system is online
+    }
+
+    // Force sync the telemetry
+    async sync() {
+
+        // get device id
+
+        // get the token 
+
+        // check api token exists
+
+        // if not call register api to get the key and secret
+
+        // create token with the 
 
         // get the  list of gzip files
+
+
 
         // sync the gzip files to end point
 
         // move the successfully synced gzip to telemetry-archive
 
+
+
+        let doc = await this.databaseSdk.get('config', 'deviceInfo').catch(err => {
+            logger.error('while getting device info from database', err.message);
+            throw Error(err);
+        });
+
+        let APIToken = await this.getAPIToken(doc['did']);
+
+        fs.readdir(this.telemetryFolderPath, async (err, files) => {
+            if (err) {
+                logger.error('Error while reading gzip files from telemetry folder ', err)
+            } else {
+                //filtering file so that only gz files are taken
+                let filteredFiles = _.filter(files, (file) => {
+                    return _.endsWith(file, '.gz');
+                })
+                let headers = {
+                    "Authorization": `Bearer ${APIToken}`,
+                    "Content-Type": "gzip"
+                }
+                for (let file of filteredFiles) {
+                    await axios.post(
+                        (process.env.API_URL + process.env.TELEMETRY_SYNC_URL),
+                        fs.createReadStream(path.join(this.telemetryFolderPath, file)),
+                        { headers: headers }
+                    ).then(async (response) => {
+
+                        // after syncing telemetry moving file to archive  folder
+                        await this.fileSDK.move(path.join('data', 'telemetry', file), path.join('data', 'telemetryArchive', file)).catch(err => {
+                            logger.error(`while moving file ${file} to archive folder after successful sync`);
+                        })
+                        logger.debug(`successfully synced telemetry of the file ${file}. ${JSON.stringify(response.data)}`)
+                    }).catch(err => {
+                        logger.error("While syncing the telemetry when once", err);
+                    })
+                }
+            }
+        });
+
     }
 
-    // Force sync the telemetry
-    sync(pluginId) {
+    async getAPIToken(deviceId: string) {
 
+        let deviceTokenDoc = await this.databaseSdk.get('config', 'device_token').catch(err => {
+            logger.error('while getting device token', err);
+        });
+        if (_.get(deviceTokenDoc, 'api_key')) {
+            return _.get(deviceTokenDoc, 'api_key');
+        } else {
+            let token = Buffer.from(config.get('token'), 'base64').toString('ascii');
+            if (token && deviceId) {
+                let headers = {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                }
+                let body = {
+                    "id": "api.device.register",
+                    "ver": "1.0",
+                    "ts": Date.now(),
+                    "request": {
+                        "key": deviceId
+                    }
+                }
+
+                let response = await axios.post(process.env.API_URL + process.env.DEVICE_REGISTRY_URL, body, { headers: headers })
+                    .catch(err => {
+                        logger.error(`Error while registering the device status ${err.response.status} data ${err.response.data}`);
+                        throw Error(err.message);
+                    });
+                let key = _.get(response, 'data.result.key');
+                let secret = _.get(response, 'data.result.secret');
+                let apiKey = jwt.sign({ "iss": key }, secret, { algorithm: 'HS256' })
+                await this.databaseSdk.insert('config', { api_key: apiKey }, 'device_token').catch(err => {
+                    logger.error('while inserting the api key to the  database', err);
+                })
+                return apiKey;
+
+            } else {
+                throw Error(`token or deviceID missing to register device ${deviceId}`)
+            }
+        }
     }
 }
