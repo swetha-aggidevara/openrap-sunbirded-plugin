@@ -49,7 +49,6 @@ export class Server extends BaseServer {
 
     async initialize(manifest: Manifest) {
 
-        this.insertConfig(manifest)
 
         setTimeout(async () => {
             await this.insertConfig(manifest)
