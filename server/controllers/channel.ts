@@ -6,6 +6,7 @@ import * as glob from 'glob';
 import FileSDK from '../sdk/file';
 import * as _ from "lodash";
 import Response from './../utils/response'
+import { logger } from '@project-sunbird/ext-framework-server/logger';
 
 export class Channel {
     @Inject
@@ -27,7 +28,9 @@ export class Channel {
             let channel = await this.fileSDK.readJSON(file);
             let _id = path.basename(file, path.extname(file));
             let doc = _.get(channel, 'result.channel');
-            await this.databaseSdk.insert('channel', doc, _id);
+            await this.databaseSdk.upsert('channel', _id, doc).catch(err => {
+                logger.error(`while upserting the ${_id} to channel database ${err.message} ${err.reason}`)
+            });
         });
     }
 

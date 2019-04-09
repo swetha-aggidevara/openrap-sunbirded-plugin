@@ -67,4 +67,25 @@ export default class DatabaseSDK {
     list(database: string, options: Object) {
         return this.connection.db.use(database).list(options);
     }
+
+    async upsert(database: string, docId: string, doc: any) {
+        let db = this.connection.db.use(database);
+        let docNotFound = false;
+        let docResponse = await db.get(docId).catch(err => {
+            if (err.statusCode === 404) {
+                docNotFound = true;
+            } else {
+                // if error is not doc not found then throwing error 
+                throw Error(err)
+            }
+        });
+        let result;
+        if (docNotFound) {
+            result = await db.insert(doc, docId);
+        } else {
+            result = await db.insert({ ...docResponse, ...doc });
+        }
+
+        return result;
+    }
 }

@@ -7,6 +7,7 @@ import * as glob from 'glob';
 import FileSDK from '../sdk/file';
 import * as _ from "lodash";
 import Response from "./../utils/response";
+import { logger } from '@project-sunbird/ext-framework-server/logger';
 
 export class Organization {
     @Inject
@@ -28,7 +29,9 @@ export class Organization {
             let organization = await this.fileSDK.readJSON(file);
             let _id = path.basename(file, path.extname(file));
             let doc = _.get(organization, 'result.response.content[0]');
-            await this.databaseSdk.insert('organization', doc, _id);
+            await this.databaseSdk.upsert('organization', _id, doc).catch(err => {
+                logger.error(`while upserting the ${_id} to channel database ${err.message} ${err.reason}`)
+            });;
         });
     }
 

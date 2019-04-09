@@ -8,6 +8,8 @@ import FileSDK from './../sdk/file';
 import * as _ from "lodash";
 import * as uuid from "uuid";
 import Response from "./../utils/response";
+import * as Hashids from 'hashids';
+import { logger } from '@project-sunbird/ext-framework-server/logger';
 
 export class Form {
 
@@ -32,9 +34,13 @@ export class Form {
             doc.rootOrgId = doc.rootOrgId || "*";
             doc.component = doc.component || "*";
             doc.framework = doc.framework || "*";
-            let _id = uuid.v4();
-            //TODO: handle multipe inserts of same form
-            await this.databaseSdk.insert('form', doc, _id);
+            let idText = `${doc.type}_${doc.subtype}_${doc.action}_${doc.rootOrgId}_${doc.framework}_${doc.component}`;
+            let hash = new Hashids(idText, 10);
+            let _id = hash.encode(1).toLowerCase();
+            //TODO: handle multiple inserts of same form
+            await this.databaseSdk.upsert('form', _id, doc).catch(err => {
+                logger.error(`while upserting the ${idText} to form database ${err.message} ${err.reason}`)
+            });
         });
     }
 

@@ -38,7 +38,9 @@ export class Page {
             let doc = _.get(page, 'result.response');
             let _id = doc.id;
             //TODO: handle multiple inserts of same page
-            await this.databaseSdk.insert('page', doc, _id);
+            await this.databaseSdk.upsert('page', _id, doc).catch(err => {
+                logger.error(`while upserting the ${_id} to channel database ${err.message} ${err.reason}`)
+            });;
         });
     }
 
