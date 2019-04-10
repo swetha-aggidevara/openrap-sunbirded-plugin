@@ -49,10 +49,8 @@ export class Server extends BaseServer {
 
     async initialize(manifest: Manifest) {
 
-
-        setTimeout(async () => {
-            await this.insertConfig(manifest)
-        }, 5000)
+        // insert meta data for app
+        await this.insertConfig(manifest)
 
         //registerAcrossAllSDKS()
         this.fileSDK.initialize(manifest.id);
