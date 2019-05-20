@@ -3,10 +3,10 @@ import { Inject } from 'typescript-ioc';
 import * as path from 'path';
 import { Manifest, } from '@project-sunbird/ext-framework-server/models';
 import * as glob from 'glob';
-import FileSDK from '../sdk/file';
 import * as _ from "lodash";
 import Response from './../utils/response'
 import { logger } from '@project-sunbird/ext-framework-server/logger';
+import FileSDK from "OpenRAP/dist/sdks/FileSDK";
 
 export class Channel {
     @Inject

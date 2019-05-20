@@ -8,29 +8,26 @@ import * as Busboy from 'busboy';
 import * as fs from 'fs';
 import { logger } from '@project-sunbird/ext-framework-server/logger';
 import * as path from 'path';
-import FileSDK from "../sdk/file";
+import { containerAPI } from 'OpenRAP/dist/api';
 import ContentManager from "../manager/ContentManager";
 
 export default class Content {
 
-    private contentFilesPath: string = 'content_files';
-    private downloadsFolderPath: string = 'downloads';
+    private contentFilesPath: string = 'content';
+    private ecarsFolderPath: string = 'ecars';
 
     @Inject
     private databaseSdk: DatabaseSDK;
-
-    @Inject
-    private fileSDK: FileSDK;
 
     @Inject
     private contentManager: ContentManager;
 
     constructor(manifest: Manifest) {
         this.databaseSdk.initialize(manifest.id);
-        this.fileSDK.initialize(manifest.id);
+        const fileSDK = containerAPI.getFileSDKInstance(manifest.id);
         this.contentManager.initialize(manifest.id,
-            this.fileSDK.geAbsolutePath(this.contentFilesPath),
-            this.fileSDK.geAbsolutePath(this.downloadsFolderPath));
+            fileSDK.getAbsPath(this.contentFilesPath),
+            fileSDK.getAbsPath(this.ecarsFolderPath));
     }
 
     searchInDB(filters) {
@@ -103,14 +100,14 @@ export default class Content {
     }
 
     import(req: any, res: any): any {
-        let downloadsPath = config.get('downloads_path');
+        let ecarsPath = config.get('ecars_path');
         let busboy = new Busboy({ headers: req.headers });
 
         busboy.on('file', (fieldname, file, filename, encoding, mimetype) => {
-            let filePath = path.join(downloadsPath, filename);
+            let filePath = path.join(ecarsPath, filename);
             req.filePath = filePath
             logger.info(`Uploading of file  ${filePath} started`);
-            file.pipe(fs.createWriteStream(path.join(downloadsPath, filename)));
+            file.pipe(fs.createWriteStream(path.join(ecarsPath, filename)));
         });
         busboy.on('finish', () => {
             logger.info(`Upload complete of the file ${req.filePath}`);
@@ -126,5 +123,4 @@ export default class Content {
 
         return req.pipe(busboy);
     }
-
 }

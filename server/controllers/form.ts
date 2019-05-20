@@ -4,7 +4,7 @@ import { Manifest } from '@project-sunbird/ext-framework-server/models';
 import { Inject } from 'typescript-ioc';
 import * as path from 'path';
 import * as glob from 'glob';
-import FileSDK from './../sdk/file';
+import FileSDK from "OpenRAP/dist/sdks/FileSDK";
 import * as _ from "lodash";
 import * as uuid from "uuid";
 import Response from "./../utils/response";

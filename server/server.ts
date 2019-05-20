@@ -4,7 +4,6 @@ import { frameworkAPI } from '@project-sunbird/ext-framework-server/api';
 import * as path from 'path';
 import { Inject } from 'typescript-ioc';
 import ContentManager from './manager/ContentManager'
-import FileSDK from './sdk/file';
 import { Framework } from './controllers/framework';
 import { Organization } from './controllers/organization';
 import { Page } from './controllers/page';
@@ -15,13 +14,15 @@ import DatabaseSDK from './sdk/database';
 import config from './config'
 import { logger } from '@project-sunbird/ext-framework-server/logger';
 import TelemetrySDK from './sdk/telemetry';
-import { async } from 'rxjs/internal/scheduler/async';
+import { containerAPI } from 'OpenRAP/dist/api';
+import FileSDK from "OpenRAP/dist/sdks/FileSDK";
 
 export class Server extends BaseServer {
 
     private sunbirded_plugin_initialized = false;
-    private contentFilesPath: string = 'content_files';
-    private downloadsFolderPath: string = 'downloads';
+    private ecarsFolderPath: string = 'ecars';
+    private contentFilesPath: string = 'content';
+    private telemetryArchievedFolderPath: string = 'telemetry_archived';
 
     @Inject
     private databaseSdk: DatabaseSDK;
@@ -29,7 +30,7 @@ export class Server extends BaseServer {
     private contentManager: ContentManager;
 
     @Inject
-    private fileSDK: FileSDK;
+    private fileSDK: FileSDK
 
     @Inject
     private telemetrySDK: TelemetrySDK;
@@ -38,53 +39,51 @@ export class Server extends BaseServer {
         super(manifest);
 
         // Added timeout since db creation is async and it is taking time and insertion is failing
-
         this.initialize(manifest).catch(err => {
             logger.error("Error while initializing open rap sunbird ed plugin", err);
             this.sunbirded_plugin_initialized = true;
         })
-
-
     }
 
     async initialize(manifest: Manifest) {
+        const pluginConfig = {
+            pluginVer: manifest.version,
+            apiToken: '',
+            apiBaseURL: '',
+            apiTokenRefreshFn: ''
+        }
+        await containerAPI.register(manifest.id, pluginConfig);
 
-        // insert meta data for app
-        await this.insertConfig(manifest)
+        const fileSDK = containerAPI.getFileSDKInstance(manifest.id);
 
-        //registerAcrossAllSDKS()
-        this.fileSDK.initialize(manifest.id);
+        await this.fileSDK.mkdir(this.contentFilesPath)
+        await this.fileSDK.mkdir(this.ecarsFolderPath)
+        await this.fileSDK.mkdir(this.telemetryArchievedFolderPath)
+
         this.databaseSdk.initialize(manifest.id);
         this.telemetrySDK.initialize(manifest.id);
 
-        await this.setupDirectories()
+        await this.insertConfig(manifest);
 
         /* used to listen for content added to downloads folder and unzip them to 
             content_files
             and inserts metadata to content database
         */
-        config.set('content_files_path', this.fileSDK.geAbsolutePath(this.contentFilesPath))
-        config.set('downloads_path', this.fileSDK.geAbsolutePath(this.downloadsFolderPath))
+        config.set('content_files_path', fileSDK.getAbsPath(this.contentFilesPath))
+        config.set('ecars_path', fileSDK.getAbsPath(this.ecarsFolderPath))
         this.contentManager.initialize(manifest.id,
-            this.fileSDK.geAbsolutePath(this.contentFilesPath),
-            this.fileSDK.geAbsolutePath(this.downloadsFolderPath))
+            fileSDK.getAbsPath(this.contentFilesPath),
+            fileSDK.getAbsPath(this.ecarsFolderPath))
 
-        frameworkAPI.registerStaticRoute(this.fileSDK.geAbsolutePath(this.contentFilesPath), '/contentPlayer/preview/content_files');
-        frameworkAPI.registerStaticRoute(this.fileSDK.geAbsolutePath(this.contentFilesPath), '/contentPlayer/preview/content_files/*/content-plugins');
+        frameworkAPI.registerStaticRoute(fileSDK.getAbsPath(this.contentFilesPath), '/contentPlayer/preview/content_files');
+        frameworkAPI.registerStaticRoute(fileSDK.getAbsPath(this.contentFilesPath), '/contentPlayer/preview/content_files/*/content-plugins');
         frameworkAPI.registerStaticRoute(path.join(__dirname, '..', '..', 'contentPlayer', 'preview'), '/contentPlayer/preview');
-        frameworkAPI.registerStaticRoute(this.fileSDK.geAbsolutePath(this.contentFilesPath), '/content_files');
+        frameworkAPI.registerStaticRoute(fileSDK.getAbsPath(this.contentFilesPath), '/content');
+        frameworkAPI.registerStaticRoute(fileSDK.getAbsPath(this.ecarsFolderPath), '/ecars');
+        frameworkAPI.registerStaticRoute(fileSDK.getAbsPath(this.telemetryArchievedFolderPath), '/telemetry_archived');
         frameworkAPI.registerStaticRoute(path.join(__dirname, '..', '..', 'portal'));
         frameworkAPI.registerStaticRoute(path.join(__dirname, '..', '..', 'sunbird-plugins'), '/sunbird-plugins');
         frameworkAPI.setStaticViewEngine('ejs')
-
-
-        //- reIndex()
-        //- reConfigure()
-    }
-
-    private async setupDirectories() {
-        await this.fileSDK.createFolder(this.contentFilesPath)
-        await this.fileSDK.createFolder(this.downloadsFolderPath)
     }
 
     private async insertConfig(manifest: Manifest) {
@@ -101,9 +100,7 @@ export class Server extends BaseServer {
         channel.insert();
         form.insert();
         page.insert();
-
     }
-
 }
 
 process

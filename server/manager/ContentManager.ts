@@ -1,5 +1,4 @@
 import { Inject } from 'typescript-ioc';
-import FileSDK from './../sdk/file';
 import * as path from 'path';
 import * as glob from 'glob';
 import * as _ from 'lodash';
@@ -8,30 +7,29 @@ import { logger } from '@project-sunbird/ext-framework-server/logger';
 import * as fs from 'fs';
 import * as uuid from 'uuid';
 import * as fse from 'fs-extra';
+import { containerAPI } from 'OpenRAP/dist/api';
+import FileSDK from "OpenRAP/dist/sdks/FileSDK";
+
 
 export default class ContentManager {
 
     private pluginId: string;
     private contentFilesPath: string;
-    private downloadsFolderPath: string;
-
-    @Inject
-    private fileSDK: FileSDK
+    private ecarsFolderPath: string;
 
     @Inject dbSDK: DatabaseSDK;
+    @Inject fileSDK: FileSDK;
 
     private watcher: any;
 
-    initialize(pluginId, contentFilesPath, downloadsFolderPath) {
+    initialize(pluginId, contentFilesPath, ecarsFolderPath) {
         this.pluginId = pluginId;
-        this.downloadsFolderPath = downloadsFolderPath;
+        this.ecarsFolderPath = ecarsFolderPath;
         this.contentFilesPath = contentFilesPath;
         this.dbSDK.initialize(pluginId);
-        this.fileSDK.initialize(pluginId);
+        const fileSDK = containerAPI.getFileSDKInstance(pluginId);
     }
-
-
-
+    
     // unzip ecar 
     // read manifest
     // check if the ecar is content or collection
@@ -44,10 +42,10 @@ export default class ContentManager {
     // prepare hierarchy and insert   
     async onCreate(filePath) {
 
-        // unzip to content_files folder
-        await this.fileSDK.unzipFile(filePath, this.contentFilesPath, true)
+        // unzip to content folder
+        await this.fileSDK.unzip(filePath, this.contentFilesPath, true)
 
-        // read manifest file and add baseDir to manifest as content_files and folder name relative path
+        // read manifest file and add baseDir to manifest as content and folder name relative path
         let manifest = await this.fileSDK.readJSON(path.join(this.contentFilesPath, path.basename(filePath, path.extname(filePath)), 'manifest.json'));
         let items = _.get(manifest, 'archive.items');
         if (items && _.isArray(items) &&
@@ -59,7 +57,8 @@ export default class ContentManager {
 
             if (parent) {
                 let itemsClone = _.cloneDeep(items);
-                let children = this.createHierarchy(itemsClone, parent)
+                let children = this.createHierarchy(itemsClone, parent);
+                parent.fileName = path.basename(filePath);
                 parent['children'] = children;
                 await this.dbSDK.update('content', parent.identifier, parent).catch(async (error) => {
                     logger.error('Error while updating the content from db before inserting ', error);
@@ -74,18 +73,19 @@ export default class ContentManager {
                 if (!_.isEmpty(resources)) {
                     await resources.forEach(async (resource) => {
                         if (_.indexOf(['application/vnd.ekstep.ecml-archive', 'application/vnd.ekstep.html-archive'], resource.mimeType) >= 0) {
-                            resource.baseDir = `content_files/${resource.identifier}`;
+                            resource.baseDir = `content/${resource.identifier}`;
                         } else {
-                            resource.baseDir = 'content_files';
+                            resource.baseDir = 'content';
                         }
 
-                        resource.appIcon = resource.appIcon ? `content_files/${resource.appIcon}` : resource.appIcon;
+                        resource.appIcon = resource.appIcon ? `content/${resource.appIcon}` : resource.appIcon;
                         await this.dbSDK.update('content', resource.identifier, resource).catch(async (error) => {
                             logger.error('Error while updating the content from db before inserting ', error);
                             await this.dbSDK.insert('content', resource, resource.identifier);
                         });
                     })
                 }
+                
 
                 //copy directores to content files folder with manifest
                 let parentDirPath = path.join(this.contentFilesPath, path.basename(filePath, path.extname(filePath)));
@@ -135,7 +135,7 @@ export default class ContentManager {
                                         let zipFilePath = glob.sync(path.join(this.contentFilesPath, file, '**', '*.zip'), {});
                                         if (zipFilePath.length > 0) {
                                             // unzip the file if we have zip file
-                                            await this.fileSDK.unzipFile(zipFilePath[0], path.join(this.contentFilesPath, file), false)
+                                            await this.fileSDK.unzip(zipFilePath[0], path.join(this.contentFilesPath, file), false)
                                         }
                                     }
                                 }
@@ -150,15 +150,16 @@ export default class ContentManager {
                 let zipFilePath = glob.sync(assetFolderGlobPath, {});
                 if (zipFilePath.length > 0) {
                     // unzip the file if we have zip file
-                    await this.fileSDK.unzipFile(zipFilePath[0], path.join(this.contentFilesPath, path.basename(filePath, path.extname(filePath))), false)
+                    await this.fileSDK.unzip(zipFilePath[0], path.join(this.contentFilesPath, path.basename(filePath, path.extname(filePath))), false)
                     //commenting deletion of the file
-                    await this.fileSDK.deleteDir(path.dirname(zipFilePath[0])).catch(err => {
+                    await this.fileSDK.remove(path.dirname(zipFilePath[0])).catch(err => {
                         logger.info('Ignoring this error since deletion of the zip inside ecar is not as important for now', err)
                     })
                 }
                 let metaData = items[0];
-                metaData.baseDir = `content_files/${path.basename(filePath, path.extname(filePath))}`;
-                metaData.appIcon = metaData.appIcon ? `content_files/${path.basename(filePath, path.extname(filePath))}/${metaData.appIcon}` : metaData.appIcon;
+                metaData.baseDir = `content/${path.basename(filePath, path.extname(filePath))}`;
+                metaData.localDir = metaData.fileName = path.basename(filePath);
+                metaData.appIcon = metaData.appIcon ? `content/${path.basename(filePath, path.extname(filePath))}/${metaData.appIcon}` : metaData.appIcon;
                 //insert metadata to content database
                 // TODO: before insertion check if the first object is type of collection then prepare the collection and insert 
 
