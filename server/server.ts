@@ -65,8 +65,8 @@ export class Server extends BaseServer {
 
         await this.insertConfig(manifest);
 
-        /* used to listen for content added to downloads folder and unzip them to 
-            content_files
+        /* used to listen for content added to ecars folder and unzip them to 
+            content
             and inserts metadata to content database
         */
         config.set('content_files_path', fileSDK.getAbsPath(this.contentFilesPath))

@@ -28,7 +28,7 @@ import * as jwt from 'jsonwebtoken';
 export default class TelemetrySDK {
 
     private pluginId: string;
-    private syncURL: string = process.env.API_URL + process.env.TELEMETRY_SYNC_URL;
+    // private syncURL: string = process.env.API_URL + process.env.TELEMETRY_SYNC_URL;
 
     private telemetryFolderPath: string;
     @Inject
