@@ -1,6 +1,6 @@
 {
   "name": "openrap-sunbirded-plugin",
-  "version": "0.0.7",
+  "version": "0.0.8",
   "description": "This plugin provides api's for offline consumption",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -8,7 +8,7 @@
     "build": "node_modules/.bin/rimraf ./dist && tsc --noImplicitUseStrict  && node_modules/.bin/cpy package.json ./dist &&  node_modules/.bin/cpy  db/* dist/db/couchdb",
     "test": "echo 'go to '../test' folder to execute test cases!'",
     "prepare-data": "node_modules/.bin/rimraf ./dist && tsc --noImplicitUseStrict &&  node ./dist/build/index.js",
-    "postinstall": "cd node_modules/OpenRAP && npm run build"
+    "after-install": "cd node_modules/OpenRAP && npm run build"
   },
   "dependencies": {
     "busboy": "^0.3.0",
