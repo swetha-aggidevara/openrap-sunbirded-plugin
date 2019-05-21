@@ -4,10 +4,10 @@ import { Manifest } from '@project-sunbird/ext-framework-server/models';
 import { Inject } from 'typescript-ioc';
 import * as path from 'path';
 import * as glob from 'glob';
-import FileSDK from './../sdk/file';
 import * as _ from "lodash";
 import Response from './../utils/response'
 import { logger } from '@project-sunbird/ext-framework-server/logger';
+import { containerAPI } from 'OpenRAP/dist/api';
 
 export class Framework {
 
@@ -15,12 +15,11 @@ export class Framework {
     @Inject
     private databaseSdk: DatabaseSDK;
 
-    @Inject
-    private fileSDK: FileSDK;
+    private fileSDK;
 
     constructor(manifest: Manifest) {
         this.databaseSdk.initialize(manifest.id);
-
+        this.fileSDK = containerAPI.getFileSDKInstance(manifest.id);
     }
     public insert() {
         let frameworkFiles = path.join(__dirname, '..', 'data', 'frameworks', '**', '*.json');

@@ -11,6 +11,8 @@ class Config {
     private config: object;
     constructor() {
         this.config = process.env
+        this.config["CONTENT_SEARCH_FIELDS"] = "dialcodes,board,medium,gradeLevel,subject,contentType";
+        this.config["CONTENT_SEARCH_LIMIT"] = 1000;
     }
 
     /**

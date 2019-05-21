@@ -11,49 +11,159 @@ import { Page } from './controllers/page';
 import Tenant from './controllers/tenant';
 import Content from './controllers/content';
 import Telemetry from './controllers/telemetry';
+import * as proxy from 'express-http-proxy';
+
+const proxyUrl = process.env.APP_BASE_URL;
 
 export class Router {
 	init(app: any, manifest: Manifest, auth?: any) {
 		const server = frameworkAPI.getPluginInstance(manifest.id);
 		//portal static routes
-		app.all(['/', '/explore', '/explore/*', '/play/*', '/import/content', '/get', '/get/*'], (req, res) => {
+		app.all(['/', '/play/*', '/import/content', '/get', '/get/*', '/browse', '/browse/*'], (req, res) => {
 			const locals = this.getLocals();
 			_.forIn(locals, (value, key) => {
 				res.locals[key] = value;
 			})
-			res.render(path.join(__dirname, '..', '..', 'portal', 'index.ejs'))
+			res.render(path.join(__dirname, '..', '..', 'public', 'portal', 'index.ejs'))
 		})
+
 
 
 		// api's for portal
 
 		let resourcebundle = new ResourceBundle(manifest);
-		app.get('/resourcebundles/v1/read/:id', (req, res) => { resourcebundle.get(req, res) })
+		app.get('/resourcebundles/v1/read/:id', (req, res, next) => {
+			if (req.query.pageid === 'browse') {
+				next()
+			} else {
+				return resourcebundle.get(req, res);
+			}
+		}, proxy(proxyUrl, {
+			proxyReqPathResolver: function (req) {
+				return `/resourcebundles/v1/read/${req.params.id}`;
+			}
+		}))
 
 		let organization = new Organization(manifest);
-		app.post('/api/org/v1/search', (req, res) => { organization.search(req, res) })
+		app.post('/api/org/v1/search', (req, res, next) => {
+			if (req.query.pageid === 'browse') {
+				next()
+			} else {
+				return organization.search(req, res)
+			}
+		}, proxy(proxyUrl, {
+			proxyReqPathResolver: function (req) {
+				return `/api/org/v1/search`;
+			}
+		}))
 
 		let form = new Form(manifest);
-		app.post('/api/data/v1/form/read', (req, res) => { form.search(req, res) })
+		app.post('/api/data/v1/form/read', (req, res, next) => {
+			if (req.query.pageid === 'browse') {
+				next()
+			} else {
+				return form.search(req, res)
 
+			}
+		}, proxy(proxyUrl, {
+			proxyReqPathResolver: function (req) {
+				return `/api/data/v1/form/read`;
+			}
+		}))
 
 		let channel = new Channel(manifest);
-		app.get('/api/channel/v1/read/:id', (req, res) => { channel.get(req, res) })
+		app.get('/api/channel/v1/read/:id', (req, res, next) => {
+			if (req.query.pageid === 'browse') {
+				next()
+			} else {
+				return channel.get(req, res)
+			}
+		}, proxy(proxyUrl, {
+			proxyReqPathResolver: function (req) {
+				return `/api/channel/v1/read/${req.params.id}`;
+			}
+		}))
 
 		let framework = new Framework(manifest);
-		app.get('/api/framework/v1/read/:id', (req, res) => { framework.get(req, res) })
+		app.get('/api/framework/v1/read/:id', (req, res, next) => {
+			if (req.query.pageid === 'browse') {
+				next()
+			} else {
+				return framework.get(req, res)
+			}
+		}, proxy(proxyUrl, {
+			proxyReqPathResolver: function (req) {
+				return `/api/framework/v1/read/${req.params.id}`;
+			}
+		}))
 
 		let page = new Page(manifest);
-		app.post('/api/data/v1/page/assemble', (req, res) => { page.get(req, res) })
+		app.post('/api/data/v1/page/assemble', (req, res, next) => {
+			if (req.query.pageid === 'browse') {
+				next()
+			} else {
+				return page.get(req, res)
+
+			}
+		}, proxy(proxyUrl, {
+			proxyReqPathResolver: function (req) {
+				return `/api/data/v1/page/assemble`;
+			}
+		}))
 
 		let tenant = new Tenant()
-		app.get(['/v1/tenant/info/', '/v1/tenant/info/:id'], (req, res) => { tenant.get(req, res) })
+		app.get(['/v1/tenant/info/', '/v1/tenant/info/:id'], (req, res, next) => {
+			if (req.query.pageid === 'browse') {
+				next()
+			} else {
+				tenant.get(req, res)
+				return
+			}
+		}, proxy(proxyUrl, {
+			proxyReqPathResolver: function (req) {
+				return `/v1/tenant/info/`;
+			}
+		}))
 
 		let content = new Content(manifest);
-		app.get('/api/content/v1/read/:id', (req, res) => { content.get(req, res) })
-		app.get('/api/course/v1/hierarchy/:id', (req, res) => { content.get(req, res) })
+		app.get('/api/content/v1/read/:id', (req, res, next) => {
+			if (req.query.pageid === 'browse') {
+				next()
+			} else {
+				content.get(req, res)
+				return
+			}
+		}, proxy(proxyUrl, {
+			proxyReqPathResolver: function (req) {
+				return `/api/content/v1/read/${req.params.id}`;
+			}
+		}))
 
-		app.post('/api/content/v1/search', (req, res) => { content.search(req, res) })
+		app.get('/api/course/v1/hierarchy/:id', (req, res, next) => {
+			if (req.query.pageid === 'browse') {
+				next()
+			} else {
+				content.get(req, res)
+				return
+			}
+		}, proxy(proxyUrl, {
+			proxyReqPathResolver: function (req) {
+				return `/api/course/v1/hierarchy/${req.params.id}`;
+			}
+		}))
+
+		app.post('/api/content/v1/search', (req, res, next) => {
+			if (req.query.pageid === 'browse') {
+				next()
+			} else {
+				content.search(req, res)
+				return
+			}
+		}, proxy(proxyUrl, {
+			proxyReqPathResolver: function (req) {
+				return `/api/content/v1/search`;
+			}
+		}));
 
 		app.post('/api/content/v1/import', (req, res) => { content.import(req, res) })
 
@@ -63,9 +173,6 @@ export class Router {
 		app.post('/action/data/v3/telemetry', (req, res) => { telemetry.addEvents(req, res) })
 
 		app.post('/api/v1/device/registry/:id', (req, res) => { telemetry.registerDevice(req, res) })
-
-
-
 	}
 
 	getLocals() {
@@ -76,13 +183,13 @@ export class Router {
 		locals.theme = ''
 		locals.defaultPortalLanguage = 'en'
 		locals.instance = 'dev'
-		locals.appId = process.env.PDATA_ID
+		locals.appId = process.env.APP_ID
 		locals.defaultTenant = process.env.CHANNEL || 'ntp'
 		locals.exploreButtonVisibility = 'true'
 		locals.helpLinkVisibility = null
 		locals.defaultTenantIndexStatus = null
 		locals.extContWhitelistedDomains = null
-		locals.buildNumber = '1.15.0'
+		locals.buildNumber = '2.0.0'
 		locals.apiCacheTtl = '5'
 		locals.cloudStorageUrls = null
 		locals.userUploadRefLink = null
@@ -91,7 +198,7 @@ export class Router {
 		locals.videoMaxSize = null
 		locals.reportsLocation = null
 		locals.deviceRegisterApi = '/api/v1/device/registry/'
-
+		locals.playerCdnEnabled = ''
 		return locals;
 	}
 }

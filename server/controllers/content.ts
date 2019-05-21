@@ -8,29 +8,30 @@ import * as Busboy from 'busboy';
 import * as fs from 'fs';
 import { logger } from '@project-sunbird/ext-framework-server/logger';
 import * as path from 'path';
-import FileSDK from "../sdk/file";
 import ContentManager from "../manager/ContentManager";
+import * as uuid from 'uuid';
+import Hashids from 'hashids';
+import { containerAPI } from "OpenRAP/dist/api";
 
 export default class Content {
 
-    private contentFilesPath: string = 'content_files';
-    private downloadsFolderPath: string = 'downloads';
+    private contentsFilesPath: string = 'content';
+    private ecarsFolderPath: string = 'ecars';
 
     @Inject
     private databaseSdk: DatabaseSDK;
 
     @Inject
-    private fileSDK: FileSDK;
-
-    @Inject
     private contentManager: ContentManager;
+
+    private fileSDK;
 
     constructor(manifest: Manifest) {
         this.databaseSdk.initialize(manifest.id);
-        this.fileSDK.initialize(manifest.id);
+        this.fileSDK = containerAPI.getFileSDKInstance(manifest.id);
         this.contentManager.initialize(manifest.id,
-            this.fileSDK.geAbsolutePath(this.contentFilesPath),
-            this.fileSDK.geAbsolutePath(this.downloadsFolderPath));
+            this.fileSDK.getAbsPath(this.contentsFilesPath),
+            this.fileSDK.getAbsPath(this.ecarsFolderPath));
     }
 
     searchInDB(filters) {
@@ -103,18 +104,22 @@ export default class Content {
     }
 
     import(req: any, res: any): any {
-        let downloadsPath = config.get('downloads_path');
+        let downloadsPath = this.fileSDK.getAbsPath(this.ecarsFolderPath);
         let busboy = new Busboy({ headers: req.headers });
 
         busboy.on('file', (fieldname, file, filename, encoding, mimetype) => {
-            let filePath = path.join(downloadsPath, filename);
-            req.filePath = filePath
+            // since file name's are having spaces we will generate uniq string as filename 
+            let hash = new Hashids(uuid.v4(), 25);
+            let uniqFileName = hash.encode(1).toLowerCase() + path.extname(filename);
+            let filePath = path.join(downloadsPath, uniqFileName);
+            req.fileName = uniqFileName;
+            req.filePath = filePath;
             logger.info(`Uploading of file  ${filePath} started`);
-            file.pipe(fs.createWriteStream(path.join(downloadsPath, filename)));
+            file.pipe(fs.createWriteStream(filePath));
         });
         busboy.on('finish', () => {
             logger.info(`Upload complete of the file ${req.filePath}`);
-            this.contentManager.onCreate(req.filePath).then(data => {
+            this.contentManager.startImport(req.fileName).then(data => {
                 logger.info(`File extraction successful for file ${req.filePath}`);
                 res.send({ success: true })
             }).catch(error => {
