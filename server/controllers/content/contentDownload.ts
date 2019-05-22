@@ -16,9 +16,10 @@ export enum CONTENT_DOWNLOAD_STATUS {
     Submitted = "SUBMITTED",
     Completed = "COMPLETED",
     Extracted = "EXTRACTED",
-    Indexed = "INDEXED"
+    Indexed = "INDEXED",
+    Failed = "FAILED"
 }
-
+let dbName = "content_download";
 export default class ContentDownload {
 
     private contentsFilesPath: string = 'content';
@@ -48,18 +49,23 @@ export default class ContentDownload {
 
                         // insert to the to content_download_queue
                         // add the content to queue using downloadManager
-
-                        let downloadId = await downloadManager.download({
+                        let downloadFiles = [{
                             id: (_.get(content, "data.result.content.identifier") as string),
                             url: (_.get(content, "data.result.content.downloadUrl") as string),
                             size: (_.get(content, "data.result.content.size") as number)
-                        }, 'ecars')
-                        await this.databaseSdk.insert("content_download", {
+                        }]
+                        let downloadId = await downloadManager.download(downloadFiles, 'ecars')
+                        let queueMetaData = {
+                            mimeType: _.get(content, 'data.result.content.mimeType'),
+                            items: downloadFiles,
+                        }
+
+                        await this.databaseSdk.insert(dbName, {
                             downloadId: downloadId,
                             contentId: _.get(content, "data.result.content.identifier"),
                             name: _.get(content, "data.result.content.name"),
                             status: CONTENT_DOWNLOAD_STATUS.Submitted,
-                            metadata: _.get(content, 'data.result.content'),
+                            queueMetaData: queueMetaData,
                             createdOn: Date.now(),
                             updatedOn: Date.now()
                         })
@@ -102,12 +108,16 @@ export default class ContentDownload {
 
                         }
                         let downloadId = await downloadManager.download(downloadFiles, 'ecars')
-                        await this.databaseSdk.insert("content_download", {
+                        let queueMetaData = {
+                            mimeType: _.get(content, 'data.result.content.mimeType'),
+                            items: downloadFiles,
+                        }
+                        await this.databaseSdk.insert(dbName, {
                             downloadId: downloadId,
                             contentId: _.get(content, "data.result.content.identifier"),
                             name: _.get(content, "data.result.content.name"),
                             status: CONTENT_DOWNLOAD_STATUS.Submitted,
-                            metadata: _.get(content, 'data.result.content'),
+                            queueMetaData: queueMetaData,
                             createdOn: Date.now(),
                             updatedOn: Date.now()
                         })
@@ -120,7 +130,7 @@ export default class ContentDownload {
 
             } catch (error) {
                 logger.error(`while processing download request ${error}, for content ${req.params.id}`);
-                res.send({ error: req.params.id })
+                return res.send(Response.error("api.content.download", 500))
             }
         })()
     }

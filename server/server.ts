@@ -15,6 +15,7 @@ import config from './config'
 import { logger } from '@project-sunbird/ext-framework-server/logger';
 import TelemetrySDK from './sdk/telemetry';
 import { containerAPI } from 'OpenRAP/dist/api';
+import { addContentListener } from './controllers/content/contentHelper';
 
 export class Server extends BaseServer {
 
@@ -64,6 +65,9 @@ export class Server extends BaseServer {
         //registerAcrossAllSDKS()
         this.databaseSdk.initialize(manifest.id);
         this.telemetrySDK.initialize(manifest.id);
+
+        // listener to index content when content downloaded
+        addContentListener(manifest.id);
 
 
         /* used to listen for content added to downloads folder and unzip them to 
