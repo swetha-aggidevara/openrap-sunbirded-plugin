@@ -1,14 +1,14 @@
 import { Inject } from "typescript-ioc";
-import DatabaseSDK from "../sdk/database";
+import DatabaseSDK from "../../sdk/database";
 import * as _ from 'lodash';
-import config from "./../config";
-import Response from './../utils/response';
+import config from "../../config";
+import Response from '../../utils/response';
 import { Manifest } from "@project-sunbird/ext-framework-server/models";
 import * as Busboy from 'busboy';
 import * as fs from 'fs';
 import { logger } from '@project-sunbird/ext-framework-server/logger';
 import * as path from 'path';
-import ContentManager from "../manager/ContentManager";
+import ContentManager from "../../manager/ContentManager";
 import * as uuid from 'uuid';
 import Hashids from 'hashids';
 import { containerAPI } from "OpenRAP/dist/api";

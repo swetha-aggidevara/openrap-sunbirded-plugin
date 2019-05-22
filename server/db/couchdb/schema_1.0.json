@@ -105,6 +105,22 @@
         },
         {
             "name": "config"
+        },
+        {
+            "name": "content_download",
+            "indexes": [
+                {
+                    "index": {
+                        "fields": [
+                            "downloadId",
+                            "contentId",
+                            "status",
+                            "createdOn",
+                            "updatedOn"
+                        ]
+                    }
+                }
+            ]
         }
     ]
 }

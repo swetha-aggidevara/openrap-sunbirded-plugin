@@ -9,9 +9,10 @@ import { Channel } from './controllers/channel';
 import { Framework } from './controllers/framework';
 import { Page } from './controllers/page';
 import Tenant from './controllers/tenant';
-import Content from './controllers/content';
+import Content from './controllers/content/content';
 import Telemetry from './controllers/telemetry';
 import * as proxy from 'express-http-proxy';
+import ContentDownload from './controllers/content/contentDownload';
 
 const proxyUrl = process.env.APP_BASE_URL;
 
@@ -167,6 +168,9 @@ export class Router {
 
 		app.post('/api/content/v1/import', (req, res) => { content.import(req, res) })
 
+		let contentDownload = new ContentDownload(manifest);
+		app.post('/api/content/v1/download/:id', (req, res) => { contentDownload.download(req, res) })
+
 		let telemetry = new Telemetry(manifest);
 
 		app.post('/content/data/v1/telemetry', (req, res) => { telemetry.addEvents(req, res) })
@@ -199,6 +203,7 @@ export class Router {
 		locals.reportsLocation = null
 		locals.deviceRegisterApi = '/api/v1/device/registry/'
 		locals.playerCdnEnabled = ''
+		locals.previewCdnUrl = ""
 		return locals;
 	}
 }

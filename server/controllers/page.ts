@@ -7,7 +7,7 @@ import * as _ from "lodash";
 import * as uuid from 'uuid';
 import Response from './../utils/response';
 import config from './../config'
-import Content from './content';
+import Content from './content/content';
 import { logger } from '@project-sunbird/ext-framework-server/logger';
 import { containerAPI } from 'OpenRAP/dist/api';
 
