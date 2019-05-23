@@ -167,6 +167,7 @@ export class Router {
 		}));
 
 		app.post('/api/content/v1/import', (req, res) => { content.import(req, res) })
+		app.get('/api/content/v1/export/:id', (req, res) => { content.export(req, res) })
 
 		let contentDownload = new ContentDownload(manifest);
 		app.post('/api/content/v1/download/list', (req, res) => { contentDownload.list(req, res) })

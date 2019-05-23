@@ -211,6 +211,7 @@ export default class ContentDownload {
                         _.forEach(inprogressItems, (item) => {
                             let contentItem = _.find(itemIn_CDB.docs, { downloadId: item.id })
                             inprogress.push({
+                                id: item.id,
                                 name: _.get(contentItem, 'name') || 'Unnamed download',
                                 totalSize: item.stats.totalSize,
                                 downloadedSize: item.stats.downloadedSize,

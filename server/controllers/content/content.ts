@@ -132,4 +132,23 @@ export default class Content {
         return req.pipe(busboy);
     }
 
+    export(req: any, res: any): any {
+        (async () => {
+            try {
+                let id = req.params.id;
+                // get the data from content db     
+                let content = await this.databaseSdk.get('content', id);
+                if (content.mimeType !== "application/vnd.ekstep.content-collection") {
+                    let filePath = this.fileSDK.getAbsPath(path.join("ecars", content.desktopAppMetadata.ecarFile))
+                    res.download(filePath);
+                } else {
+
+                }
+            } catch (error) {
+                logger.error(` while processing the content  export ${req.params.id}  ${error}`);
+                return res.send(Response.error("api.content.export", 500))
+            }
+        })()
+    }
+
 }
