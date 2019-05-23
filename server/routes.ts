@@ -169,7 +169,9 @@ export class Router {
 		app.post('/api/content/v1/import', (req, res) => { content.import(req, res) })
 
 		let contentDownload = new ContentDownload(manifest);
+		app.post('/api/content/v1/download/list', (req, res) => { contentDownload.list(req, res) })
 		app.post('/api/content/v1/download/:id', (req, res) => { contentDownload.download(req, res) })
+
 
 		let telemetry = new Telemetry(manifest);
 

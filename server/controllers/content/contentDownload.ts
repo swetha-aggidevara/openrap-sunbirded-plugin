@@ -1,14 +1,9 @@
 import { Inject } from "typescript-ioc";
 import DatabaseSDK from "../../sdk/database";
 import * as _ from 'lodash';
-import config from "../../config";
 import Response from '../../utils/response';
 import { Manifest } from "@project-sunbird/ext-framework-server/models";
-import * as fs from 'fs';
 import { logger } from '@project-sunbird/ext-framework-server/logger';
-import * as path from 'path';
-import * as uuid from 'uuid';
-import Hashids from 'hashids';
 import { containerAPI } from "OpenRAP/dist/api";
 import { HTTPService } from "@project-sunbird/ext-framework-server/services";
 
@@ -19,6 +14,12 @@ export enum CONTENT_DOWNLOAD_STATUS {
     Indexed = "INDEXED",
     Failed = "FAILED"
 }
+enum API_DOWNLOAD_STATUS {
+    inprogress = "INPROGRESS",
+    submitted = "SUBMITTED",
+    completed = "COMPLETED",
+    failed = "FAILED"
+}
 let dbName = "content_download";
 export default class ContentDownload {
 
@@ -28,13 +29,13 @@ export default class ContentDownload {
     @Inject
     private databaseSdk: DatabaseSDK;
 
-    private fileSDK;
+    private downloadManager;
     private pluginId;
 
     constructor(manifest: Manifest) {
         this.databaseSdk.initialize(manifest.id);
-        this.fileSDK = containerAPI.getFileSDKInstance(manifest.id);
         this.pluginId = manifest.id;
+        this.downloadManager = containerAPI.getDownloadManagerInstance(this.pluginId);
     }
 
     download(req: any, res: any): any {
@@ -135,4 +136,135 @@ export default class ContentDownload {
         })()
     }
 
+    list(req: any, res: any): any {
+        (async () => {
+            try {
+                let status = [API_DOWNLOAD_STATUS.submitted, API_DOWNLOAD_STATUS.inprogress, API_DOWNLOAD_STATUS.completed, API_DOWNLOAD_STATUS.failed];
+                if (!_.isEmpty(_.get(req, 'body.request.filters.status'))) {
+                    status = _.get(req, 'body.request.filters.status');
+                }
+                let submitted = [];
+                let inprogress = [];
+                let failed = [];
+                let completed = [];
+                if (_.indexOf(status, API_DOWNLOAD_STATUS.submitted) !== -1) {
+                    // submitted - get from the content downloadDB and merge with data
+                    let submitted_CDB = await this.databaseSdk.find(dbName, {
+                        "selector": {
+                            "status": CONTENT_DOWNLOAD_STATUS.Submitted
+                        }
+                    });
+                    if (!_.isEmpty(submitted_CDB.docs)) {
+                        submitted = _.map(submitted_CDB.docs, (doc) => {
+                            return {
+                                "id": doc.downloadId,
+                                "name": doc.name,
+                                "status": CONTENT_DOWNLOAD_STATUS.Submitted,
+                                "createdOn": doc.createdOn
+                            };
+                        })
+                    }
+                }
+                if (_.indexOf(status, API_DOWNLOAD_STATUS.completed) !== -1) {
+
+                    let completed_CDB = await this.databaseSdk.find(dbName, {
+                        "selector": {
+                            "status": CONTENT_DOWNLOAD_STATUS.Indexed
+                        },
+                        "limit": 50,
+                        "sort": [
+                            {
+                                "createdOn": "desc"
+                            }
+                        ]
+                    });
+                    if (!_.isEmpty(completed_CDB.docs)) {
+                        completed = _.map(completed_CDB.docs, (doc) => {
+                            return {
+                                "id": doc.downloadId,
+                                "name": doc.name,
+                                "status": API_DOWNLOAD_STATUS.completed,
+                                "createdOn": doc.createdOn
+                            };
+                        })
+                    }
+                }
+
+                // inprogress - get from download queue and merge with content data
+                if (_.indexOf(status, API_DOWNLOAD_STATUS.inprogress) !== -1) {
+                    let inprogressItems = await this.downloadManager.list("INPROGRESS");
+                    if (!_.isEmpty(inprogressItems)) {
+                        let downloadIds = _.map(inprogressItems, 'id');
+                        submitted = _.filter(submitted, (s) => { return _.indexOf(downloadIds, s.id) === -1 });
+                        let itemIn_CDB = await this.databaseSdk.find(dbName, {
+                            "selector": {
+                                "downloadId": {
+                                    "$in": downloadIds
+                                }
+                            },
+                            "sort": [
+                                {
+                                    "createdOn": "desc"
+                                }
+                            ]
+                        });
+                        _.forEach(inprogressItems, (item) => {
+                            let contentItem = _.find(itemIn_CDB.docs, { downloadId: item.id })
+                            inprogress.push({
+                                name: _.get(contentItem, 'name') || 'Unnamed download',
+                                totalSize: item.stats.totalSize,
+                                downloadedSize: item.stats.downloadedSize,
+                                status: API_DOWNLOAD_STATUS.inprogress,
+                                createdOn: _.get(contentItem, 'createdOn') || item.createdOn
+                            })
+                        })
+                    }
+                }
+
+
+                // failed -  get from the content downloadDB and download queue
+
+                if (_.indexOf(status, API_DOWNLOAD_STATUS.failed) !== -1) {
+
+                    let failed_CDB = await this.databaseSdk.find(dbName, {
+                        "selector": {
+                            "status": CONTENT_DOWNLOAD_STATUS.Failed
+                        },
+                        "limit": 50,
+                        "sort": [
+                            {
+                                "createdOn": "desc"
+                            }
+                        ]
+                    });
+                    if (!_.isEmpty(failed_CDB.docs)) {
+                        failed = _.map(failed_CDB.docs, (doc) => {
+                            return {
+                                "id": doc.downloadId,
+                                "name": doc.name,
+                                "status": API_DOWNLOAD_STATUS.failed,
+                                "createdOn": doc.createdOn
+                            };
+                        })
+                    }
+                }
+
+
+                return res.send(Response.success("api.content.read", {
+                    response: {
+                        downloads: {
+                            submitted: submitted,
+                            inprogress: inprogress,
+                            failed: failed,
+                            completed: completed
+                        }
+                    }
+                }));
+
+            } catch (error) {
+                logger.error(`error while processing the list request, ${req.body} , error: ${error}`)
+                return res.send(Response.error("api.content.download.list", 500))
+            }
+        })()
+    }
 }

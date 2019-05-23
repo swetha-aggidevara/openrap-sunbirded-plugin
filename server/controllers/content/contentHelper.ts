@@ -100,6 +100,20 @@ export const addContentListener = (pluginId) => {
             logger.error(`while listening to content complete event ${data.id}, ${error}`)
         }
     })
+
+    EventManager.subscribe(`${pluginId}:download:failed`, async (data) => {
+        try {
+            let { docs } = await dbSDK.find(dbName, {
+                selector: {
+                    downloadId: data.id
+                }
+            });
+            let _id = docs[0]["_id"];
+            await dbSDK.update(dbName, _id, { status: CONTENT_DOWNLOAD_STATUS.Failed, updatedOn: Date.now() })
+        } catch (error) {
+            logger.error(`While updating the failed status in content download DB ${error}`);
+        }
+    })
 }
 
 export const createHierarchy = (items: any[], parent: any, tree?: any[]): any => {
