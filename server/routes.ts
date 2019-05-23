@@ -13,14 +13,24 @@ import Content from './controllers/content/content';
 import Telemetry from './controllers/telemetry';
 import * as proxy from 'express-http-proxy';
 import ContentDownload from './controllers/content/contentDownload';
+import * as url from 'url';
 
 const proxyUrl = process.env.APP_BASE_URL;
 
 export class Router {
 	init(app: any, manifest: Manifest, auth?: any) {
 		const server = frameworkAPI.getPluginInstance(manifest.id);
+
+		const enableProxy = (req) => {
+			let flag = false;
+			const refererUrl = new url.URL(req.get('referer'));
+			let pathName = refererUrl.pathname;
+			flag = _.startsWith(pathName, "/browse")
+			return flag;
+		}
+
 		//portal static routes
-		app.all(['/', '/play/*', '/import/content', '/get', '/get/*', '/browse', '/browse/*'], (req, res) => {
+		app.all(['/', '/play/*', '/import/content', '/get', '/get/*', '/browse', '/browse/*', '/search/*'], (req, res) => {
 			const locals = this.getLocals();
 			_.forIn(locals, (value, key) => {
 				res.locals[key] = value;
@@ -34,7 +44,7 @@ export class Router {
 
 		let resourcebundle = new ResourceBundle(manifest);
 		app.get('/resourcebundles/v1/read/:id', (req, res, next) => {
-			if (req.query.pageid === 'browse') {
+			if (enableProxy(req)) {
 				next()
 			} else {
 				return resourcebundle.get(req, res);
@@ -47,7 +57,7 @@ export class Router {
 
 		let organization = new Organization(manifest);
 		app.post('/api/org/v1/search', (req, res, next) => {
-			if (req.query.pageid === 'browse') {
+			if (enableProxy(req)) {
 				next()
 			} else {
 				return organization.search(req, res)
@@ -60,7 +70,7 @@ export class Router {
 
 		let form = new Form(manifest);
 		app.post('/api/data/v1/form/read', (req, res, next) => {
-			if (req.query.pageid === 'browse') {
+			if (enableProxy(req)) {
 				next()
 			} else {
 				return form.search(req, res)
@@ -74,7 +84,7 @@ export class Router {
 
 		let channel = new Channel(manifest);
 		app.get('/api/channel/v1/read/:id', (req, res, next) => {
-			if (req.query.pageid === 'browse') {
+			if (enableProxy(req)) {
 				next()
 			} else {
 				return channel.get(req, res)
@@ -87,7 +97,7 @@ export class Router {
 
 		let framework = new Framework(manifest);
 		app.get('/api/framework/v1/read/:id', (req, res, next) => {
-			if (req.query.pageid === 'browse') {
+			if (enableProxy(req)) {
 				next()
 			} else {
 				return framework.get(req, res)
@@ -100,7 +110,10 @@ export class Router {
 
 		let page = new Page(manifest);
 		app.post('/api/data/v1/page/assemble', (req, res, next) => {
-			if (req.query.pageid === 'browse') {
+			const refererUrl = new url.URL(req.get('referer'));
+			let pathName = refererUrl.pathname;
+			let flag = _.startsWith(pathName, "/browse")
+			if (flag) {
 				next()
 			} else {
 				return page.get(req, res)
@@ -114,7 +127,7 @@ export class Router {
 
 		let tenant = new Tenant()
 		app.get(['/v1/tenant/info/', '/v1/tenant/info/:id'], (req, res, next) => {
-			if (req.query.pageid === 'browse') {
+			if (enableProxy(req)) {
 				next()
 			} else {
 				tenant.get(req, res)
@@ -128,7 +141,7 @@ export class Router {
 
 		let content = new Content(manifest);
 		app.get('/api/content/v1/read/:id', (req, res, next) => {
-			if (req.query.pageid === 'browse') {
+			if (enableProxy(req)) {
 				next()
 			} else {
 				content.get(req, res)
@@ -141,7 +154,7 @@ export class Router {
 		}))
 
 		app.get('/api/course/v1/hierarchy/:id', (req, res, next) => {
-			if (req.query.pageid === 'browse') {
+			if (enableProxy(req)) {
 				next()
 			} else {
 				content.get(req, res)
@@ -154,7 +167,7 @@ export class Router {
 		}))
 
 		app.post('/api/content/v1/search', (req, res, next) => {
-			if (req.query.pageid === 'browse') {
+			if (enableProxy(req)) {
 				next()
 			} else {
 				content.search(req, res)

@@ -112,13 +112,11 @@
                 {
                     "index": {
                         "fields": [
-                            "downloadId",
-                            "contentId",
-                            "status",
-                            "createdOn",
-                            "updatedOn"
+                            "createdOn"
                         ]
-                    }
+                    },
+                    "type": "json",
+                    "name": "created_on_sort_index"
                 }
             ]
         }

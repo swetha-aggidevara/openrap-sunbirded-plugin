@@ -172,6 +172,7 @@ export default class ContentDownload {
                             "status": CONTENT_DOWNLOAD_STATUS.Indexed
                         },
                         "limit": 50,
+                        "use_index": "created_on_sort_index",
                         "sort": [
                             {
                                 "createdOn": "desc"
@@ -202,6 +203,7 @@ export default class ContentDownload {
                                     "$in": downloadIds
                                 }
                             },
+                            "use_index": "created_on_sort_index",
                             "sort": [
                                 {
                                     "createdOn": "desc"
@@ -232,6 +234,7 @@ export default class ContentDownload {
                             "status": CONTENT_DOWNLOAD_STATUS.Failed
                         },
                         "limit": 50,
+                        "use_index": "created_on_sort_index",
                         "sort": [
                             {
                                 "createdOn": "desc"
