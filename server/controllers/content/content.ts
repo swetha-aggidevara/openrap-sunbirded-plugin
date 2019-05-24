@@ -142,10 +142,24 @@ export default class Content {
                     let filePath = this.fileSDK.getAbsPath(path.join("ecars", content.desktopAppMetadata.ecarFile))
                     res.download(filePath);
                 } else {
+                    //     - get the spine ecar
+                    let spineEcarPath = path.join("ecars", content.desktopAppMetadata.ecarFile);
+                    //     - unzip to temp folder
+                    await this.fileSDK.mkdir('temp')
+                    let spineFolderPath = await this.fileSDK.unzip(spineEcarPath, 'temp', true);
+                    let manifest = await this.fileSDK.readJSON(path.join(spineFolderPath, "manifest.json"))
+                    // - read all childNodes and get non-collection items
+                    res.send(manifest)
+
+
+                    // - Read file path and unzip the files to  temp/spine_folder with visibility as Parent
+                    // - Zip the spine_folder and download  
+
 
                 }
             } catch (error) {
                 logger.error(` while processing the content  export ${req.params.id}  ${error}`);
+                res.status(500)
                 return res.send(Response.error("api.content.export", 500))
             }
         })()
