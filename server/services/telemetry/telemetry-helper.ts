@@ -58,15 +58,6 @@ export class TelemetryHelper {
   getDeviceId(callback) {
     telemetrySDK.getFingerPrint(callback);
   }
-  /**
-   *
-   * Telemetry data sync method
-   * @memberof TelemetryService
-   */
-  public syncEvents() {
-    this.telemetryProvider.syncEvents();
-    console.log('Telemetry data is Synced!');
-  }
 
   /**
    *
@@ -247,20 +238,5 @@ export class TelemetryHelper {
     const rollUp = {};
     data.forEach((element, index) => rollUp['l' + (index + 1)] = element);
     return rollUp;
-  }
-  /**
-   * returns client machine details
-   *
-   * @returns
-   * @memberof TelemetryService
-   */
-  public getUserAgent() {
-    return {
-      agent: window.navigator.appCodeName,
-      ver: window.navigator.appVersion.split(' (')[0],
-      system: '',
-      platform: window.navigator.platform,
-      raw: window.navigator.userAgent
-    };
   }
 }
