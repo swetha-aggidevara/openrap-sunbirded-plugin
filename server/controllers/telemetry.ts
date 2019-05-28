@@ -6,7 +6,7 @@ import Response from './../utils/response';
 import { Manifest } from "@project-sunbird/ext-framework-server/models";
 import { logger } from '@project-sunbird/ext-framework-server/logger';
 
-import TelemetrySDK from "../sdk/telemetry";
+import TelemetrySDK from "../services/telemetry/telemetry";
 
 
 export default class Telemetry {

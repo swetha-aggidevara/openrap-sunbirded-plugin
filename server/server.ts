@@ -13,7 +13,6 @@ import { Form } from './controllers/form';
 import DatabaseSDK from './sdk/database';
 import config from './config'
 import { logger } from '@project-sunbird/ext-framework-server/logger';
-import TelemetrySDK from './sdk/telemetry';
 import { containerAPI } from 'OpenRAP/dist/api';
 import { addContentListener } from './controllers/content/contentHelper';
 
@@ -31,9 +30,6 @@ export class Server extends BaseServer {
 
     @Inject
     private fileSDK;
-
-    @Inject
-    private telemetrySDK: TelemetrySDK;
 
     constructor(manifest: Manifest) {
         super(manifest);
@@ -64,7 +60,6 @@ export class Server extends BaseServer {
 
         //registerAcrossAllSDKS()
         this.databaseSdk.initialize(manifest.id);
-        this.telemetrySDK.initialize(manifest.id);
 
         // listener to index content when content downloaded
         addContentListener(manifest.id);

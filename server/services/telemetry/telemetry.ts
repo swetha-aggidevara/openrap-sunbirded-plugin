@@ -8,22 +8,54 @@
 */
 
 import { Inject, Singleton } from "typescript-ioc";
-import DatabaseSDK from "../database";
+import DatabaseSDK from "../../sdk/database";
 import * as path from 'path';
 import { logger } from "@project-sunbird/ext-framework-server/logger";
 import * as _ from 'lodash';
 import config from "../../config";
 import axios from 'axios';
 import * as jwt from 'jsonwebtoken';
+import { TelemetryHelper } from './telemetry-helper';
+// const telemetryHelper = new TelemetryHelper();
 
 @Singleton
 export default class TelemetrySDK {
 
     @Inject
     private databaseSdk: DatabaseSDK;
+    @Inject
+    private telemetryHelper: TelemetryHelper;
 
     initialize(pluginId: string) {
         this.databaseSdk.initialize(pluginId)
+        const telemetryConfig = {
+            userOrgDetails: {
+                userId: 'anonymous',
+                rootOrgId: '',
+                organisationIds: ['']
+            },
+            config: {
+                pdata: {
+                    id: 'offline',
+                    ver: '1.0',
+                    pid: 'offline'
+                },
+                batchsize: 10,
+                endpoint: '',
+                apislug: '',
+                host: '',
+                sid: '',
+                channel: '',
+                env: 'offline',
+                enableValidation: true,
+                timeDiff: 0,
+                dispatcher: (data) => {
+                    // TODO: sync to db
+                    console.log('dispatching data', data);
+                }
+            }
+        }
+        this.telemetryHelper.initialize(telemetryConfig);
     }
 
     addEvents(events: object[]) {
