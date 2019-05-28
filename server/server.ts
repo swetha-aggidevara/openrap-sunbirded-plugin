@@ -15,13 +15,14 @@ import config from './config'
 import { logger } from '@project-sunbird/ext-framework-server/logger';
 import TelemetrySDK from './sdk/telemetry';
 import { containerAPI } from 'OpenRAP/dist/api';
-import { addContentListener } from './controllers/content/contentHelper';
+import { addContentListener, reconciliation } from './controllers/content/contentHelper';
 
 export class Server extends BaseServer {
 
     private sunbirded_plugin_initialized = false;
     private ecarsFolderPath: string = 'ecars';
     private contentFilesPath: string = 'content';
+    private tempPath: string = 'temp';
     private telemetryArchivedFolderPath: string = 'telemetry_archived';
 
     @Inject
@@ -68,7 +69,7 @@ export class Server extends BaseServer {
 
         // listener to index content when content downloaded
         addContentListener(manifest.id);
-
+        reconciliation(manifest.id)
 
         /* used to listen for content added to downloads folder and unzip them to 
             content_files
@@ -83,6 +84,7 @@ export class Server extends BaseServer {
         frameworkAPI.registerStaticRoute(path.join(__dirname, '..', '..', 'public', 'contentPlayer', 'preview'), '/contentPlayer/preview');
         frameworkAPI.registerStaticRoute(this.fileSDK.getAbsPath(this.contentFilesPath), '/content');
         frameworkAPI.registerStaticRoute(this.fileSDK.getAbsPath(this.ecarsFolderPath), '/ecars');
+        frameworkAPI.registerStaticRoute(this.fileSDK.getAbsPath(this.tempPath), '/temp');
         frameworkAPI.registerStaticRoute(path.join(__dirname, '..', '..', 'public', 'portal'));
         frameworkAPI.registerStaticRoute(path.join(__dirname, '..', '..', 'public', 'sunbird-plugins'), '/sunbird-plugins');
         frameworkAPI.setStaticViewEngine('ejs')
