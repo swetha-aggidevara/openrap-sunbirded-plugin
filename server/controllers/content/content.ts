@@ -140,22 +140,74 @@ export default class Content {
                 let content = await this.databaseSdk.get('content', id);
                 if (content.mimeType !== "application/vnd.ekstep.content-collection") {
                     let filePath = this.fileSDK.getAbsPath(path.join("ecars", content.desktopAppMetadata.ecarFile))
-                    res.download(filePath);
+                    fs.stat(filePath, (err) => {
+                        if (err) {
+                            logger.error(`ecar file not available while exporting for content ${id} ${err}`)
+                            res.status(500)
+                            return res.send(Response.error("api.content.export", 500))
+                        } else {
+                            res.status(200)
+                            res.send(Response.success(`api.content.export`, {
+                                response: {
+                                    url: req.protocol + '://' + req.get('host') + '/ecars/' + content.desktopAppMetadata.ecarFile
+                                }
+                            }));
+                        }
+                    })
+
                 } else {
                     //     - get the spine ecar
-                    let spineEcarPath = path.join("ecars", content.desktopAppMetadata.ecarFile);
+                    let collectionEcarPath = path.join("ecars", content.desktopAppMetadata.ecarFile);
                     //     - unzip to temp folder
                     await this.fileSDK.mkdir('temp')
-                    let spineFolderPath = await this.fileSDK.unzip(spineEcarPath, 'temp', true);
-                    let manifest = await this.fileSDK.readJSON(path.join(spineFolderPath, "manifest.json"))
+                    let collectionFolderPath = await this.fileSDK.unzip(collectionEcarPath, 'temp', true);
+                    let manifest = await this.fileSDK.readJSON(path.join(collectionFolderPath, "manifest.json"))
                     // - read all childNodes and get non-collection items
-                    res.send(manifest)
+                    let items = _.get(manifest, 'archive.items');
+                    let parent: any | undefined = _.find(items, (i) => {
+                        return (i.mimeType === 'application/vnd.ekstep.content-collection' && i.visibility === 'Default')
+                    });
+                    const childNodes = _.get(parent, 'childNodes');
+                    let collectionFolderRelativePath = path.join('temp', path.parse(collectionEcarPath).name);
 
+                    if (!_.isEmpty(childNodes)) {
+                        let { docs: childContents = [] } = await this.databaseSdk.find('content', {
+                            selector: {
+                                "$and": [
+                                    {
+                                        "_id": {
+                                            "$in": childNodes
+                                        }
+                                    },
+                                    {
+                                        "mimeType": {
+                                            "$nin": ["application/vnd.ekstep.content-collection"]
+                                        }
+                                    }
+                                ]
+                            }
+                        })
+                        for (let childContent of childContents) {
+                            let ecarPath = _.get(childContent, 'desktopAppMetadata.ecarFile');
+                            if (!_.isEmpty(ecarPath)) {
+                                let contentFolderPath = path.join(collectionFolderRelativePath, childContent.identifier);
+                                await this.fileSDK.remove(contentFolderPath).catch(error => {
+                                    logger.error(`while deleting the folder in collection ${contentFolderPath}`)
+                                });
+                                await this.fileSDK.mkdir(contentFolderPath)
+                                await this.fileSDK.unzip(path.join('ecars', ecarPath), contentFolderPath, false);
+                            }
+                        }
+                    }
 
-                    // - Read file path and unzip the files to  temp/spine_folder with visibility as Parent
                     // - Zip the spine_folder and download  
-
-
+                    await this.fileSDK.zip(collectionFolderRelativePath, 'temp', `${parent.name}.ecar`);
+                    res.status(200)
+                    res.send(Response.success(`api.content.export`, {
+                        response: {
+                            url: req.protocol + '://' + req.get('host') + '/temp/' + `${parent.name}.ecar`
+                        }
+                    }));
                 }
             } catch (error) {
                 logger.error(` while processing the content  export ${req.params.id}  ${error}`);

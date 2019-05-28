@@ -195,7 +195,7 @@ export default class ContentDownload {
 
                 // inprogress - get from download queue and merge with content data
                 if (_.indexOf(status, API_DOWNLOAD_STATUS.inprogress) !== -1) {
-                    let inprogressItems = await this.downloadManager.list("INPROGRESS");
+                    let inprogressItems = await this.downloadManager.list(["INPROGRESS"]);
                     if (!_.isEmpty(inprogressItems)) {
                         let downloadIds = _.map(inprogressItems, 'id');
                         submitted = _.filter(submitted, (s) => { return _.indexOf(downloadIds, s.id) === -1 });

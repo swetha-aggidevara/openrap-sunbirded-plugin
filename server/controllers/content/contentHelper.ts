@@ -6,6 +6,7 @@ import * as path from "path";
 import { logger } from "@project-sunbird/ext-framework-server/logger";
 import * as glob from 'glob';
 import * as _ from 'lodash';
+import { STATUS } from "OpenRAP/dist/managers/DownloadManager/DownloadManager";
 
 let dbSDK = new DatabaseSDK();
 
@@ -139,4 +140,40 @@ export const createHierarchy = (items: any[], parent: any, tree?: any[]): any =>
         }
     }
     return tree;
+}
+
+export const reconciliation = async (pluginId) => {
+    try {
+
+        let downloadManager = containerAPI.getDownloadManagerInstance(pluginId);
+        dbSDK.initialize(pluginId);
+        // get the submitted events
+        let { docs } = await dbSDK.find(dbName, {
+            selector: {
+                status: CONTENT_DOWNLOAD_STATUS.Submitted
+            }
+        })
+        if (!_.isEmpty(docs)) {
+            // check the status in download queue
+
+            for (let item of docs) {
+                let downloadItem = await downloadManager.get(item.downloadId);
+                if (downloadItem.status === STATUS.EventEmitted) {
+                    //if eventemitted then trigger completed event
+                    EventManager.emit(`${pluginId}:download:complete`, downloadItem)
+                }
+                if (downloadItem.status === STATUS.Failed) {
+                    // if failed trigger failed event
+                    EventManager.emit(`${pluginId}:download:failed`, downloadItem)
+
+                }
+
+            }
+        }
+
+    } catch (error) {
+        logger.error(`while running reconciliation in plugin for content update sync ${error}`)
+    }
+
+
 }

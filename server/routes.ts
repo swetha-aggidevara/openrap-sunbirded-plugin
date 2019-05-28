@@ -44,16 +44,8 @@ export class Router {
 
 		let resourcebundle = new ResourceBundle(manifest);
 		app.get('/resourcebundles/v1/read/:id', (req, res, next) => {
-			if (enableProxy(req)) {
-				next()
-			} else {
-				return resourcebundle.get(req, res);
-			}
-		}, proxy(proxyUrl, {
-			proxyReqPathResolver: function (req) {
-				return `/resourcebundles/v1/read/${req.params.id}`;
-			}
-		}))
+			return resourcebundle.get(req, res);
+		})
 
 		let organization = new Organization(manifest);
 		app.post('/api/org/v1/search', (req, res, next) => {
