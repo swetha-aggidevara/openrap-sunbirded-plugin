@@ -62,10 +62,11 @@ export default class ContentManager {
                 let itemsClone = _.cloneDeep(items);
                 let children = this.createHierarchy(itemsClone, parent)
                 parent['children'] = children;
-                await this.dbSDK.update('content', parent.identifier, parent).catch(async (error) => {
-                    logger.error('Error while updating the content from db before inserting ', error);
-                    await this.dbSDK.insert('content', parent, parent.identifier);
-                });
+                parent.desktopAppMetadata = {
+                    "ecarFile": fileName,  // relative to ecar folder
+                    "addedUsing": "import"
+                }
+                await this.dbSDK.upsert('content', parent.identifier, parent);
 
                 let resources = _.filter(items, (i) => {
                     return (i.mimeType !== 'application/vnd.ekstep.content-collection')
@@ -74,17 +75,14 @@ export default class ContentManager {
                 //insert the resources to content db
                 if (!_.isEmpty(resources)) {
                     await resources.forEach(async (resource) => {
-                        if (_.indexOf(['application/vnd.ekstep.ecml-archive', 'application/vnd.ekstep.html-archive'], resource.mimeType) >= 0) {
-                            resource.baseDir = `content/${resource.identifier}`;
-                        } else {
-                            resource.baseDir = 'content';
-                        }
+                        // if (_.indexOf(['application/vnd.ekstep.ecml-archive', 'application/vnd.ekstep.html-archive'], resource.mimeType) >= 0) {
+                        resource.baseDir = `content/${resource.identifier}`;
+                        // } else {
+                        //     resource.baseDir = 'content';
+                        // }
 
                         resource.appIcon = resource.appIcon ? `content/${resource.appIcon}` : resource.appIcon;
-                        await this.dbSDK.update('content', resource.identifier, resource).catch(async (error) => {
-                            logger.error('Error while updating the content from db before inserting ', error);
-                            await this.dbSDK.insert('content', resource, resource.identifier);
-                        });
+                        await this.dbSDK.upsert('content', resource.identifier, resource);
                     })
                 }
 
@@ -159,13 +157,14 @@ export default class ContentManager {
                 let metaData = items[0];
                 metaData.baseDir = `content/${path.basename(fileName, path.extname(fileName))}`;
                 metaData.appIcon = metaData.appIcon ? `content/${path.basename(fileName, path.extname(fileName))}/${metaData.appIcon}` : metaData.appIcon;
+                metaData.desktopAppMetadata = {
+                    "ecarFile": fileName,  // relative to ecar folder
+                    "addedUsing": "import"
+                }
                 //insert metadata to content database
                 // TODO: before insertion check if the first object is type of collection then prepare the collection and insert 
 
-                await this.dbSDK.update('content', metaData.identifier, metaData).catch(async (error) => {
-                    logger.error('Error while updating the content from db before inserting ', error);
-                    await this.dbSDK.insert('content', metaData, metaData.identifier);
-                });
+                await this.dbSDK.upsert('content', metaData.identifier, metaData);
             }
 
         } else {
