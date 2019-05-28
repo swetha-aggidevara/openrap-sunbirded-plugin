@@ -19,7 +19,7 @@ import { TelemetryHelper } from './telemetry-helper';
 // const telemetryHelper = new TelemetryHelper();
 
 @Singleton
-export default class TelemetrySDK {
+export class TelemetrySDK {
 
     @Inject
     private databaseSdk: DatabaseSDK;
