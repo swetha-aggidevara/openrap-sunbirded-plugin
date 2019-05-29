@@ -210,7 +210,7 @@ export default class Content {
                     }));
                 }
             } catch (error) {
-                logger.error(` while processing the content  export ${req.params.id}  ${error}`);
+                logger.error(`while processing the content  export ${req.params.id}  ${error}`);
                 res.status(500)
                 return res.send(Response.error("api.content.export", 500))
             }

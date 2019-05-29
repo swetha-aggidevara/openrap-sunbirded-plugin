@@ -13,6 +13,7 @@ class Config {
         this.config = process.env
         this.config["CONTENT_SEARCH_FIELDS"] = "dialcodes,board,medium,gradeLevel,subject,contentType";
         this.config["CONTENT_SEARCH_LIMIT"] = 1000;
+        this.config["CONTENT_COMPATIBILITY_LEVEL"] = 4;
     }
 
     /**
