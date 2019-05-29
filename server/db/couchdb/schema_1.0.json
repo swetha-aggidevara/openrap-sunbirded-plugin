@@ -104,6 +104,21 @@
             ]
         },
         {
+            "name": "telemetry_packets",
+            "indexes": [
+                {
+                    "index": {
+                        "fields": [
+                            "pluginId",
+                            "syncStatus",
+                            "createdOn",
+                            "events"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
             "name": "config"
         },
         {

@@ -4,7 +4,6 @@ import {
   IInteractEventInput, IShareEventInput, IErrorEventInput, IEndEventInput, ILogEventInput, ITelemetryContext, IFeedBackEventInput
 } from './ITelemetry';
 import * as telemetrySDK from '@project-sunbird/telemetry-sdk';
-console.log(telemetrySDK);
 export class TelemetryHelper {
 
   /**
@@ -49,7 +48,7 @@ export class TelemetryHelper {
    * @param {ITelemetryContext} context
    * @memberof TelemetryService
    */
-  public initialize(context: ITelemetryContext) {
+  public init(context: ITelemetryContext) {
     this.context = _.cloneDeep(context);
     this.telemetryProvider.initialize(this.context.config);
     this.isInitialized = true;
