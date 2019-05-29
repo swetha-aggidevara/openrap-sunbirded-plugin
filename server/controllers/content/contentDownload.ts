@@ -70,7 +70,7 @@ export default class ContentDownload {
                             createdOn: Date.now(),
                             updatedOn: Date.now()
                         })
-                        return res.send(Response.success("api.content.read", { downloadId }));
+                        return res.send(Response.success("api.content.download", { downloadId }));
                         // return response the downloadId
                     } else {
 
@@ -122,7 +122,7 @@ export default class ContentDownload {
                             createdOn: Date.now(),
                             updatedOn: Date.now()
                         })
-                        return res.send(Response.success("api.content.read", { downloadId }));
+                        return res.send(Response.success("api.content.download", { downloadId }));
                     }
                 } else {
                     logger.error(`while processing download request ${content}, for content ${req.params.id}`);
@@ -256,7 +256,7 @@ export default class ContentDownload {
                 }
 
 
-                return res.send(Response.success("api.content.read", {
+                return res.send(Response.success("api.content.download.list", {
                     response: {
                         downloads: {
                             submitted: submitted,

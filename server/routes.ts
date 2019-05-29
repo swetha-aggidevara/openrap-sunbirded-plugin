@@ -14,6 +14,7 @@ import Telemetry from './controllers/telemetry';
 import * as proxy from 'express-http-proxy';
 import ContentDownload from './controllers/content/contentDownload';
 import * as url from 'url';
+import config from './config';
 
 const proxyUrl = process.env.APP_BASE_URL;
 
@@ -27,6 +28,13 @@ export class Router {
 			let pathName = refererUrl.pathname;
 			flag = _.startsWith(pathName, "/browse")
 			return flag;
+		}
+
+		const updateRequestBody = (req) => {
+			if (_.get(req, 'body.request.filters')) {
+				req.body.request.filters.compatibilityLevel = { "<=": config.get("CONTENT_COMPATIBILITY_LEVEL") }
+			}
+			return req;
 		}
 
 		//portal static routes
@@ -102,10 +110,8 @@ export class Router {
 
 		let page = new Page(manifest);
 		app.post('/api/data/v1/page/assemble', (req, res, next) => {
-			const refererUrl = new url.URL(req.get('referer'));
-			let pathName = refererUrl.pathname;
-			let flag = _.startsWith(pathName, "/browse")
-			if (flag) {
+			if (enableProxy(req)) {
+				req = updateRequestBody(req);
 				next()
 			} else {
 				return page.get(req, res)
@@ -160,6 +166,7 @@ export class Router {
 
 		app.post('/api/content/v1/search', (req, res, next) => {
 			if (enableProxy(req)) {
+				req = updateRequestBody(req);
 				next()
 			} else {
 				content.search(req, res)
