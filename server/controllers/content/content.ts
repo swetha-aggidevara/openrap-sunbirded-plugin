@@ -35,7 +35,15 @@ export default class Content {
     }
 
     searchInDB(filters) {
-        let modifiedFilters: Object = _.mapValues(filters, (v) => ({ '$in': v }));
+        let modifiedFilters: Object = _.mapValues(filters, (v, k) => {
+            if (k !== 'query') return ({ '$in': v })
+        });
+        delete modifiedFilters['query'];
+        if (_.get(filters, 'query')) {
+            modifiedFilters['name'] = {
+                "$regex": `(?i)${_.get(filters, 'query')}`
+            }
+        }
         modifiedFilters['visibility'] = 'Default';
         let dbFilters = {
             selector: modifiedFilters,
@@ -74,6 +82,10 @@ export default class Content {
 
         let filters = _.pick(pageReqFilter, contentSearchFields);
         filters = _.mapValues(filters, function (v) { return _.isString(v) ? [v] : v; });
+        let query = _.get(reqBody, 'request.query');
+        if (!_.isEmpty(query)) {
+            filters.query = query;
+        }
         this.searchInDB(filters).then(data => {
             data = _.map(data.docs, doc => _.omit(doc, ['_id', '_rev']))
             let resObj = {};
