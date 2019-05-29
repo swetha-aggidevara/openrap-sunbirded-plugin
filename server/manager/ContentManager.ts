@@ -9,6 +9,8 @@ import * as uuid from 'uuid';
 import * as fse from 'fs-extra';
 import { containerAPI } from 'OpenRAP/dist/api';
 import { manifest } from '../manifest';
+import { isRegExp } from 'util';
+import config from '../config';
 
 export default class ContentManager {
 
@@ -59,6 +61,12 @@ export default class ContentManager {
             });
 
             if (parent) {
+                // check content compatibility level 
+
+                if (_.get(parent, 'compatibilityLevel') && parent.compatibilityLevel > config.get("CONTENT_COMPATIBILITY_LEVEL")) {
+                    throw `content compatibility is higher then content level : ${parent.compatibilityLevel} app supports ${config.get("CONTENT_COMPATIBILITY_LEVEL")}`;
+                }
+
                 let itemsClone = _.cloneDeep(items);
                 let children = this.createHierarchy(itemsClone, parent)
                 parent['children'] = children;
@@ -144,6 +152,12 @@ export default class ContentManager {
                     }
                 })
             } else {
+
+                // check content compatibility level 
+                let metaData = items[0];
+                if (_.get(metaData, 'compatibilityLevel') && metaData.compatibilityLevel > config.get("CONTENT_COMPATIBILITY_LEVEL")) {
+                    throw `content compatibility is higher then content level : ${metaData.compatibilityLevel} app supports ${config.get("CONTENT_COMPATIBILITY_LEVEL")}`;
+                }
                 //try to get zip file inside the unzip folder from above step
                 let assetFolderGlobPath = path.join(this.contentFilesPath, path.basename(fileName, path.extname(fileName)), '**', '*.zip')
 
@@ -154,7 +168,7 @@ export default class ContentManager {
 
                     await this.fileSDK.unzip(filePath, path.join("content", path.basename(fileName, path.extname(fileName))), false)
                 }
-                let metaData = items[0];
+
                 metaData.baseDir = `content/${path.basename(fileName, path.extname(fileName))}`;
                 metaData.appIcon = metaData.appIcon ? `content/${path.basename(fileName, path.extname(fileName))}/${metaData.appIcon}` : metaData.appIcon;
                 metaData.desktopAppMetadata = {
