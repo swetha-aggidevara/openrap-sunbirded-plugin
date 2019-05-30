@@ -60,7 +60,6 @@ export class TelemetryService extends TelemetryHelper {
     }
     dispatcher(data){
         this.telemetryBatch.push(data);
-        console.log('dispatcher called', this.telemetryBatch.length);
         if (this.telemetryBatch.length >= this.telemetryConfig.config.batchsize) {
             this.addEvents(this.telemetryBatch.splice(0, this.telemetryBatch.length)).catch(() => {
                 console.log('error syncing telemetry events to db');
