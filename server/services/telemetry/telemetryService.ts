@@ -16,48 +16,56 @@ import config from "../../config";
 import axios from 'axios';
 import * as jwt from 'jsonwebtoken';
 import { TelemetryHelper } from './telemetry-helper';
-// const telemetryHelper = new TelemetryHelper();
+let uuid = require('uuid/v1')
 
 @Singleton
-export class TelemetrySDK {
+export class TelemetryService extends TelemetryHelper {
 
     @Inject
     private databaseSdk: DatabaseSDK;
-    @Inject
-    private telemetryHelper: TelemetryHelper;
 
-    initialize(pluginId: string) {
+    telemetryBatch = [];
+    telemetryConfig: any = {};
+    async initialize(pluginId: string) {
         this.databaseSdk.initialize(pluginId)
-        const telemetryConfig = {
+        const orgDetails = await this.databaseSdk.get('organization', process.env.CHANNEL);
+        // get mode from process env if standalone use machine id as did for client telemetry also
+        this.telemetryConfig = {
             userOrgDetails: {
                 userId: 'anonymous',
-                rootOrgId: '',
-                organisationIds: ['']
+                rootOrgId: orgDetails.rootOrgId,
+                organisationIds: [orgDetails.hashTagId]
             },
             config: {
                 pdata: {
-                    id: 'offline',
+                    id: process.env.APP_ID,
                     ver: '1.0',
-                    pid: 'offline'
+                    pid: pluginId
                 },
                 batchsize: 10,
                 endpoint: '',
                 apislug: '',
-                host: '',
-                sid: '',
-                channel: '',
+                sid: uuid(),
+                channel: orgDetails.hashTagId,
                 env: 'offline',
                 enableValidation: true,
                 timeDiff: 0,
-                dispatcher: (data) => {
-                    // TODO: sync to db
-                    console.log('dispatching data', data);
+                runningEnv: 'server',
+                dispatcher: {
+                    dispatch: this.dispatcher.bind(this)
                 }
             }
         }
-        this.telemetryHelper.initialize(telemetryConfig);
+        this.init(this.telemetryConfig);
     }
-
+    dispatcher(data){
+        this.telemetryBatch.push(data);
+        if (this.telemetryBatch.length >= this.telemetryConfig.config.batchsize) {
+            this.addEvents(this.telemetryBatch.splice(0, this.telemetryBatch.length)).catch(() => {
+                console.log('error syncing telemetry events to db');
+            })
+        }
+    }
     addEvents(events: object[]) {
         // Add the events to database
         return this.databaseSdk.bulk('telemetry', events)

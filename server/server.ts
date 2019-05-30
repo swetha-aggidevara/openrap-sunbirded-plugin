@@ -15,6 +15,8 @@ import config from './config'
 import { logger } from '@project-sunbird/ext-framework-server/logger';
 import { containerAPI } from 'OpenRAP/dist/api';
 import { addContentListener, reconciliation } from './controllers/content/contentHelper';
+import { TelemetryService } from "./services";
+import * as _ from 'lodash';
 
 export class Server extends BaseServer {
 
@@ -26,6 +28,10 @@ export class Server extends BaseServer {
 
     @Inject
     private databaseSdk: DatabaseSDK;
+
+    @Inject
+    private telemetryService: TelemetryService;
+
     @Inject
     private contentManager: ContentManager;
 
@@ -44,9 +50,8 @@ export class Server extends BaseServer {
 
 
     }
-
     async initialize(manifest: Manifest) {
-
+        await this.telemetryService.initialize(manifest.id);
         const pluginConfig = {
             pluginVer: manifest.version,
             apiToken: process.env.APP_BASE_URL_TOKEN,
