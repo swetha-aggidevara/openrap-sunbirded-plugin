@@ -22,11 +22,11 @@ export class Form {
         this.databaseSdk.initialize(manifest.id);
         this.fileSDK = containerAPI.getFileSDKInstance(manifest.id);
     }
-    public insert() {
+    public async insert() {
         let formFiles = path.join(__dirname, '..', 'data', 'forms', '**', '*.json');
         let files = glob.sync(formFiles, {});
 
-        files.forEach(async (file) => {
+        for (let file of files) {
             let form = await this.fileSDK.readJSON(file);
             let doc = _.get(form, 'result.form');
 
@@ -40,7 +40,7 @@ export class Form {
             await this.databaseSdk.upsert('form', _id, doc).catch(err => {
                 logger.error(`while upserting the ${idText} to form database ${err.message} ${err.reason}`)
             });
-        });
+        };
     }
 
     search(req, res) {

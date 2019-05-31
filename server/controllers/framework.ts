@@ -21,18 +21,18 @@ export class Framework {
         this.databaseSdk.initialize(manifest.id);
         this.fileSDK = containerAPI.getFileSDKInstance(manifest.id);
     }
-    public insert() {
+    public async insert() {
         let frameworkFiles = path.join(__dirname, '..', 'data', 'frameworks', '**', '*.json');
         let files = glob.sync(frameworkFiles, {});
 
-        files.forEach(async (file) => {
+        for (let file of files) {
             let framework = await this.fileSDK.readJSON(file);
             let _id = path.basename(file, path.extname(file));
             let doc = _.get(framework, 'result.framework');
             await this.databaseSdk.upsert('framework', _id, doc).catch(err => {
                 logger.error(`while upserting the ${_id} to framework database ${err.message} ${err.reason}`)
             });;
-        });
+        };
     }
 
     get(req: any, res: any): any {

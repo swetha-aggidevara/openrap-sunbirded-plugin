@@ -29,11 +29,11 @@ export class Page {
         this.fileSDK = containerAPI.getFileSDKInstance(manifest.id);
     }
 
-    public insert() {
+    public async insert() {
         let pagesFiles = path.join(__dirname, '..', 'data', 'pages', '**', '*.json');
         let files = glob.sync(pagesFiles, {});
 
-        files.forEach(async (file) => {
+        for (let file of files) {
             let page = await this.fileSDK.readJSON(file);
             let doc = _.get(page, 'result.response');
             let _id = doc.id;
@@ -41,7 +41,7 @@ export class Page {
             await this.databaseSdk.upsert('page', _id, doc).catch(err => {
                 logger.error(`while upserting the ${_id} to channel database ${err.message} ${err.reason}`)
             });;
-        });
+        };
     }
 
     get(req: any, res: any) {

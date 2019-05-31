@@ -23,14 +23,14 @@ export class ResourceBundle {
         let resourceBundleFiles = path.join(__dirname, '..', 'data', 'resourceBundles', '**', '*.json');
         let files = glob.sync(resourceBundleFiles, {});
 
-        files.forEach(async (file) => {
+        for (let file of files) {
             let bundles = await this.fileSDK.readJSON(file);
             let _id = path.basename(file, path.extname(file));
             let doc = _.get(bundles, 'result');
             await this.databaseSdk.upsert('resource_bundle', _id, doc).catch(err => {
                 logger.error(`while upserting the ${_id} to channel database ${err.message} ${err.reason}`)
             });;
-        });
+        }
     }
 
     get(req, res) {

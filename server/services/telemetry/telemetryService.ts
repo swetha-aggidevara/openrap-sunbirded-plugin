@@ -58,7 +58,7 @@ export class TelemetryService extends TelemetryHelper {
         }
         this.init(this.telemetryConfig);
     }
-    dispatcher(data){
+    dispatcher(data) {
         this.telemetryBatch.push(data);
         if (this.telemetryBatch.length >= this.telemetryConfig.config.batchsize) {
             this.addEvents(this.telemetryBatch.splice(0, this.telemetryBatch.length)).catch(() => {

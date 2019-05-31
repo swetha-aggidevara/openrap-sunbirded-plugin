@@ -19,18 +19,18 @@ export class Channel {
         this.fileSDK = containerAPI.getFileSDKInstance(manifest.id);
     }
 
-    public insert() {
+    public async insert() {
         let channelFiles = path.join(__dirname, '..', 'data', 'channels', '**', '*.json');
         let files = glob.sync(channelFiles, {});
 
-        files.forEach(async (file) => {
+        for (let file of files) {
             let channel = await this.fileSDK.readJSON(file);
             let _id = path.basename(file, path.extname(file));
             let doc = _.get(channel, 'result.channel');
             await this.databaseSdk.upsert('channel', _id, doc).catch(err => {
                 logger.error(`while upserting the ${_id} to channel database ${err.message} ${err.reason}`)
             });
-        });
+        };
     }
 
 

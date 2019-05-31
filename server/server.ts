@@ -43,14 +43,24 @@ export class Server extends BaseServer {
 
         // Added timeout since db creation is async and it is taking time and insertion is failing
         this.fileSDK = containerAPI.getFileSDKInstance(manifest.id);
-        this.initialize(manifest).catch(err => {
-            logger.error("Error while initializing open rap sunbird ed plugin", err);
-            this.sunbirded_plugin_initialized = true;
-        })
+
+
+        this.initialize(manifest)
+            .catch(err => {
+                logger.error("Error while initializing open rap sunbird ed plugin", err);
+                this.sunbirded_plugin_initialized = true;
+            })
 
 
     }
     async initialize(manifest: Manifest) {
+
+        //registerAcrossAllSDKS()
+        this.databaseSdk.initialize(manifest.id);
+
+        // insert meta data for app
+        await this.insertConfig(manifest)
+
         await this.telemetryService.initialize(manifest.id);
         const pluginConfig = {
             pluginVer: manifest.version,
@@ -64,8 +74,7 @@ export class Server extends BaseServer {
         await this.fileSDK.mkdir(this.ecarsFolderPath)
         await this.fileSDK.mkdir(this.telemetryArchivedFolderPath)
 
-        //registerAcrossAllSDKS()
-        this.databaseSdk.initialize(manifest.id);
+
 
         // listener to index content when content downloaded
         addContentListener(manifest.id);
@@ -89,8 +98,7 @@ export class Server extends BaseServer {
         frameworkAPI.registerStaticRoute(path.join(__dirname, '..', '..', 'public', 'sunbird-plugins'), '/sunbird-plugins');
         frameworkAPI.setStaticViewEngine('ejs')
 
-        // insert meta data for app
-        await this.insertConfig(manifest)
+
         //- reIndex()
         //- reConfigure()
     }
@@ -103,12 +111,12 @@ export class Server extends BaseServer {
         const channel = new Channel(manifest);
         const form = new Form(manifest);
 
-        resourceBundle.insert();
-        framework.insert();
-        organization.insert();
-        channel.insert();
-        form.insert();
-        page.insert();
+        await organization.insert();
+        await resourceBundle.insert();
+        await framework.insert();
+        await channel.insert();
+        await form.insert();
+        await page.insert();
 
     }
 

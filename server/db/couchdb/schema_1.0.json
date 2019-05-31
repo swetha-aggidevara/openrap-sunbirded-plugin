@@ -92,16 +92,7 @@
             ]
         },
         {
-            "name": "telemetry",
-            "indexes": [
-                {
-                    "index": {
-                        "fields": [
-                            "syncStatus"
-                        ]
-                    }
-                }
-            ]
+            "name": "telemetry"
         },
         {
             "name": "config"

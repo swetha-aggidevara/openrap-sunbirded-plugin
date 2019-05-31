@@ -20,18 +20,20 @@ export class Organization {
         this.fileSDK = containerAPI.getFileSDKInstance(manifest.id);
     }
 
-    public insert() {
+    public async insert() {
         let organizationFiles = path.join(__dirname, '..', 'data', 'organizations', '**', '*.json');
         let files = glob.sync(organizationFiles, {});
 
-        files.forEach(async (file) => {
+        for (let file of files) {
             let organization = await this.fileSDK.readJSON(file);
             let _id = path.basename(file, path.extname(file));
             let doc = _.get(organization, 'result.response.content[0]');
             await this.databaseSdk.upsert('organization', _id, doc).catch(err => {
                 logger.error(`while upserting the ${_id} to channel database ${err.message} ${err.reason}`)
             });;
-        });
+        }
+
+
     }
 
     search(req, res) {
