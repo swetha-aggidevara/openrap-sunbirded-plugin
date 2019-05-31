@@ -49,6 +49,7 @@ export class Router {
 
 
 		// api's for portal
+
 		let resourcebundle = new ResourceBundle(manifest);
 		app.get('/resourcebundles/v1/read/:id', (req, res, next) => {
 			return resourcebundle.get(req, res);
@@ -186,6 +187,7 @@ export class Router {
 
 
 		let telemetry = new Telemetry(manifest);
+
 		app.post('/content/data/v1/telemetry', (req, res) => { telemetry.addEvents(req, res) })
 		app.post('/action/data/v3/telemetry', (req, res) => { telemetry.addEvents(req, res) })
 

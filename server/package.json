@@ -20,7 +20,7 @@
     "is-online": "^8.1.0",
     "jsonwebtoken": "^8.5.1",
     "lodash": "^4.17.11",
-    "nano": "^8.1.0",
+    "nano": "^8.0.1",
     "typescript-ioc": "^1.2.5",
     "uuid": "^3.3.2"
   },
