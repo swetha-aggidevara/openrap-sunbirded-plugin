@@ -6,18 +6,17 @@ import * as glob from 'glob';
 import * as _ from "lodash";
 import Response from './../utils/response'
 import { logger } from '@project-sunbird/ext-framework-server/logger';
-import FileSDK from "OpenRAP/dist/sdks/FileSDK";
+import { containerAPI } from 'OpenRAP/dist/api';
 
 export class Channel {
     @Inject
     private databaseSdk: DatabaseSDK;
 
-    @Inject
-    private fileSDK: FileSDK;
+    private fileSDK;
 
     constructor(manifest: Manifest) {
         this.databaseSdk.initialize(manifest.id);
-
+        this.fileSDK = containerAPI.getFileSDKInstance(manifest.id);
     }
 
     public insert() {

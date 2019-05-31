@@ -9,11 +9,11 @@ const baseUrl = config.baseUrl
 let init = async () => {
     await fse.ensureDir(files_path)
     await getResourceBundles()
-    await getOrgs()
-    await getChannel()
-    await frameworks()
-    await getForms()
-    await getPageSections()
+    //await getOrgs()
+    //await getChannel()
+    //await frameworks()
+    // await getForms()
+    //await getPageSections()
 }
 
 

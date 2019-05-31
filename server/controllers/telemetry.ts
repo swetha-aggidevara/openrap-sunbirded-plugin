@@ -6,27 +6,26 @@ import Response from './../utils/response';
 import { Manifest } from "@project-sunbird/ext-framework-server/models";
 import { logger } from '@project-sunbird/ext-framework-server/logger';
 
-import TelemetrySDK from "../sdk/telemetry";
+import { TelemetryService } from "../services";
 
 
 export default class Telemetry {
 
     @Inject
-    private telemetrySDK: TelemetrySDK;
+    private telemetryService: TelemetryService;
 
     @Inject
     private databaseSdk: DatabaseSDK;
 
 
     constructor(manifest: Manifest) {
-        this.telemetrySDK.initialize(manifest.id);
         this.databaseSdk.initialize(manifest.id);
     }
 
     addEvents(req, res) {
         let events = req.body.events;
         if (_.isArray(events) && events.length) {
-            this.telemetrySDK.addEvents(events).then(data => {
+            this.telemetryService.addEvents(events).then(data => {
                 return res.send(Response.success('api.telemetry', {}));
             }).catch(err => {
                 logger.error('Error while inserting events to telemetry db', JSON.stringify(err));

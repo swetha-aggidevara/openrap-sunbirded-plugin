@@ -105,6 +105,20 @@
         },
         {
             "name": "config"
+        },
+        {
+            "name": "content_download",
+            "indexes": [
+                {
+                    "index": {
+                        "fields": [
+                            "createdOn"
+                        ]
+                    },
+                    "type": "json",
+                    "name": "created_on_sort_index"
+                }
+            ]
         }
     ]
 }

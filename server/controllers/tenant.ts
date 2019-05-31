@@ -7,7 +7,7 @@ export default class Tenant {
             "appLogo": "/appLogo.png",
             "favicon": "/favicon.ico",
             "logo": "/logo.png",
-            // "titleName": process.env.APP_TITLE || ''
+            "titleName": process.env.APP_NAME
         }
         res.send(Response.success('api.tenant.info', resObj))
     }

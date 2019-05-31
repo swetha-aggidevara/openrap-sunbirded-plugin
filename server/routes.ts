@@ -9,47 +9,57 @@ import { Channel } from './controllers/channel';
 import { Framework } from './controllers/framework';
 import { Page } from './controllers/page';
 import Tenant from './controllers/tenant';
-import Content from './controllers/content';
+import Content from './controllers/content/content';
 import Telemetry from './controllers/telemetry';
 import * as proxy from 'express-http-proxy';
+import ContentDownload from './controllers/content/contentDownload';
+import * as url from 'url';
+import config from './config';
 
-const proxyUrl = 'https://staging.ntp.net.in';
+const proxyUrl = process.env.APP_BASE_URL;
 
 export class Router {
 	init(app: any, manifest: Manifest, auth?: any) {
 		const server = frameworkAPI.getPluginInstance(manifest.id);
+
+		const enableProxy = (req) => {
+			let flag = false;
+			const refererUrl = new url.URL(req.get('referer'));
+			let pathName = refererUrl.pathname;
+			flag = _.startsWith(pathName, "/browse")
+			return flag;
+		}
+
+		const updateRequestBody = (req) => {
+			if (_.get(req, 'body.request.filters')) {
+				req.body.request.filters.compatibilityLevel = { "<=": config.get("CONTENT_COMPATIBILITY_LEVEL") }
+			}
+			return req;
+		}
+
 		//portal static routes
-		app.all(['/', '/explore', '/explore/*', '/play/*', '/import/content', '/get', '/get/*', '/browse'], (req, res) => {
+		app.all(['/', '/play/*', '/import/content', '/get', '/get/*', '/browse', '/browse/*', '/search/*'], (req, res) => {
 			const locals = this.getLocals();
 			_.forIn(locals, (value, key) => {
 				res.locals[key] = value;
 			})
-			res.render(path.join(__dirname, '..', '..', 'portal', 'index.ejs'))
+			res.render(path.join(__dirname, '..', '..', 'public', 'portal', 'index.ejs'))
 		})
+
+
 
 		// api's for portal
 		let resourcebundle = new ResourceBundle(manifest);
 		app.get('/resourcebundles/v1/read/:id', (req, res, next) => {
-			if (req.query.pageid === 'browse' && req.query.networkstatus === 'online') {
-				next()
-			} else {
-				resourcebundle.get(req, res)
-				return
-			}
-		}, proxy(proxyUrl, {
-			proxyReqPathResolver: function (req) {
-				return `/resourcebundles/v1/read/${req.params.id}`;
-			}
-		}))
+			return resourcebundle.get(req, res);
+		})
 
 		let organization = new Organization(manifest);
 		app.post('/api/org/v1/search', (req, res, next) => {
-			if (req.query.pageid === 'browse' && req.query.networkstatus === 'online') {
+			if (enableProxy(req)) {
 				next()
 			} else {
-				organization.search(req, res)
-				return
-
+				return organization.search(req, res)
 			}
 		}, proxy(proxyUrl, {
 			proxyReqPathResolver: function (req) {
@@ -59,11 +69,11 @@ export class Router {
 
 		let form = new Form(manifest);
 		app.post('/api/data/v1/form/read', (req, res, next) => {
-			if (req.query.pageid === 'browse' && req.query.networkstatus === 'online') {
+			if (enableProxy(req)) {
 				next()
 			} else {
-				form.search(req, res)
-				return
+				return form.search(req, res)
+
 			}
 		}, proxy(proxyUrl, {
 			proxyReqPathResolver: function (req) {
@@ -73,11 +83,10 @@ export class Router {
 
 		let channel = new Channel(manifest);
 		app.get('/api/channel/v1/read/:id', (req, res, next) => {
-			if (req.query.pageid === 'browse' && req.query.networkstatus === 'online') {
+			if (enableProxy(req)) {
 				next()
 			} else {
-				channel.get(req, res)
-				return
+				return channel.get(req, res)
 			}
 		}, proxy(proxyUrl, {
 			proxyReqPathResolver: function (req) {
@@ -87,11 +96,10 @@ export class Router {
 
 		let framework = new Framework(manifest);
 		app.get('/api/framework/v1/read/:id', (req, res, next) => {
-			if (req.query.pageid === 'browse' && req.query.networkstatus === 'online') {
+			if (enableProxy(req)) {
 				next()
 			} else {
-				framework.get(req, res)
-				return
+				return framework.get(req, res)
 			}
 		}, proxy(proxyUrl, {
 			proxyReqPathResolver: function (req) {
@@ -101,11 +109,12 @@ export class Router {
 
 		let page = new Page(manifest);
 		app.post('/api/data/v1/page/assemble', (req, res, next) => {
-			if (req.query.pageid === 'browse' && req.query.networkstatus === 'online') {
+			if (enableProxy(req)) {
+				req = updateRequestBody(req);
 				next()
 			} else {
-				page.get(req, res)
-				return
+				return page.get(req, res)
+
 			}
 		}, proxy(proxyUrl, {
 			proxyReqPathResolver: function (req) {
@@ -115,7 +124,7 @@ export class Router {
 
 		let tenant = new Tenant()
 		app.get(['/v1/tenant/info/', '/v1/tenant/info/:id'], (req, res, next) => {
-			if (req.query.pageid === 'browse' && req.query.networkstatus === 'online') {
+			if (enableProxy(req)) {
 				next()
 			} else {
 				tenant.get(req, res)
@@ -129,7 +138,7 @@ export class Router {
 
 		let content = new Content(manifest);
 		app.get('/api/content/v1/read/:id', (req, res, next) => {
-			if (req.query.pageid === 'browse' && req.query.networkstatus === 'online') {
+			if (enableProxy(req)) {
 				next()
 			} else {
 				content.get(req, res)
@@ -142,7 +151,7 @@ export class Router {
 		}))
 
 		app.get('/api/course/v1/hierarchy/:id', (req, res, next) => {
-			if (req.query.pageid === 'browse' && req.query.networkstatus === 'online') {
+			if (enableProxy(req)) {
 				next()
 			} else {
 				content.get(req, res)
@@ -155,7 +164,8 @@ export class Router {
 		}))
 
 		app.post('/api/content/v1/search', (req, res, next) => {
-			if (req.query.pageid === 'browse' && req.query.networkstatus === 'online') {
+			if (enableProxy(req)) {
+				req = updateRequestBody(req);
 				next()
 			} else {
 				content.search(req, res)
@@ -165,9 +175,15 @@ export class Router {
 			proxyReqPathResolver: function (req) {
 				return `/api/content/v1/search`;
 			}
-		}))
+		}));
 
 		app.post('/api/content/v1/import', (req, res) => { content.import(req, res) })
+		app.get('/api/content/v1/export/:id', (req, res) => { content.export(req, res) })
+
+		let contentDownload = new ContentDownload(manifest);
+		app.post('/api/content/v1/download/list', (req, res) => { contentDownload.list(req, res) })
+		app.post('/api/content/v1/download/:id', (req, res) => { contentDownload.download(req, res) })
+
 
 		let telemetry = new Telemetry(manifest);
 		app.post('/content/data/v1/telemetry', (req, res) => { telemetry.addEvents(req, res) })
@@ -184,13 +200,13 @@ export class Router {
 		locals.theme = ''
 		locals.defaultPortalLanguage = 'en'
 		locals.instance = 'dev'
-		locals.appId = ''
-		locals.defaultTenant = 'ntp'
+		locals.appId = process.env.APP_ID
+		locals.defaultTenant = process.env.CHANNEL || 'ntp'
 		locals.exploreButtonVisibility = 'true'
 		locals.helpLinkVisibility = null
 		locals.defaultTenantIndexStatus = null
 		locals.extContWhitelistedDomains = null
-		locals.buildNumber = '1.15.0'
+		locals.buildNumber = '2.0.0'
 		locals.apiCacheTtl = '5'
 		locals.cloudStorageUrls = null
 		locals.userUploadRefLink = null
@@ -199,8 +215,8 @@ export class Router {
 		locals.videoMaxSize = null
 		locals.reportsLocation = null
 		locals.deviceRegisterApi = '/api/v1/device/registry/'
-		locals.PlayerCdnUrl = ''
-
+		locals.playerCdnEnabled = ''
+		locals.previewCdnUrl = ""
 		return locals;
 	}
 }

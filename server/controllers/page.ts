@@ -3,13 +3,13 @@ import { Inject, Config } from 'typescript-ioc';
 import * as path from 'path';
 import { Manifest, } from '@project-sunbird/ext-framework-server/models';
 import * as glob from 'glob';
-import FileSDK from "OpenRAP/dist/sdks/FileSDK";
 import * as _ from "lodash";
 import * as uuid from 'uuid';
 import Response from './../utils/response';
 import config from './../config'
-import Content from './content';
+import Content from './content/content';
 import { logger } from '@project-sunbird/ext-framework-server/logger';
+import { containerAPI } from 'OpenRAP/dist/api';
 
 
 
@@ -17,8 +17,7 @@ export class Page {
     @Inject
     private databaseSdk: DatabaseSDK;
 
-    @Inject
-    private fileSDK: FileSDK;
+    private fileSDK;
 
 
     private content: Content;
@@ -27,6 +26,7 @@ export class Page {
     constructor(manifest: Manifest) {
         this.databaseSdk.initialize(manifest.id);
         this.content = new Content(manifest);
+        this.fileSDK = containerAPI.getFileSDKInstance(manifest.id);
     }
 
     public insert() {
@@ -84,7 +84,7 @@ export class Page {
                         sectionFilters[v] = sectionFilters[v] || [];
                         filters[v] = filters[v] || [];
                         let uniqFilter = _.uniq(_.concat(sectionFilters[v], filters[v]));
-                        if (uniqFilter && uniqFilter.length) {
+                        if (!_.isEmpty(uniqFilter)) {
                             dbFilter[v] = uniqFilter;
                         }
                     })

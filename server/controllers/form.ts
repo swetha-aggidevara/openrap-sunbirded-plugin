@@ -4,24 +4,23 @@ import { Manifest } from '@project-sunbird/ext-framework-server/models';
 import { Inject } from 'typescript-ioc';
 import * as path from 'path';
 import * as glob from 'glob';
-import FileSDK from "OpenRAP/dist/sdks/FileSDK";
 import * as _ from "lodash";
 import * as uuid from "uuid";
 import Response from "./../utils/response";
-import * as Hashids from 'hashids';
+import Hashids from 'hashids';
 import { logger } from '@project-sunbird/ext-framework-server/logger';
+import { containerAPI } from 'OpenRAP/dist/api';
 
 export class Form {
 
     @Inject
     private databaseSdk: DatabaseSDK;
 
-    @Inject
-    private fileSDK: FileSDK;
+    private fileSDK;
 
     constructor(manifest: Manifest) {
         this.databaseSdk.initialize(manifest.id);
-
+        this.fileSDK = containerAPI.getFileSDKInstance(manifest.id);
     }
     public insert() {
         let formFiles = path.join(__dirname, '..', 'data', 'forms', '**', '*.json');
