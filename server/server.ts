@@ -47,6 +47,8 @@ export class Server extends BaseServer {
             logger.error("Error while initializing open rap sunbird ed plugin", err);
             this.sunbirded_plugin_initialized = true;
         })
+
+
     }
     async initialize(manifest: Manifest) {
         await this.telemetryService.initialize(manifest.id);
@@ -69,8 +71,8 @@ export class Server extends BaseServer {
         addContentListener(manifest.id);
         reconciliation(manifest.id)
 
-        /* used to listen for content added to ecars folder and unzip them to 
-            content
+        /* used to listen for content added to downloads folder and unzip them to 
+            content_files
             and inserts metadata to content database
         */
         this.contentManager.initialize(manifest.id, this.fileSDK.getAbsPath(this.contentFilesPath),
@@ -107,7 +109,9 @@ export class Server extends BaseServer {
         channel.insert();
         form.insert();
         page.insert();
+
     }
+
 }
 
 process

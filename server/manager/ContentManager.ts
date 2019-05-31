@@ -22,17 +22,18 @@ export default class ContentManager {
     private fileSDK;
 
     @Inject dbSDK: DatabaseSDK;
-    @Inject fileSDK: FileSDK;
 
     private watcher: any;
 
-    initialize(pluginId, contentFilesPath, ecarsFolderPath) {
+    initialize(pluginId, contentFilesPath, downloadsFolderPath) {
         this.pluginId = pluginId;
-        this.ecarsFolderPath = ecarsFolderPath;
+        this.downloadsFolderPath = downloadsFolderPath;
         this.contentFilesPath = contentFilesPath;
         this.dbSDK.initialize(pluginId);
         this.fileSDK = containerAPI.getFileSDKInstance(manifest.id);
     }
+
+
     
     // unzip ecar 
     // read manifest
@@ -68,7 +69,6 @@ export default class ContentManager {
 
                 let itemsClone = _.cloneDeep(items);
                 let children = this.createHierarchy(itemsClone, parent);
-                parent.fileName = path.basename(filePath);
                 parent['children'] = children;
                 parent.desktopAppMetadata = {
                     "ecarFile": fileName,  // relative to ecar folder
@@ -92,8 +92,7 @@ export default class ContentManager {
                         resource.appIcon = resource.appIcon ? `content/${resource.appIcon}` : resource.appIcon;
                         await this.dbSDK.upsert('content', resource.identifier, resource);
                     })
-                }
-                
+                }                
 
                 //copy directores to content files folder with manifest
                 let parentDirPath = path.join(this.contentFilesPath, path.basename(fileName, path.extname(fileName)));
