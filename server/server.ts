@@ -58,6 +58,18 @@ export class Server extends BaseServer {
         //registerAcrossAllSDKS()
         this.databaseSdk.initialize(manifest.id);
 
+
+        frameworkAPI.registerStaticRoute(this.fileSDK.getAbsPath(this.contentFilesPath), '/contentPlayer/preview/content');
+        frameworkAPI.registerStaticRoute(this.fileSDK.getAbsPath(this.contentFilesPath), '/contentPlayer/preview');
+        frameworkAPI.registerStaticRoute(this.fileSDK.getAbsPath(this.contentFilesPath), '/contentPlayer/preview/content/*/content-plugins');
+        frameworkAPI.registerStaticRoute(path.join(__dirname, '..', '..', 'public', 'contentPlayer', 'preview'), '/contentPlayer/preview');
+        frameworkAPI.registerStaticRoute(this.fileSDK.getAbsPath(this.contentFilesPath), '/content');
+        frameworkAPI.registerStaticRoute(this.fileSDK.getAbsPath(this.ecarsFolderPath), '/ecars');
+        frameworkAPI.registerStaticRoute(this.fileSDK.getAbsPath(this.tempPath), '/temp');
+        frameworkAPI.registerStaticRoute(path.join(__dirname, '..', '..', 'public', 'portal'));
+        frameworkAPI.registerStaticRoute(path.join(__dirname, '..', '..', 'public', 'sunbird-plugins'), '/sunbird-plugins');
+        frameworkAPI.setStaticViewEngine('ejs');
+
         // insert meta data for app
         await this.insertConfig(manifest)
 
@@ -87,18 +99,9 @@ export class Server extends BaseServer {
         this.contentManager.initialize(manifest.id, this.fileSDK.getAbsPath(this.contentFilesPath),
             this.fileSDK.getAbsPath(this.ecarsFolderPath))
 
-        frameworkAPI.registerStaticRoute(this.fileSDK.getAbsPath(this.contentFilesPath), '/contentPlayer/preview/content');
-        frameworkAPI.registerStaticRoute(this.fileSDK.getAbsPath(this.contentFilesPath), '/contentPlayer/preview');
-        frameworkAPI.registerStaticRoute(this.fileSDK.getAbsPath(this.contentFilesPath), '/contentPlayer/preview/content/*/content-plugins');
-        frameworkAPI.registerStaticRoute(path.join(__dirname, '..', '..', 'public', 'contentPlayer', 'preview'), '/contentPlayer/preview');
-        frameworkAPI.registerStaticRoute(this.fileSDK.getAbsPath(this.contentFilesPath), '/content');
-        frameworkAPI.registerStaticRoute(this.fileSDK.getAbsPath(this.ecarsFolderPath), '/ecars');
-        frameworkAPI.registerStaticRoute(this.fileSDK.getAbsPath(this.tempPath), '/temp');
-        frameworkAPI.registerStaticRoute(path.join(__dirname, '..', '..', 'public', 'portal'));
-        frameworkAPI.registerStaticRoute(path.join(__dirname, '..', '..', 'public', 'sunbird-plugins'), '/sunbird-plugins');
-        frameworkAPI.setStaticViewEngine('ejs')
 
-
+        // delete contents in temp directory
+        await this.fileSDK.remove('temp').catch(err => logger.error(`while emptying temp folder on startup ${err}`))
         //- reIndex()
         //- reConfigure()
     }

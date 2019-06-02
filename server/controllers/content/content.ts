@@ -17,7 +17,6 @@ export default class Content {
 
     private contentsFilesPath: string = 'content';
     private ecarsFolderPath: string = 'ecars';
-
     @Inject
     private databaseSdk: DatabaseSDK;
 
@@ -152,16 +151,18 @@ export default class Content {
                 let content = await this.databaseSdk.get('content', id);
                 if (content.mimeType !== "application/vnd.ekstep.content-collection") {
                     let filePath = this.fileSDK.getAbsPath(path.join("ecars", content.desktopAppMetadata.ecarFile))
-                    fs.stat(filePath, (err) => {
+                    fs.stat(filePath, async (err) => {
                         if (err) {
                             logger.error(`ecar file not available while exporting for content ${id} ${err}`)
                             res.status(500)
                             return res.send(Response.error("api.content.export", 500))
                         } else {
+                            await this.fileSDK.copy(path.join('ecars', content.desktopAppMetadata.ecarFile), path.join('temp', `${content.name}.ecar`));
+                            this.cleanUpExports(path.join('temp', `${content.name}.ecar`));
                             res.status(200)
                             res.send(Response.success(`api.content.export`, {
                                 response: {
-                                    url: req.protocol + '://' + req.get('host') + '/ecars/' + content.desktopAppMetadata.ecarFile
+                                    url: `${req.protocol}://${req.get('host')}/temp/${content.name}.ecar`
                                 }
                             }));
                         }
@@ -204,7 +205,7 @@ export default class Content {
                             if (!_.isEmpty(ecarPath)) {
                                 let contentFolderPath = path.join(collectionFolderRelativePath, childContent.identifier);
                                 await this.fileSDK.remove(contentFolderPath).catch(error => {
-                                    logger.error(`while deleting the folder in collection ${contentFolderPath}`)
+                                    logger.error(`while deleting the folder in collection ${contentFolderPath} `)
                                 });
                                 await this.fileSDK.mkdir(contentFolderPath)
                                 await this.fileSDK.unzip(path.join('ecars', ecarPath), contentFolderPath, false);
@@ -214,6 +215,7 @@ export default class Content {
 
                     // - Zip the spine_folder and download  
                     await this.fileSDK.zip(collectionFolderRelativePath, 'temp', `${parent.name}.ecar`);
+                    this.cleanUpExports(path.join('temp', `${parent.name}.ecar`));
                     res.status(200)
                     res.send(Response.success(`api.content.export`, {
                         response: {
@@ -222,11 +224,26 @@ export default class Content {
                     }));
                 }
             } catch (error) {
-                logger.error(`while processing the content  export ${req.params.id}  ${error}`);
+                logger.error(`while processing the content  export ${req.params.id} ${error} `);
                 res.status(500)
                 return res.send(Response.error("api.content.export", 500))
             }
         })()
+    }
+
+    /*
+        This method will clear the exported files after 5 min from the time the file is created
+    */
+    private cleanUpExports(file: string) {
+        let interval = setInterval(() => {
+            try {
+                this.fileSDK.remove(file);
+                clearInterval(interval);
+            } catch (error) {
+                logger.error(`while deleting the ${file} after export ${error.message} `)
+                clearInterval(interval);
+            }
+        }, 300000)
     }
 
 }
