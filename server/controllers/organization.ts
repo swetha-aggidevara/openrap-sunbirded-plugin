@@ -21,7 +21,7 @@ export class Organization {
     }
 
     public async insert() {
-        let organizationFiles = path.join(__dirname, '..', 'data', 'organizations', '**', '*.json');
+        let organizationFiles = this.fileSDK.getAbsPath(path.join('data', 'organizations', '**', '*.json'));
         let files = glob.sync(organizationFiles, {});
 
         for (let file of files) {

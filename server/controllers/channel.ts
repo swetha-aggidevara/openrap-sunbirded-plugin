@@ -20,7 +20,7 @@ export class Channel {
     }
 
     public async insert() {
-        let channelFiles = path.join(__dirname, '..', 'data', 'channels', '**', '*.json');
+        let channelFiles = this.fileSDK.getAbsPath(path.join('data', 'channels', '**', '*.json'));
         let files = glob.sync(channelFiles, {});
 
         for (let file of files) {

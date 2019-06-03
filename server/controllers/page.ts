@@ -30,7 +30,7 @@ export class Page {
     }
 
     public async insert() {
-        let pagesFiles = path.join(__dirname, '..', 'data', 'pages', '**', '*.json');
+        let pagesFiles = this.fileSDK.getAbsPath(path.join('data', 'pages', '**', '*.json'));
         let files = glob.sync(pagesFiles, {});
 
         for (let file of files) {
