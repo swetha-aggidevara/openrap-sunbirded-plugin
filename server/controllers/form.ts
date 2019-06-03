@@ -60,20 +60,24 @@ export class Form {
         let searchObj = {
             selector: requestObj
         }
+        logger.info(`Getting the data in form database with searchObj: ${searchObj}`)
         this.databaseSdk.find('form', searchObj)
             .then(data => {
                 data = _.map(data.docs, doc => _.omit(doc, ['_id', '_rev']))
                 if (data.length <= 0) {
+                    logger.error(`Received empty data while searching with ${searchObj} in form database`)
                     res.status(404);
                     return res.send(Response.error("api.form.read", 404));
                 }
                 let resObj = {
                     form: data[0]
                 }
+                logger.info(`Received data with searchObj: ${searchObj} in form database and received response: ${data}`)
                 return res.send(Response.success("api.form.read", resObj));
             })
             .catch(err => {
                 console.log(err)
+                logger.error(`Received error while searching in form database with searchObj: ${searchObj} and err.message: ${err.message} and err.reason: ${err.reason}`)
                 if (err.statusCode === 404) {
                     res.status(404)
                     return res.send(Response.error("api.form.read", 404));

@@ -62,7 +62,7 @@ export default class Content {
                 return res.send(Response.success("api.content.read", resObj));
             })
             .catch(err => {
-
+                logger.error(`Received error while getting the data from content database with id: ${id} and err.message: ${err.message} and err.reason: ${err.reason}`)
                 if (err.statusCode === 404) {
                     res.status(404)
                     return res.send(Response.error("api.content.read", 404));
@@ -103,6 +103,7 @@ export default class Content {
             return res.send(Response.success("api.content.search", resObj));
         }).catch(err => {
             console.log(err)
+            logger.error(`Received error while searching content - err.message: ${err.message} and err.reason: ${err.reason}`)
             if (err.statusCode === 404) {
                 res.status(404)
                 return res.send(Response.error("api.content.search", 404));

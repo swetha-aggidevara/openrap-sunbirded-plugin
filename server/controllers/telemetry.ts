@@ -28,7 +28,7 @@ export default class Telemetry {
             this.telemetryService.addEvents(events).then(data => {
                 return res.send(Response.success('api.telemetry', {}));
             }).catch(err => {
-                logger.error('Error while inserting events to telemetry db', JSON.stringify(err));
+                logger.error('Received error while inserting events to telemetry db', JSON.stringify(err));
                 res.status(500);
                 return res.send(Response.error('api.telemetry', 500));
             });

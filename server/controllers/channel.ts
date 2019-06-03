@@ -28,7 +28,7 @@ export class Channel {
             let _id = path.basename(file, path.extname(file));
             let doc = _.get(channel, 'result.channel');
             await this.databaseSdk.upsert('channel', _id, doc).catch(err => {
-                logger.error(`while upserting the ${_id} to channel database ${err.message} ${err.reason}`)
+                logger.error(`Received error while upserting the ${_id} to channel database ${err.message} ${err.reason}`)
             });
         };
     }
@@ -36,8 +36,10 @@ export class Channel {
 
     get(req, res) {
         let id = req.params.id;
+        logger.info(`Getting the data from channel database with id: ${id}`)
         this.databaseSdk.get('channel', id)
             .then(data => {
+                logger.info(`Received data with id: ${id} in channel database and received response: ${data}`)
                 data = _.omit(data, ['_id', '_rev'])
                 let resObj = {
                     channel: data
@@ -45,7 +47,7 @@ export class Channel {
                 return res.send(Response.success("api.channel.read", resObj));
             })
             .catch(err => {
-
+                logger.error(`Received error while getting the data from channel database with id: ${id} and err.message: ${err.message} and err.reason: ${err.reason}`)
                 if (err.statusCode === 404) {
                     res.status(404)
                     return res.send(Response.error("api.channel.read", 404));
