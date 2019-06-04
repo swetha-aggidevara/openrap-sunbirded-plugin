@@ -22,7 +22,7 @@ export class Framework {
         this.fileSDK = containerAPI.getFileSDKInstance(manifest.id);
     }
     public async insert() {
-        let frameworkFiles = path.join(__dirname, '..', 'data', 'frameworks', '**', '*.json');
+        let frameworkFiles = this.fileSDK.getAbsPath(path.join('data', 'frameworks', '**', '*.json'));
         let files = glob.sync(frameworkFiles, {});
 
         for (let file of files) {

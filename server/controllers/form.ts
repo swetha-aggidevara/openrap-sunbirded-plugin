@@ -23,7 +23,7 @@ export class Form {
         this.fileSDK = containerAPI.getFileSDKInstance(manifest.id);
     }
     public async insert() {
-        let formFiles = path.join(__dirname, '..', 'data', 'forms', '**', '*.json');
+        let formFiles = this.fileSDK.getAbsPath(path.join('data', 'forms', '**', '*.json'));
         let files = glob.sync(formFiles, {});
 
         for (let file of files) {

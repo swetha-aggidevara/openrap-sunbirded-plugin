@@ -20,7 +20,7 @@ export class ResourceBundle {
     }
 
     public async insert() {
-        let resourceBundleFiles = path.join(__dirname, '..', 'data', 'resourceBundles', '**', '*.json');
+        let resourceBundleFiles = this.fileSDK.getAbsPath(path.join('data', 'resourceBundles', '**', '*.json'));
         let files = glob.sync(resourceBundleFiles, {});
 
         for (let file of files) {
