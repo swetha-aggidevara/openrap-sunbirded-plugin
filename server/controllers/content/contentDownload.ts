@@ -160,6 +160,7 @@ export default class ContentDownload {
                         submitted = _.map(submitted_CDB.docs, (doc) => {
                             return {
                                 "id": doc.downloadId,
+                                "contentId": doc.contentId,
                                 "name": doc.name,
                                 "status": CONTENT_DOWNLOAD_STATUS.Submitted,
                                 "createdOn": doc.createdOn
@@ -185,6 +186,7 @@ export default class ContentDownload {
                         completed = _.map(completed_CDB.docs, (doc) => {
                             return {
                                 "id": doc.downloadId,
+                                "contentId": doc.contentId,
                                 "name": doc.name,
                                 "status": API_DOWNLOAD_STATUS.completed,
                                 "createdOn": doc.createdOn
@@ -247,6 +249,7 @@ export default class ContentDownload {
                         failed = _.map(failed_CDB.docs, (doc) => {
                             return {
                                 "id": doc.downloadId,
+                                "contentId": doc.contentId,
                                 "name": doc.name,
                                 "status": API_DOWNLOAD_STATUS.failed,
                                 "createdOn": doc.createdOn
