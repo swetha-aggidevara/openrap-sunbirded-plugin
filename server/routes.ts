@@ -201,9 +201,9 @@ export class Router {
 		locals.cdnUrl = ''
 		locals.theme = ''
 		locals.defaultPortalLanguage = 'en'
-		locals.instance = 'dev'
+		locals.instance = process.env.APP_NAME
 		locals.appId = process.env.APP_ID
-		locals.defaultTenant = process.env.CHANNEL || 'ntp'
+		locals.defaultTenant = process.env.CHANNEL || 'sunbird'
 		locals.exploreButtonVisibility = 'true'
 		locals.helpLinkVisibility = null
 		locals.defaultTenantIndexStatus = null
