@@ -39,7 +39,7 @@ export class Page {
             let _id = doc.id;
             //TODO: handle multiple inserts of same page
             await this.databaseSdk.upsert('page', _id, doc).catch(err => {
-                logger.error(`Received error while upserting the ${_id} to channel database ${err.message} ${err.reason}`)
+                logger.error(`Received error while upserting the ${_id} to channel database and err.message: ${err.message}`)
             });;
         };
     }
@@ -60,7 +60,7 @@ export class Page {
         let filters = _.pick(pageReqFilter, contentSearchFields);
         filters = _.mapValues(filters, function (v) { return _.isString(v) ? [v] : v; });
 
-        logger.info(`Getting the data from page database with pageReqObject: ${pageReqObject}`)
+        logger.info(`Getting the data from page database`)
         this.databaseSdk.find('page', pageReqObject).then(data => {
             data = _.map(data.docs, doc => _.omit(doc, ['_id', '_rev']))
             if (data.length <= 0) {
@@ -68,7 +68,7 @@ export class Page {
                 res.status(404);
                 return res.send(Response.error("api.page.assemble", 404));
             }
-            logger.info(`Received data with pageReqObject: ${pageReqObject} in page database and received response: ${data}`)
+            logger.info(`Received data from page database`)
             let page = data[0];
 
             let sectionPromises = [];
@@ -107,12 +107,12 @@ export class Page {
                     return res.send(Response.success("api.page.assemble", result));
                 })
                 .catch(err => {
-                    logger.error("Error while getting all the page sections", err)
+                    logger.error(`Received error while getting all the page sections and err.message:  ${err.message}`)
                     return res.send(Response.error("api.page.assemble", 500));
                 })
 
         }).catch(err => {
-            logger.error(`Received error while getting the data from page database with pageReqObject: ${pageReqObject} and err.message: ${err.message} and err.reason: ${err.reason}`)
+            logger.error(`Received error while getting the data from page database and err.message: ${err.message}`)
             if (err.statusCode === 404) {
                 res.status(404)
                 return res.send(Response.error("api.page.assemble", 404));
@@ -127,7 +127,6 @@ export class Page {
     getSection(filter, section) {
         return new Promise((resolve, reject) => {
             this.content.searchInDB(filter).then(data => {
-                logger.info(`Received page section data: ${data}`)
                 if (data.docs.length) {
                     section.count = data.docs.length
                     let contents = _.map(data.docs, doc => _.omit(doc, ['_id', '_rev']))
@@ -142,7 +141,7 @@ export class Page {
                 section.count = 0;
                 section.contents = null;
                 resolve(section)
-                logger.error("Error while getting page section", err)
+                logger.error(`Received error while getting page section and err.message: ${err.message}`)
             });
         })
     }

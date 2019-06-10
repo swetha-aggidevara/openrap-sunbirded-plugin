@@ -125,13 +125,13 @@ export default class ContentDownload {
                         return res.send(Response.success("api.content.download", { downloadId }));
                     }
                 } else {
-                    logger.error(`while processing download request ${content}, for content ${req.params.id}`);
+                    logger.error(`Received error while processing download request ${content}, for content ${req.params.id}`);
                     res.status(500)
                     return res.send(Response.error("api.content.download", 500))
                 }
 
             } catch (error) {
-                logger.error(`while processing download request ${error}, for content ${req.params.id}`);
+                logger.error(`Received error while processing download request and err.message: ${error.message}, for content ${req.params.id}`);
                 res.status(500)
                 return res.send(Response.error("api.content.download", 500))
             }
@@ -271,7 +271,7 @@ export default class ContentDownload {
                 }));
 
             } catch (error) {
-                logger.error(`error while processing the list request, ${req.body} , error: ${error}`)
+                logger.error(`Error while processing the list request and err.message: ${error.message}`)
                 res.status(500)
                 return res.send(Response.error("api.content.download.list", 500))
             }

@@ -38,7 +38,7 @@ export class Form {
             let _id = hash.encode(1).toLowerCase();
             //TODO: handle multiple inserts of same form
             await this.databaseSdk.upsert('form', _id, doc).catch(err => {
-                logger.error(`while upserting the ${idText} to form database ${err.message} ${err.reason}`)
+                logger.error(`Received error while upserting the ${idText} to form database and err.message: ${err.message}`)
             });
         };
     }
@@ -60,7 +60,7 @@ export class Form {
         let searchObj = {
             selector: requestObj
         }
-        logger.info(`Getting the data in form database with searchObj: ${searchObj}`)
+        logger.info(`Getting the data from - form database`)
         this.databaseSdk.find('form', searchObj)
             .then(data => {
                 data = _.map(data.docs, doc => _.omit(doc, ['_id', '_rev']))
@@ -72,12 +72,12 @@ export class Form {
                 let resObj = {
                     form: data[0]
                 }
-                logger.info(`Received data with searchObj: ${searchObj} in form database and received response: ${data}`)
+                logger.info(`Received data in from - form database`)
                 return res.send(Response.success("api.form.read", resObj));
             })
             .catch(err => {
                 console.log(err)
-                logger.error(`Received error while searching in form database with searchObj: ${searchObj} and err.message: ${err.message} and err.reason: ${err.reason}`)
+                logger.error(`Received error while searching in form database and err.message: ${err.message}`)
                 if (err.statusCode === 404) {
                     res.status(404)
                     return res.send(Response.error("api.form.read", 404));

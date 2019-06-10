@@ -30,7 +30,7 @@ export class Framework {
             let _id = path.basename(file, path.extname(file));
             let doc = _.get(framework, 'result.framework');
             await this.databaseSdk.upsert('framework', _id, doc).catch(err => {
-                logger.error(`Received error while upserting the ${_id} to framework database ${err.message} ${err.reason}`)
+                logger.error(`Received error while upserting the ${_id} to framework database err.message: ${err.message}`)
             });;
         };
     }
@@ -40,7 +40,7 @@ export class Framework {
         logger.info(`Getting the data from framework database with id: ${id}`)
         this.databaseSdk.get('framework', id)
             .then(data => {
-                logger.info(`Received data with id: ${id} in framework database and received response: ${data}`)
+                logger.info(`Received data with id: ${id} from framework database`)
                 data = _.omit(data, ['_id', '_rev'])
                 let resObj = {
                     framework: data
@@ -48,7 +48,7 @@ export class Framework {
                 return res.send(Response.success("api.framework.read", resObj));
             })
             .catch(err => {
-                logger.error(`Received error while getting the data from framework database with id: ${id} and err.message: ${err.message} and err.reason: ${err.reason}`)
+                logger.error(`Received error while getting the data from framework database with id: ${id} and err.message: ${err.message}`)
                 if (err.statusCode === 404) {
                     res.status(404)
                     return res.send(Response.error("api.framework.read", 404));
