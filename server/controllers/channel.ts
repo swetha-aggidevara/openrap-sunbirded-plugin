@@ -39,7 +39,7 @@ export class Channel {
         logger.info(`Getting the data from channel database with id: ${id}`)
         this.databaseSdk.get('channel', id)
             .then(data => {
-                logger.info(`Received data from channel databease`)
+                logger.info(`Received data from channel database`)
                 data = _.omit(data, ['_id', '_rev'])
                 let resObj = {
                     channel: data
