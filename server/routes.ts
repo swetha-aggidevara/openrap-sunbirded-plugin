@@ -20,7 +20,6 @@ const proxyUrl = process.env.APP_BASE_URL;
 
 export class Router {
 	init(app: any, manifest: Manifest, auth?: any) {
-		const server = frameworkAPI.getPluginInstance(manifest.id);
 
 		const enableProxy = (req) => {
 			let flag = false;

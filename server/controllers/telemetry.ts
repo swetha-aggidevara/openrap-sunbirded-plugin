@@ -42,19 +42,13 @@ export default class Telemetry {
         let deviceInfo = _.get(req, 'body.request');
         if (!_.isEmpty(deviceInfo)) {
             // try to update the deviceInfo
-            this.databaseSdk.update('config', 'deviceInfo', deviceInfo)
+            this.databaseSdk.upsert('config', 'deviceInfo', deviceInfo)
                 .then(data => {
                     return res.send(Response.success('api.device.registry', {}));
                 })
                 .catch(async (error) => {
-                    logger.error('Error while updating the device info from db before inserting ', error);
-                    this.databaseSdk.insert('config', deviceInfo, 'deviceInfo')
-                        .then(data => {
-                            return res.send(Response.success('api.device.registry', {}));
-                        }).catch(err => {
-                            logger.error('Error while inserting device info', err);
-                            return res.send(Response.error('api.device.registry', 500));
-                        });
+                    logger.error('Error while updating the device info to db', error);
+                    return res.send(Response.error('api.device.registry', 500));
                 });
 
         } else {
