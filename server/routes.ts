@@ -218,6 +218,7 @@ export class Router {
 		locals.deviceRegisterApi = '/api/v1/device/registry/'
 		locals.playerCdnEnabled = ''
 		locals.previewCdnUrl = ""
+		locals.cdnWorking = null;
 		return locals;
 	}
 }

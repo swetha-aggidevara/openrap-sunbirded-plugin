@@ -142,7 +142,7 @@ export default class ContentManager {
                                         let zipFilePath = glob.sync(path.join(this.contentFilesPath, file, '**', '*.zip'), {});
                                         if (zipFilePath.length > 0) {
                                             // unzip the file if we have zip file
-                                            let filePath = _.replace(zipFilePath[0], this.fileSDK.getAbsPath(''), '');
+                                            let filePath = path.relative(this.fileSDK.getAbsPath(''), zipFilePath[0]);
                                             await this.fileSDK.unzip(filePath, path.join("content", file), false)
                                         }
                                     }
@@ -163,7 +163,7 @@ export default class ContentManager {
 
                 let zipFilePath = glob.sync(assetFolderGlobPath, {});
                 if (zipFilePath.length > 0) {
-                    let filePath = _.replace(zipFilePath[0], this.fileSDK.getAbsPath(''), '');
+                    let filePath = path.relative(this.fileSDK.getAbsPath(''), zipFilePath[0]);
                     // unzip the file if we have zip file
 
                     await this.fileSDK.unzip(filePath, path.join("content", path.basename(fileName, path.extname(fileName))), false)
