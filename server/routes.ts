@@ -37,13 +37,14 @@ export class Router {
 		}
 
 		//portal static routes
-		app.all(['/', '/play/*', '/import/content', '/get', '/get/*', '/browse', '/browse/*', '/search/*'], (req, res) => {
-			const locals = this.getLocals();
-			_.forIn(locals, (value, key) => {
-				res.locals[key] = value;
+		app.all(['/', '/play/*', '/import/content', '/get',
+			'/get/*', '/browse', '/browse/*', '/search/*', '/help-center', '/help-center/*'], (req, res) => {
+				const locals = this.getLocals();
+				_.forIn(locals, (value, key) => {
+					res.locals[key] = value;
+				})
+				res.render(path.join(__dirname, '..', '..', 'public', 'portal', 'index.ejs'))
 			})
-			res.render(path.join(__dirname, '..', '..', 'public', 'portal', 'index.ejs'))
-		})
 
 
 
