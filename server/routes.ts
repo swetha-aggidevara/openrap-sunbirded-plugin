@@ -20,7 +20,6 @@ const proxyUrl = process.env.APP_BASE_URL;
 
 export class Router {
 	init(app: any, manifest: Manifest, auth?: any) {
-		const server = frameworkAPI.getPluginInstance(manifest.id);
 
 		const enableProxy = (req) => {
 			let flag = false;
@@ -38,13 +37,14 @@ export class Router {
 		}
 
 		//portal static routes
-		app.all(['/', '/play/*', '/import/content', '/get', '/get/*', '/browse', '/browse/*', '/search/*'], (req, res) => {
-			const locals = this.getLocals();
-			_.forIn(locals, (value, key) => {
-				res.locals[key] = value;
+		app.all(['/', '/play/*', '/import/content', '/get',
+			'/get/*', '/browse', '/browse/*', '/search/*', '/help-center', '/help-center/*'], (req, res) => {
+				const locals = this.getLocals();
+				_.forIn(locals, (value, key) => {
+					res.locals[key] = value;
+				})
+				res.render(path.join(__dirname, '..', '..', 'public', 'portal', 'index.ejs'))
 			})
-			res.render(path.join(__dirname, '..', '..', 'public', 'portal', 'index.ejs'))
-		})
 
 
 
@@ -219,6 +219,7 @@ export class Router {
 		locals.deviceRegisterApi = '/api/v1/device/registry/'
 		locals.playerCdnEnabled = ''
 		locals.previewCdnUrl = ""
+		locals.cdnWorking = null;
 		return locals;
 	}
 }

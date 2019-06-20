@@ -47,7 +47,7 @@ export const addContentListener = (pluginId) => {
                     let zipFilePath = glob.sync(path.join(fileSDK.getAbsPath('content'), fileName, '**', '*.zip'), {});
                     if (zipFilePath.length > 0) {
                         // unzip the file if we have zip file
-                        let filePath = _.replace(zipFilePath[0], fileSDK.getAbsPath(''), '');
+                        let filePath = path.relative(fileSDK.getAbsPath(''), zipFilePath[0]);
                         await fileSDK.unzip(filePath, path.join("content", fileName), false)
                     }
 

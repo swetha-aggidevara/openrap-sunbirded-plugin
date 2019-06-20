@@ -161,6 +161,7 @@ export default class ContentDownload {
                             return {
                                 "id": doc.downloadId,
                                 "contentId": doc.contentId,
+                                "mimeType": doc.queueMetaData.mimeType,
                                 "name": doc.name,
                                 "status": CONTENT_DOWNLOAD_STATUS.Submitted,
                                 "createdOn": doc.createdOn
@@ -187,6 +188,7 @@ export default class ContentDownload {
                             return {
                                 "id": doc.downloadId,
                                 "contentId": doc.contentId,
+                                "mimeType": doc.queueMetaData.mimeType,
                                 "name": doc.name,
                                 "status": API_DOWNLOAD_STATUS.completed,
                                 "createdOn": doc.createdOn
@@ -250,6 +252,7 @@ export default class ContentDownload {
                             return {
                                 "id": doc.downloadId,
                                 "contentId": doc.contentId,
+                                "mimeType": doc.queueMetaData.mimeType,
                                 "name": doc.name,
                                 "status": API_DOWNLOAD_STATUS.failed,
                                 "createdOn": doc.createdOn
