@@ -47,14 +47,8 @@ export default class Telemetry {
                     return res.send(Response.success('api.device.registry', {}));
                 })
                 .catch(async (error) => {
-                    logger.error(`Received error while updating the device info from db before inserting and  and err.message: ${error.message}`);
-                    this.databaseSdk.insert('config', deviceInfo, 'deviceInfo')
-                        .then(data => {
-                            return res.send(Response.success('api.device.registry', {}));
-                        }).catch(err => {
-                            logger.error(`Received error while inserting device info  and err.message: ${err.message}`);
-                            return res.send(Response.error('api.device.registry', 500));
-                        });
+                    logger.error(`Received error while updating the device info from db before inserting and and err.message: ${error.message}`);
+                    return res.send(Response.error('api.device.registry', 500));
                 });
 
         } else {
