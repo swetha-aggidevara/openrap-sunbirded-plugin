@@ -29,7 +29,7 @@ export class Organization {
             let _id = path.basename(file, path.extname(file));
             let doc = _.get(organization, 'result.response.content[0]');
             await this.databaseSdk.upsert('organization', _id, doc).catch(err => {
-                logger.error(`while upserting the ${_id} to channel database ${err.message} ${err.reason}`)
+                logger.error(`Received error while upserting the ${_id} to channel database and err.message: ${err.message}`)
             });;
         }
 
@@ -43,6 +43,7 @@ export class Organization {
         let searchObj = {
             selector: _.get(requestBody, 'request.filters')
         }
+        logger.info(`Getting the data from organization database`)
         this.databaseSdk.find('organization', searchObj)
             .then(data => {
                 data = _.map(data.docs, doc => _.omit(doc, ['_id', '_rev']))
@@ -52,10 +53,12 @@ export class Organization {
                         count: data.length
                     }
                 }
+                logger.info(`Received data from organization database`)
                 return res.send(Response.success("api.org.search", resObj));
             })
             .catch(err => {
                 console.log(err)
+                logger.error(`Received error while searching in organization database and err.message: ${err.message}`)
                 if (err.statusCode === 404) {
                     res.status(404)
                     return res.send(Response.error("api.org.search", 404));

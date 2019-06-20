@@ -62,7 +62,7 @@ export default class Content {
                 return res.send(Response.success("api.content.read", resObj));
             })
             .catch(err => {
-
+                logger.error(`Received error while getting the data from content database with id: ${id} and err.message: ${err.message}`)
                 if (err.statusCode === 404) {
                     res.status(404)
                     return res.send(Response.error("api.content.read", 404));
@@ -103,6 +103,7 @@ export default class Content {
             return res.send(Response.success("api.content.search", resObj));
         }).catch(err => {
             console.log(err)
+            logger.error(`Received error while searching content - err.message: ${err.message}`)
             if (err.statusCode === 404) {
                 res.status(404)
                 return res.send(Response.error("api.content.search", 404));
@@ -153,7 +154,7 @@ export default class Content {
                     let filePath = this.fileSDK.getAbsPath(path.join("ecars", content.desktopAppMetadata.ecarFile))
                     fs.stat(filePath, async (err) => {
                         if (err) {
-                            logger.error(`ecar file not available while exporting for content ${id} ${err}`)
+                            logger.error(`ecar file not available while exporting for content ${id} and err.message: ${err.message}`)
                             res.status(500)
                             return res.send(Response.error("api.content.export", 500))
                         } else {
@@ -224,7 +225,7 @@ export default class Content {
                     }));
                 }
             } catch (error) {
-                logger.error(`while processing the content  export ${req.params.id} ${error} `);
+                logger.error(`Received error while processing the content export and err.message: ${error.message} `);
                 res.status(500)
                 return res.send(Response.error("api.content.export", 500))
             }
@@ -240,7 +241,7 @@ export default class Content {
                 this.fileSDK.remove(file);
                 clearInterval(interval);
             } catch (error) {
-                logger.error(`while deleting the ${file} after export ${error.message} `)
+                logger.error(`Received error while deleting the ${file} after export and err.message: ${error.message} `)
                 clearInterval(interval);
             }
         }, 300000)
