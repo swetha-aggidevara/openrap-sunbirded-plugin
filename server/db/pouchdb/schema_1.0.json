@@ -1,5 +1,5 @@
 {
-    "type": "couchdb",
+    "type": "pouchdb",
     "config": {},
     "databases": [
         {
@@ -103,7 +103,10 @@
                 {
                     "index": {
                         "fields": [
-                            "createdOn"
+                            "createdOn",
+                            "_id",
+                            "downloadId",
+                            "status"
                         ]
                     },
                     "type": "json",

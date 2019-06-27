@@ -112,14 +112,14 @@ export class Page {
                 })
 
         }).catch(err => {
-            logger.error(`Received error while getting the data from page database and err.message: ${err.message}`)
-            if (err.statusCode === 404) {
+            logger.error(`Received error while getting the data from page database and err.message: ${err.message} ${err}`)
+            if (err.status === 404) {
                 res.status(404)
                 return res.send(Response.error("api.page.assemble", 404));
             } else {
-                let statusCode = err.statusCode || 500;
-                res.status(statusCode)
-                return res.send(Response.error("api.page.assemble", statusCode));
+                let status = err.status || 500;
+                res.status(status)
+                return res.send(Response.error("api.page.assemble", status));
             }
         })
     }

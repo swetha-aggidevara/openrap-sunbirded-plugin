@@ -47,8 +47,8 @@ export class TelemetryService extends TelemetryHelper {
                 apislug: '',
                 sid: uuid(),
                 channel: orgDetails.hashTagId,
-                env: 'offline',
-                enableValidation: true,
+                env: 'plugin',
+                enableValidation: false,
                 timeDiff: 0,
                 runningEnv: 'server',
                 dispatcher: {

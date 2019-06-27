@@ -47,14 +47,14 @@ export class Channel {
                 return res.send(Response.success("api.channel.read", resObj));
             })
             .catch(err => {
-                logger.error(`Received error while getting the data from channel database with id: ${id} and err.message: ${err.message}`)
-                if (err.statusCode === 404) {
+                logger.error(`Received error while getting the data from channel database with id: ${id} and err.message: ${err.message} ${err}`)
+                if (err.status === 404) {
                     res.status(404)
                     return res.send(Response.error("api.channel.read", 404));
                 } else {
-                    let statusCode = err.statusCode || 500;
-                    res.status(statusCode)
-                    return res.send(Response.error("api.channel.read", statusCode));
+                    let status = err.status || 500;
+                    res.status(status)
+                    return res.send(Response.error("api.channel.read", status));
                 }
             });
     }

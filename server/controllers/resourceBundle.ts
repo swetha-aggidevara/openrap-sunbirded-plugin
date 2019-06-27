@@ -28,7 +28,7 @@ export class ResourceBundle {
             let _id = path.basename(file, path.extname(file));
             let doc = _.get(bundles, 'result');
             await this.databaseSdk.upsert('resource_bundle', _id, doc).catch(err => {
-                logger.error(`while upserting the ${_id} to channel database and err.message: ${err.message}`)
+                logger.error(`while upserting the ${_id} to resourcebundles database  ${err}`)
             });;
         }
     }
@@ -43,14 +43,14 @@ export class ResourceBundle {
                 return res.send(Response.success("api.resoucebundles.read", data));
             })
             .catch(err => {
-                logger.error(`Received error while getting the data from resource_bundle database with id: ${id} and err.message: ${err.message}`)
-                if (err.statusCode === 404) {
+                logger.error(`Received error while getting the data from resource_bundle database with id: ${id} and err: ${err}`)
+                if (err.status === 404) {
                     res.status(404)
                     return res.send(Response.error("api.resoucebundles.read", 404));
                 } else {
-                    let statusCode = err.statusCode || 500;
-                    res.status(statusCode)
-                    return res.send(Response.error("api.resoucebundles.read", statusCode));
+                    let status = err.status || 500;
+                    res.status(status)
+                    return res.send(Response.error("api.resoucebundles.read", status));
                 }
             });
     }

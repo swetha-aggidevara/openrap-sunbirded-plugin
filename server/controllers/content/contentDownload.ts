@@ -173,10 +173,12 @@ export default class ContentDownload {
 
                     let completed_CDB = await this.databaseSdk.find(dbName, {
                         "selector": {
-                            "status": CONTENT_DOWNLOAD_STATUS.Indexed
+                            "status": CONTENT_DOWNLOAD_STATUS.Indexed,
+                            "createdOn": {
+                                "$gt": null
+                            }
                         },
                         "limit": 50,
-                        "use_index": "created_on_sort_index",
                         "sort": [
                             {
                                 "createdOn": "desc"
@@ -207,9 +209,11 @@ export default class ContentDownload {
                             "selector": {
                                 "downloadId": {
                                     "$in": downloadIds
+                                },
+                                "createdOn": {
+                                    "$gt": null
                                 }
                             },
-                            "use_index": "created_on_sort_index",
                             "sort": [
                                 {
                                     "createdOn": "desc"
@@ -237,10 +241,12 @@ export default class ContentDownload {
 
                     let failed_CDB = await this.databaseSdk.find(dbName, {
                         "selector": {
-                            "status": CONTENT_DOWNLOAD_STATUS.Failed
+                            "status": CONTENT_DOWNLOAD_STATUS.Failed,
+                            "createdOn": {
+                                "$gt": null
+                            }
                         },
                         "limit": 50,
-                        "use_index": "created_on_sort_index",
                         "sort": [
                             {
                                 "createdOn": "desc"

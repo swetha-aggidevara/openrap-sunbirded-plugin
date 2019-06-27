@@ -76,15 +76,14 @@ export class Form {
                 return res.send(Response.success("api.form.read", resObj));
             })
             .catch(err => {
-                console.log(err)
-                logger.error(`Received error while searching in form database and err.message: ${err.message}`)
-                if (err.statusCode === 404) {
+                logger.error(`Received error while searching in form database and err.message: ${err.message} ${err}`)
+                if (err.status === 404) {
                     res.status(404)
                     return res.send(Response.error("api.form.read", 404));
                 } else {
-                    let statusCode = err.statusCode || 500;
-                    res.status(statusCode)
-                    return res.send(Response.error("api.form.read", statusCode));
+                    let status = err.status || 500;
+                    res.status(status)
+                    return res.send(Response.error("api.form.read", status));
                 }
             });
     }
