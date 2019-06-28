@@ -220,6 +220,11 @@ export class Router {
 		locals.playerCdnEnabled = ''
 		locals.previewCdnUrl = ""
 		locals.cdnWorking = null;
+		locals.offlineDesktopAppTenant = "";
+		locals.offlineDesktopAppVersion = "";
+		locals.offlineDesktopAppReleaseDate = "";
+		locals.offlineDesktopAppSupportedLanguage = "";
+		locals.offlineDesktopAppDownloadUrl = "";
 		return locals;
 	}
 }
