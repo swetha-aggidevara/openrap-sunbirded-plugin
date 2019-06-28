@@ -147,7 +147,7 @@ export class Router {
 			}
 		}, proxy(proxyUrl, {
 			proxyReqPathResolver: function (req) {
-				return `/api/content/v1/read/${req.params.id}`;
+				return `/api/content/v1/read/${req.params.id}?fields=${req.query.fields}`;
 			}
 		}))
 
@@ -192,6 +192,24 @@ export class Router {
 		app.post('/action/data/v3/telemetry', (req, res) => { telemetry.addEvents(req, res) })
 
 		app.post('/api/v1/device/registry/:id', (req, res) => { telemetry.registerDevice(req, res) })
+
+		app.use('/content-plugins/*', proxy(proxyUrl, {
+			proxyReqPathResolver: function (req) {
+				return require('url').parse(proxyUrl + req.originalUrl).path
+			}
+		}))
+
+		app.use('/assets/public/*', proxy(proxyUrl, {
+			proxyReqPathResolver: function (req) {
+				return require('url').parse(proxyUrl + req.originalUrl).path
+			}
+		}))
+
+		app.use('/contentPlayer/preview/*', proxy(proxyUrl, {
+			proxyReqPathResolver: function (req) {
+				return require('url').parse(proxyUrl + req.originalUrl).path
+			}
+		}))
 	}
 
 	getLocals() {
