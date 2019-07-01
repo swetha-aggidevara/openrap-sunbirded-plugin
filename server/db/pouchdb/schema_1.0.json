@@ -103,6 +103,15 @@
                 {
                     "index": {
                         "fields": [
+                            "createdOn"
+                        ]
+                    },
+                    "type": "json",
+                    "name": "created_on_sort_index"
+                },
+                {
+                    "index": {
+                        "fields": [
                             "createdOn",
                             "_id",
                             "downloadId",
@@ -110,7 +119,7 @@
                         ]
                     },
                     "type": "json",
-                    "name": "created_on_sort_index"
+                    "name": "search"
                 }
             ]
         }
