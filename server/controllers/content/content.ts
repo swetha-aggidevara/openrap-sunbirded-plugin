@@ -33,7 +33,7 @@ export default class Content {
             this.fileSDK.getAbsPath(this.ecarsFolderPath));
     }
 
-    searchInDB(filters) {
+    searchInDB(filters, sort?) {
         let modifiedFilters: Object = _.mapValues(filters, (v, k) => {
             if (k !== 'query') return ({ '$in': v })
         });
@@ -44,9 +44,12 @@ export default class Content {
             }
         }
         modifiedFilters['visibility'] = 'Default';
-        let dbFilters = {
+        var dbFilters = {
             selector: modifiedFilters,
             limit: parseInt(config.get('CONTENT_SEARCH_LIMIT'), 10)
+        }
+        if (sort) {
+            dbFilters['sort'] = sort;
         }
         return this.databaseSdk.find('content', dbFilters);
     }

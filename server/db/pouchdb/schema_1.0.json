@@ -16,6 +16,14 @@
                         ]
                     },
                     "name": "search"
+                },
+                {
+                    "index": {
+                        "fields": [
+                            "desktopAppMetadata.updatedOn"
+                        ]
+                    },
+                    "name": "sort_updatedOn_index"
                 }
             ]
         },
