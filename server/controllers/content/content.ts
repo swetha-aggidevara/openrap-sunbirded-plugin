@@ -44,7 +44,7 @@ export default class Content {
             }
         }
         modifiedFilters['visibility'] = 'Default';
-        var dbFilters = {
+        let dbFilters = {
             selector: modifiedFilters,
             limit: parseInt(config.get('CONTENT_SEARCH_LIMIT'), 10)
         }
