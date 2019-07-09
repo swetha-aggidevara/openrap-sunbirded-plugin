@@ -74,6 +74,7 @@ export class Page {
             let sectionPromises = [];
             page.sections.forEach((section) => {
                 let searchQuery = JSON.parse(section.searchQuery);
+                let sortData = _.get(searchQuery, 'request.sort_by')
                 let sectionFilters = _.get(searchQuery, 'request.filters');
                 sectionFilters = _.pick(sectionFilters, contentSearchFields);
                 sectionFilters = _.mapValues(sectionFilters, function (v) { return _.isString(v) ? [v] : v; });
@@ -92,7 +93,7 @@ export class Page {
                         }
                     })
                 }
-                sectionPromises.push(this.getSection(dbFilter, section));
+                sectionPromises.push(this.getSection(dbFilter, section, sortData));
             })
             Promise.all(sectionPromises)
                 .then((sections) => {
@@ -124,9 +125,9 @@ export class Page {
         })
     }
 
-    getSection(filter, section) {
+    getSection(filter, section, sortData) {
         return new Promise((resolve, reject) => {
-            this.content.searchInDB(filter).then(data => {
+            this.content.searchInDB(filter, sortData).then(data => {
                 if (data.docs.length) {
                     section.count = data.docs.length
                     let contents = _.map(data.docs, doc => _.omit(doc, ['_id', '_rev']))

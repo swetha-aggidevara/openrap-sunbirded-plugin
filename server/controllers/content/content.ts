@@ -49,7 +49,12 @@ export default class Content {
             limit: parseInt(config.get('CONTENT_SEARCH_LIMIT'), 10)
         }
         if (sort) {
-            dbFilters['sort'] = sort;
+            for (let sortFields of Object.keys(sort)) {
+                dbFilters.selector[sortFields] = {
+                    "$gt": null
+                }
+            }
+            dbFilters['sort'] = [sort];
         }
         return this.databaseSdk.find('content', dbFilters);
     }
