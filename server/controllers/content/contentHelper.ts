@@ -7,6 +7,7 @@ import { logger } from "@project-sunbird/ext-framework-server/logger";
 import * as glob from 'glob';
 import * as _ from 'lodash';
 import { STATUS } from "OpenRAP/dist/managers/DownloadManager/DownloadManager";
+import { IDesktopAppMetadata, IAddedUsingType } from './IContent';
 
 let dbSDK = new DatabaseSDK();
 
@@ -72,10 +73,14 @@ export const addContentListener = (pluginId) => {
                         metaData.visibility = "Parent"
                     }
                     metaData.baseDir = `content/${fileName}`;
-                    metaData.desktopAppMetadata = {
+
+                    const desktopAppMetadata: IDesktopAppMetadata = {
                         "ecarFile": file.file,  // relative to ecar folder
-                        "addedUsing": "download"
+                        "addedUsing": IAddedUsingType.download,
+                        "createdOn": Date.now(),
+                        "updatedOn": Date.now()
                     }
+                    metaData.desktopAppMetadata = desktopAppMetadata;
                     metaData.appIcon = metaData.appIcon ? `content/${fileName}/${metaData.appIcon}` : metaData.appIcon;
                     //insert metadata to content database
                     // TODO: before insertion check if the first object is type of collection then prepare the collection and insert 

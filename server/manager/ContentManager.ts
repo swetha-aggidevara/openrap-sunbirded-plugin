@@ -11,6 +11,8 @@ import { containerAPI } from 'OpenRAP/dist/api';
 import { manifest } from '../manifest';
 import { isRegExp } from 'util';
 import config from '../config';
+import { IDesktopAppMetadata, IAddedUsingType } from '../controllers/content/IContent';
+
 
 export default class ContentManager {
 
@@ -171,10 +173,13 @@ export default class ContentManager {
 
                 metaData.baseDir = `content/${path.basename(fileName, path.extname(fileName))}`;
                 metaData.appIcon = metaData.appIcon ? `content/${path.basename(fileName, path.extname(fileName))}/${metaData.appIcon}` : metaData.appIcon;
-                metaData.desktopAppMetadata = {
+                const desktopAppMetadata: IDesktopAppMetadata = {
                     "ecarFile": fileName,  // relative to ecar folder
-                    "addedUsing": "import"
+                    "addedUsing": IAddedUsingType.import,
+                    "createdOn": Date.now(),
+                    "updatedOn": Date.now()
                 }
+                metaData.desktopAppMetadata = desktopAppMetadata;
                 //insert metadata to content database
                 // TODO: before insertion check if the first object is type of collection then prepare the collection and insert 
 
