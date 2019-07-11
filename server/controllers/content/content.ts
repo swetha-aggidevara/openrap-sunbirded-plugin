@@ -357,12 +357,12 @@ export default class Content {
                 }
             }
         }
-        return this.searchContentsInDBandChangeTheLabel(contents);
+        return this.decorateContentWithProperty(contents);
     }
 
     /* This method is to check contents are present in DB */
 
-    async searchContentsInDBandChangeTheLabel(contents) {
+    async decorateContentWithProperty(contents) {
         try {
             let listOfAllContentIds = [];
             for (let content of contents) {
@@ -407,7 +407,7 @@ export default class Content {
                 contents.push(node.model);
             }
         });
-        return this.searchContentsInDBandChangeTheLabel(contents);
+        return this.decorateContentWithProperty(contents);
     }
 
     /* This method is to include addedToLibrary property  for downloaded contents*/

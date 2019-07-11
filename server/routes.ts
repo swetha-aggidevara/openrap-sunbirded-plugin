@@ -215,7 +215,7 @@ export class Router {
             let contents = _.get(proxyData, 'result.content');
             if (!_.isEmpty(contents)) {
               content
-                .searchContentsInDBandChangeTheLabel([contents])
+                .decorateContentWithProperty([contents])
                 .then(() => {
                   resolve(proxyData);
                 })
@@ -288,7 +288,7 @@ export class Router {
             let contents = _.get(proxyData, 'result.content');
             if (!_.isEmpty(contents)) {
               content
-                .searchContentsInDBandChangeTheLabel(contents)
+                .decorateContentWithProperty(contents)
                 .then(() => {
                   resolve(proxyData);
                 })
