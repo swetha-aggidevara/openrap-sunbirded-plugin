@@ -12,7 +12,7 @@ import ContentManager from "../../manager/ContentManager";
 import * as uuid from 'uuid';
 import Hashids from 'hashids';
 import { containerAPI } from "OpenRAP/dist/api";
-
+import * as TreeModel from "tree-model";
 export default class Content {
 
     private contentsFilesPath: string = 'content';
@@ -253,6 +253,91 @@ export default class Content {
                 clearInterval(interval);
             }
         }, 300000)
+    }
+
+    /* This method converts the buffer data to json and if any error will catch and return the buffer data */
+    convertBufferToJson(proxyResData) {
+        let proxyData;
+        try {
+            proxyData = JSON.parse(proxyResData.toString("utf8"));
+        }
+        catch (e) {
+            console.log("error", e);
+            logger.error(`Received error while parsing the buffer data to json: ${e}`);
+            return proxyResData;
+        }
+        return proxyData;
+    }
+    /*This method is to whether content is present and to store all the contents in all page sections to one array */
+    decorateSections(sections) {
+        let contents = [];
+        for (let section of sections) {
+            if (!_.isEmpty(section.contents)) {
+                for (let content of section.contents) {
+                    contents.push(content);
+                }
+            }
+        }
+        return this.searchContentsInDBandChangeTheLabel(contents);
+    }
+    /* This method is to check contents are present in DB */
+    async searchContentsInDBandChangeTheLabel(contents) {
+
+        try {
+            let listOfAllContentIds = [];
+            for (let content of contents) {
+                listOfAllContentIds.push(content.identifier);
+            }
+            let filters = { identifier: listOfAllContentIds };
+            await this.searchInDB(filters)
+                .then(data => {
+                    for (let doc of data.docs) {
+                        for (let content of contents) {
+                            this.includeAddedToLibraryProperty(doc, content);
+                        }
+                    }
+                })
+                .catch(err => {
+                    console.log("catch", err);
+                    logger.error(`Received error while getting the data from database and err.message: ${err.message} ${err}`);
+                    return contents;
+                });
+        }
+        catch (err) {
+            console.log("catch", err);
+            logger.error(`Received  error err.message: ${err.message} ${err}`);
+            return contents;
+        }
+        return contents;
+
+    }
+    /* This method is to check dialcode contents present in DB */
+    decorateDialCodeContents(content) {
+        const model = new TreeModel();
+        let treeModel;
+        treeModel = model.parse(content);
+        let contents = [];
+        contents.push(content);
+        treeModel.walk(node => {
+            if (node.model.mimeType !== "application/vnd.ekstep.content-collection") {
+                contents.push(node.model);
+            }
+        });
+        return this.searchContentsInDBandChangeTheLabel(contents);
+    }
+    /* This method is to include addedToLibrary property  for downloaded contents*/
+    includeAddedToLibraryProperty(doc, content) {
+        if (doc.identifier === content.identifier) {
+            doc.addedToLibrary = true;
+            content.addedToLibrary = true;
+            try {
+                this.databaseSdk.update("content", doc._id, doc);
+            }
+            catch (err) {
+                console.log(err);
+                logger.error(`Received error while updating the database and err.message: ${err.message} ${err}`);
+            }
+        }
     }
 
 }

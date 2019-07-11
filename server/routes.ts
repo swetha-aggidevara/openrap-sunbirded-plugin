@@ -120,6 +120,26 @@ export class Router {
 		}, proxy(proxyUrl, {
 			proxyReqPathResolver: function (req) {
 				return `/api/data/v1/page/assemble`;
+			},
+			userResDecorator: function (proxyRes, proxyResData) {
+				return new Promise(function (resolve) {
+					const proxyData = content.convertBufferToJson(proxyResData);
+					let sections = _.get(proxyData, "result.response.sections");
+					if (!_.isEmpty(sections)) {
+						content
+							.decorateSections(sections)
+							.then(() => {
+								resolve(proxyData);
+							})
+							.catch(err => {
+								console.log("catch", err);
+								resolve(proxyData);
+							});
+					}
+					else {
+						resolve(proxyData);
+					}
+				});
 			}
 		}))
 
@@ -148,6 +168,26 @@ export class Router {
 		}, proxy(proxyUrl, {
 			proxyReqPathResolver: function (req) {
 				return `/api/content/v1/read/${req.params.id}?fields=${req.query.fields}`;
+			},
+			userResDecorator: function (proxyRes, proxyResData) {
+				return new Promise(function (resolve) {
+					const proxyData = content.convertBufferToJson(proxyResData);
+					let contents = _.get(proxyData, "result.content");
+					if (!_.isEmpty(contents)) {
+						content
+							.searchContentsInDBandChangeTheLabel([contents])
+							.then(() => {
+								resolve(proxyData);
+							})
+							.catch(err => {
+								console.log("catch", err);
+								resolve(proxyData);
+							});
+					}
+					else {
+						resolve(proxyData);
+					}
+				});
 			}
 		}))
 
@@ -161,6 +201,26 @@ export class Router {
 		}, proxy(proxyUrl, {
 			proxyReqPathResolver: function (req) {
 				return `/api/course/v1/hierarchy/${req.params.id}`;
+			},
+			userResDecorator: function (proxyRes, proxyResData) {
+				return new Promise(function (resolve) {
+					const proxyData = content.convertBufferToJson(proxyResData);
+					let contents = _.get(proxyData, "result.content");
+					if (!_.isEmpty(contents)) {
+						content
+							.decorateDialCodeContents(contents)
+							.then(() => {
+								resolve(proxyData);
+							})
+							.catch(err => {
+								console.log("catch", err);
+								resolve(proxyData);
+							});
+					}
+					else {
+						resolve(proxyData);
+					}
+				});
 			}
 		}))
 
@@ -175,6 +235,26 @@ export class Router {
 		}, proxy(proxyUrl, {
 			proxyReqPathResolver: function (req) {
 				return `/api/content/v1/search`;
+			},
+			userResDecorator: function (proxyRes, proxyResData) {
+				return new Promise(function (resolve) {
+					const proxyData = content.convertBufferToJson(proxyResData);
+					let contents = _.get(proxyData, "result.content");
+					if (!_.isEmpty(contents)) {
+						content
+							.searchContentsInDBandChangeTheLabel(contents)
+							.then(() => {
+								resolve(proxyData);
+							})
+							.catch(err => {
+								console.log("catch", err);
+								resolve(proxyData);
+							});
+					}
+					else {
+						resolve(proxyData);
+					}
+				});
 			}
 		}));
 
