@@ -24,10 +24,9 @@ export class ResourceBundle {
         let files = glob.sync(resourceBundleFiles, {});
 
         for (let file of files) {
-            let bundles = await this.fileSDK.readJSON(file);
+            let bundle = await this.fileSDK.readJSON(file);
             let _id = path.basename(file, path.extname(file));
-            let doc = _.get(bundles, 'result');
-            await this.databaseSdk.upsert('resource_bundle', _id, doc).catch(err => {
+            await this.databaseSdk.upsert('resource_bundle', _id, bundle).catch(err => {
                 logger.error(`while upserting the ${_id} to resourcebundles database  ${err}`)
             });;
         }
