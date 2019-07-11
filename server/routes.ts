@@ -15,7 +15,7 @@ import * as proxy from 'express-http-proxy';
 import ContentDownload from './controllers/content/contentDownload';
 import * as url from 'url';
 import config from './config';
-
+import { logger } from '@project-sunbird/ext-framework-server/logger';
 const proxyUrl = process.env.APP_BASE_URL;
 
 export class Router {
@@ -31,7 +31,7 @@ export class Router {
     const updateRequestBody = req => {
       if (_.get(req, 'body.request.filters')) {
         req.body.request.filters.compatibilityLevel = {
-          '<=': config.get('CONTENT_COMPATIBILITY_LEVEL')
+          "<=": config.get("CONTENT_COMPATIBILITY_LEVEL")
         };
       }
       return req;
@@ -163,7 +163,7 @@ export class Router {
                   resolve(proxyData);
                 })
                 .catch(err => {
-                  console.log('catch', err);
+                  logger.error('Received error err.message', err);
                   resolve(proxyData);
                 });
             } else {
@@ -220,7 +220,7 @@ export class Router {
                   resolve(proxyData);
                 })
                 .catch(err => {
-                  console.log('catch', err);
+				  logger.error('Received error err.message', err);
                   resolve(proxyData);
                 });
             } else {
@@ -256,7 +256,7 @@ export class Router {
                   resolve(proxyData);
                 })
                 .catch(err => {
-                  console.log('catch', err);
+				  logger.error('Received error err.message', err);
                   resolve(proxyData);
                 });
             } else {
@@ -293,7 +293,7 @@ export class Router {
                   resolve(proxyData);
                 })
                 .catch(err => {
-                  console.log('catch', err);
+				  logger.error('Received error err.message', err);
                   resolve(proxyData);
                 });
             } else {
