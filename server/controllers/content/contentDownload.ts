@@ -59,6 +59,8 @@ export default class ContentDownload {
                         let queueMetaData = {
                             mimeType: _.get(content, 'data.result.content.mimeType'),
                             items: downloadFiles,
+                            pkgVersion: _.get(content, 'data.result.content.pkgVersion'),
+                            contentType: _.get(content, 'data.result.content.contentType'),
                         }
 
                         await this.databaseSdk.insert(dbName, {
@@ -112,6 +114,8 @@ export default class ContentDownload {
                         let queueMetaData = {
                             mimeType: _.get(content, 'data.result.content.mimeType'),
                             items: downloadFiles,
+                            pkgVersion: _.get(content, 'data.result.content.pkgVersion'),
+                            contentType: _.get(content, 'data.result.content.contentType'),
                         }
                         await this.databaseSdk.insert(dbName, {
                             downloadId: downloadId,
@@ -164,7 +168,9 @@ export default class ContentDownload {
                                 "mimeType": doc.queueMetaData.mimeType,
                                 "name": doc.name,
                                 "status": CONTENT_DOWNLOAD_STATUS.Submitted,
-                                "createdOn": doc.createdOn
+                                "createdOn": doc.createdOn,
+                                "pkgVersion": doc.queueMetaData.pkgVersion,
+                                "contentType": doc.queueMetaData.contentType
                             };
                         })
                     }
@@ -193,7 +199,9 @@ export default class ContentDownload {
                                 "mimeType": doc.queueMetaData.mimeType,
                                 "name": doc.name,
                                 "status": API_DOWNLOAD_STATUS.completed,
-                                "createdOn": doc.createdOn
+                                "createdOn": doc.createdOn,
+                                "pkgVersion": doc.queueMetaData.pkgVersion,
+                                "contentType": doc.queueMetaData.contentType
                             };
                         })
                     }
@@ -261,7 +269,9 @@ export default class ContentDownload {
                                 "mimeType": doc.queueMetaData.mimeType,
                                 "name": doc.name,
                                 "status": API_DOWNLOAD_STATUS.failed,
-                                "createdOn": doc.createdOn
+                                "createdOn": doc.createdOn,
+                                "pkgVersion": doc.queueMetaData.pkgVersion,
+                                "contentType": doc.queueMetaData.contentType
                             };
                         })
                     }
