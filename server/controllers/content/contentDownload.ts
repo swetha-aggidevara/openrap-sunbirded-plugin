@@ -59,8 +59,9 @@ export default class ContentDownload {
                         let queueMetaData = {
                             mimeType: _.get(content, 'data.result.content.mimeType'),
                             items: downloadFiles,
+                            pkgVersion: _.get(content, 'data.result.content.pkgVersion'),
+                            contentType: _.get(content, 'data.result.content.contentType'),
                         }
-
                         await this.databaseSdk.insert(dbName, {
                             downloadId: downloadId,
                             contentId: _.get(content, "data.result.content.identifier"),
@@ -112,6 +113,8 @@ export default class ContentDownload {
                         let queueMetaData = {
                             mimeType: _.get(content, 'data.result.content.mimeType'),
                             items: downloadFiles,
+                            pkgVersion: _.get(content, 'data.result.content.pkgVersion'),
+                            contentType: _.get(content, 'data.result.content.contentType'),
                         }
                         await this.databaseSdk.insert(dbName, {
                             downloadId: downloadId,
@@ -122,7 +125,7 @@ export default class ContentDownload {
                             createdOn: Date.now(),
                             updatedOn: Date.now()
                         })
-                        return res.send(Response.success("api.content.download", { downloadId }));
+                        return res.send(Response.success("api.content.download", {downloadId}));
                     }
                 } else {
                     logger.error(`Received error while processing download request ${content}, for content ${req.params.id}`);
@@ -164,13 +167,14 @@ export default class ContentDownload {
                                 "mimeType": doc.queueMetaData.mimeType,
                                 "name": doc.name,
                                 "status": CONTENT_DOWNLOAD_STATUS.Submitted,
-                                "createdOn": doc.createdOn
+                                "createdOn": doc.createdOn,
+                                "pkgVersion": _.get(doc ,'queueMetaData.pkgVersion'),
+                                "contentType": _.get(doc, 'queueMetaData.contentType')
                             };
                         })
                     }
                 }
                 if (_.indexOf(status, API_DOWNLOAD_STATUS.completed) !== -1) {
-
                     let completed_CDB = await this.databaseSdk.find(dbName, {
                         "selector": {
                             "status": CONTENT_DOWNLOAD_STATUS.Indexed,
@@ -193,7 +197,9 @@ export default class ContentDownload {
                                 "mimeType": doc.queueMetaData.mimeType,
                                 "name": doc.name,
                                 "status": API_DOWNLOAD_STATUS.completed,
-                                "createdOn": doc.createdOn
+                                "createdOn": doc.createdOn,
+                                "pkgVersion": _.get(doc ,'queueMetaData.pkgVersion'),
+                                "contentType": _.get(doc, 'queueMetaData.contentType')
                             };
                         })
                     }
@@ -238,7 +244,6 @@ export default class ContentDownload {
                 // failed -  get from the content downloadDB and download queue
 
                 if (_.indexOf(status, API_DOWNLOAD_STATUS.failed) !== -1) {
-
                     let failed_CDB = await this.databaseSdk.find(dbName, {
                         "selector": {
                             "status": CONTENT_DOWNLOAD_STATUS.Failed,
@@ -261,7 +266,9 @@ export default class ContentDownload {
                                 "mimeType": doc.queueMetaData.mimeType,
                                 "name": doc.name,
                                 "status": API_DOWNLOAD_STATUS.failed,
-                                "createdOn": doc.createdOn
+                                "createdOn": doc.createdOn,
+                                "pkgVersion": _.get(doc,'queueMetaData.pkgVersion'),
+                                "contentType": _.get(doc, 'queueMetaData.contentType')
                             };
                         })
                     }
