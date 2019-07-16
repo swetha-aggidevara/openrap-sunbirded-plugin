@@ -20,11 +20,13 @@ export default class DatabaseSDK {
     }
 
     get(database: string, Id: string) {
+        logger.info(`getting the data from Database: ${database}: with ID: ${Id}`);
         let db = frameworkAPI.getPouchDBInstance(this.pluginId, database);
         return db.get(Id);
     }
 
     insert(database: string, doc: any, Id?: string) {
+        logger.info(`Inserting the doc: ${Id} in Database: ${database}`);
         let db = frameworkAPI.getPouchDBInstance(this.pluginId, database);
         if (Id) {
             doc._id = Id;
@@ -34,6 +36,7 @@ export default class DatabaseSDK {
     }
 
     async update(database: string, docId, doc) {
+        logger.info(`Updating the content in Database: ${database} with docID: ${docId}`);
         let db = frameworkAPI.getPouchDBInstance(this.pluginId, database);
         let docResponse = await db.get(docId);
         let result = await db.put({ ...docResponse, ...doc });
@@ -48,6 +51,7 @@ export default class DatabaseSDK {
     }
 
     find(database: string, searchObj: Object) {
+        logger.info(`finding the data in Database: ${database}`);        
         let db = frameworkAPI.getPouchDBInstance(this.pluginId, database);
         return db.find(searchObj);
     }

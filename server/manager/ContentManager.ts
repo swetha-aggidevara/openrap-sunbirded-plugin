@@ -54,22 +54,25 @@ export default class ContentManager {
 
         // read manifest file and add baseDir to manifest as content and folder name relative path
         let manifest = await this.fileSDK.readJSON(path.join(this.contentFilesPath, path.basename(fileName, path.extname(fileName)), 'manifest.json'));
+        logger.info(`file is unzipped and reading manifest file and base dir to manifest as content and folder name relative path`);
         let items = _.get(manifest, 'archive.items');
         if (items && _.isArray(items) &&
             items.length > 0) {
             // check if it is collection type or not   
+            logger.info(`checking if the data is of type collection or not`);
             let parent: any | undefined = _.find(items, (i) => {
                 return (i.mimeType === 'application/vnd.ekstep.content-collection' && i.visibility === 'Default')
             });
 
             if (parent) {
-                // check content compatibility level
-
+                // check content compatibility level 
+                logger.info(`Checking content compatability level for the collection`);
                 if (_.get(parent, 'compatibilityLevel') && parent.compatibilityLevel > config.get("CONTENT_COMPATIBILITY_LEVEL")) {
                     throw `content compatibility is higher then content level : ${parent.compatibilityLevel} app supports ${config.get("CONTENT_COMPATIBILITY_LEVEL")}`;
                 }
 
                 let itemsClone = _.cloneDeep(items);
+                logger.debug(`Creating Hierarchy for the collection whose version number: ${_.get(parent, 'pkgVersion')} and version key: ${_.get(parent, 'versionKey')}`);
                 let children = this.createHierarchy(itemsClone, parent)
                 parent['children'] = children;
                 parent.desktopAppMetadata = {
@@ -78,6 +81,7 @@ export default class ContentManager {
                     "createdOn": Date.now(),
                     "updatedOn": Date.now()
                 }
+                logger.info(`Upserting the collection details in database `);
                 await this.dbSDK.upsert('content', parent.identifier, parent);
 
                 let resources = _.filter(items, (i) => {
@@ -159,6 +163,7 @@ export default class ContentManager {
 
                 // check content compatibility level 
                 let metaData = items[0];
+                logger.info(`Checking compatability level for the content whose version number: ${_.get(metaData, 'pkgVersion')} and version key: ${_.get(metaData, 'versionKey')}`);
                 if (_.get(metaData, 'compatibilityLevel') && metaData.compatibilityLevel > config.get("CONTENT_COMPATIBILITY_LEVEL")) {
                     throw `content compatibility is higher then content level : ${metaData.compatibilityLevel} app supports ${config.get("CONTENT_COMPATIBILITY_LEVEL")}`;
                 }
@@ -183,8 +188,8 @@ export default class ContentManager {
                 }
                 metaData.desktopAppMetadata = desktopAppMetadata;
                 //insert metadata to content database
-                // TODO: before insertion check if the first object is type of collection then prepare the collection and insert
- 
+                // TODO: before insertion check if the first object is type of collection then prepare the collection and insert 
+                logger.info(`Upserting the content and content details in database`)
                 await this.dbSDK.upsert('content', metaData.identifier, metaData);
             }
 
@@ -216,6 +221,7 @@ export default class ContentManager {
                 _.each(children, (child) => { this.createHierarchy(items, child) });
             }
         }
+        logger.info(`Hierarchy is created for the collection`);
         return tree;
     }
 

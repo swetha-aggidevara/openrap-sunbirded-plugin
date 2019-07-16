@@ -16,6 +16,8 @@ import ContentDownload from './controllers/content/contentDownload';
 import * as url from 'url';
 import config from './config';
 import { logger } from '@project-sunbird/ext-framework-server/logger';
+import  * as cleanStack  from 'clean-stack';
+
 const proxyUrl = process.env.APP_BASE_URL;
 
 export class Router {
@@ -25,6 +27,7 @@ export class Router {
       const refererUrl = new url.URL(req.get('referer'));
       let pathName = refererUrl.pathname;
       flag = _.startsWith(pathName, '/browse');
+      logger.info(`Proxy is Enabled`)
       return flag;
     };
 
@@ -34,6 +37,7 @@ export class Router {
           "<=": config.get("CONTENT_COMPATIBILITY_LEVEL")
         };
       }
+      logger.info(`Updating Request body filters with CONTENT_COMPATIBILITY_LEVEL: ${JSON.stringify(req.body.request.filters.compatibilityLevel)}`);
       return req;
     };
 
@@ -52,6 +56,7 @@ export class Router {
         '/help-center/*'
       ],
       (req, res) => {
+        logger.info(`Getting all the local variables`);
         const locals = this.getLocals();
         _.forIn(locals, (value, key) => {
           res.locals[key] = value;
@@ -66,6 +71,7 @@ export class Router {
 
     let resourcebundle = new ResourceBundle(manifest);
     app.get('/resourcebundles/v1/read/:id', (req, res, next) => {
+      logger.debug(`Calling get method in resourcebundle with ID: ${req.params.id}`);
       return resourcebundle.get(req, res);
     });
 
@@ -73,9 +79,11 @@ export class Router {
     app.post(
       '/api/org/v1/search',
       (req, res, next) => {
+        logger.debug(`EnableProxy method is being called before getting the organisation search results`);
         if (enableProxy(req)) {
           next();
         } else {
+          logger.debug(`Organisation Search method is called`);
           return organization.search(req, res);
         }
       },
@@ -90,9 +98,11 @@ export class Router {
     app.post(
       '/api/data/v1/form/read',
       (req, res, next) => {
+        logger.debug(`EnableProxy method is being called before getting the form data`);
         if (enableProxy(req)) {
           next();
         } else {
+          logger.debug(`Form Search method is called`);
           return form.search(req, res);
         }
       },
@@ -107,9 +117,11 @@ export class Router {
     app.get(
       '/api/channel/v1/read/:id',
       (req, res, next) => {
+        logger.debug(`EnableProxy method is being called before getting the channel data`);
         if (enableProxy(req)) {
           next();
         } else {
+          logger.debug(`Getting channel details for channel: ${req.params.id}`);
           return channel.get(req, res);
         }
       },
@@ -124,9 +136,11 @@ export class Router {
     app.get(
       '/api/framework/v1/read/:id',
       (req, res, next) => {
+        logger.debug(`EnableProxy method is being called  before getting the framework: ${req.params.id}`);
         if (enableProxy(req)) {
           next();
         } else {
+          logger.debug(`Getting framework details for framework: ${req.params.id}`);
           return framework.get(req, res);
         }
       },
@@ -141,10 +155,12 @@ export class Router {
     app.post(
       '/api/data/v1/page/assemble',
       (req, res, next) => {
+        logger.debug(`EnableProxy method is being called before getting the page data`);
         if (enableProxy(req)) {
           req = updateRequestBody(req);
           next();
         } else {
+          logger.debug(`Getting page details`);
           return page.get(req, res);
         }
       },
@@ -154,9 +170,11 @@ export class Router {
         },
         userResDecorator: function(proxyRes, proxyResData) {
           return new Promise(function(resolve) {
+            logger.debug(`Calling ConvertBuferToJson method to convert bufferdata to json for the page data`)
             const proxyData = content.convertBufferToJson(proxyResData);
             let sections = _.get(proxyData, 'result.response.sections');
             if (!_.isEmpty(sections)) {
+              logger.debug(`Calling decorateSections method`);
               content
                 .decorateSections(sections)
                 .then(() => {
@@ -164,6 +182,7 @@ export class Router {
                 })
                 .catch(err => {
                   logger.error('Received error err.message', err);
+                  console.log(cleanStack(err.stack));
                   resolve(proxyData);
                 });
             } else {
@@ -178,9 +197,11 @@ export class Router {
     app.get(
       ['/v1/tenant/info/', '/v1/tenant/info/:id'],
       (req, res, next) => {
+        logger.debug(`EnableProxy method is being called before getting the tenant info`);
         if (enableProxy(req)) {
           next();
         } else {
+          logger.debug(`Getting tenant Info`);
           tenant.get(req, res);
           return;
         }
@@ -196,9 +217,11 @@ export class Router {
     app.get(
       '/api/content/v1/read/:id',
       (req, res, next) => {
+        logger.debug(`EnableProxy method is being called before getting the content: ${req.params.id}`);
         if (enableProxy(req)) {
           next();
         } else {
+          logger.debug(`Getting the Content with contentID: ${req.params.id}`);
           content.get(req, res);
           return;
         }
@@ -211,9 +234,11 @@ export class Router {
         },
         userResDecorator: function(proxyRes, proxyResData) {
           return new Promise(function(resolve) {
+            logger.debug(`Calling ConvertBuferToJson method to convert bufferdata to json for the content:`)
             const proxyData = content.convertBufferToJson(proxyResData);
             let contents = _.get(proxyData, 'result.content');
             if (!_.isEmpty(contents)) {
+              logger.debug(`Calling decorateContent method to decorate content`);
               content
                 .decorateContentWithProperty([contents])
                 .then(() => {
@@ -234,9 +259,11 @@ export class Router {
     app.get(
       '/api/course/v1/hierarchy/:id',
       (req, res, next) => {
+        logger.debug(`EnableProxy method is being called before getting the course hierarchy: ${req.params.id}`);
         if (enableProxy(req)) {
           next();
         } else {
+          logger.debug(`Getting Course Hierarchy for the course: ${req.params.id}`);
           content.get(req, res);
           return;
         }
@@ -247,9 +274,11 @@ export class Router {
         },
         userResDecorator: function(proxyRes, proxyResData) {
           return new Promise(function(resolve) {
+            logger.debug(`Calling ConvertBuferToJson method to convert bufferdata to json for the course Hierarchy`)
             const proxyData = content.convertBufferToJson(proxyResData);
             let contents = _.get(proxyData, 'result.content');
             if (!_.isEmpty(contents)) {
+              logger.debug(`Calling decorateDialCodeContent method`);
               content
                 .decorateDialCodeContents(contents)
                 .then(() => {
@@ -270,10 +299,12 @@ export class Router {
     app.post(
       '/api/content/v1/search',
       (req, res, next) => {
+        logger.debug(`EnableProxy method is being called before getting the content search results`);
         if (enableProxy(req)) {
           req = updateRequestBody(req);
           next();
         } else {
+          logger.debug(`Getting Content Search Results`);
           content.search(req, res);
           return;
         }
@@ -284,16 +315,18 @@ export class Router {
         },
         userResDecorator: function(proxyRes, proxyResData) {
           return new Promise(function(resolve) {
+            logger.debug(`Calling ConvertBuferToJson method to convert bufferdata to json for the contents search`)
             const proxyData = content.convertBufferToJson(proxyResData);
             let contents = _.get(proxyData, 'result.content');
             if (!_.isEmpty(contents)) {
+              logger.debug(`Calling decorateContent method to decorate contents in search`);
               content
                 .decorateContentWithProperty(contents)
                 .then(() => {
                   resolve(proxyData);
                 })
                 .catch(err => {
-				  logger.error('Received error err.message', err);
+				          logger.error('Received error err.message', err);
                   resolve(proxyData);
                 });
             } else {
@@ -305,30 +338,37 @@ export class Router {
     );
 
     app.post('/api/content/v1/import', (req, res) => {
+      logger.debug(`Calling  import method for importing content`);
       content.import(req, res);
     });
     app.get('/api/content/v1/export/:id', (req, res) => {
+      logger.debug(`Calling export method for exporting content`);
       content.export(req, res);
     });
 
     let contentDownload = new ContentDownload(manifest);
     app.post('/api/content/v1/download/list', (req, res) => {
+      logger.debug(`Calling list method for getting download list`);
       contentDownload.list(req, res);
     });
     app.post('/api/content/v1/download/:id', (req, res) => {
+      logger.debug(`Calling download method to download Content with ID: ${req.params.id}`);
       contentDownload.download(req, res);
     });
 
     let telemetry = new Telemetry(manifest);
 
     app.post('/content/data/v1/telemetry', (req, res) => {
+      logger.debug(`Adding Telemetry events for data v1`)
       telemetry.addEvents(req, res);
     });
     app.post('/action/data/v3/telemetry', (req, res) => {
+      logger.debug(`Adding Telemetry events for data v3`)
       telemetry.addEvents(req, res);
     });
 
     app.post('/api/v1/device/registry/:id', (req, res) => {
+      logger.debug(`Register device method is called to register the Device`)
       telemetry.registerDevice(req, res);
     });
 
