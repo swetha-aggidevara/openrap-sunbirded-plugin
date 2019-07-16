@@ -57,7 +57,6 @@ export default class Content {
             }
             dbFilters['sort'] = [sort];
         }
-        logger.debug(`Content is finding in database with given filters`);
         return this.databaseSdk.find('content', dbFilters);
     } 
    
@@ -70,7 +69,6 @@ export default class Content {
             let resObj = {
               content: data
             };
-            logger.info(`Received Content data from database`)
             return res.send(Response.success('api.content.read', resObj));
           })
           .catch(err => {
@@ -101,7 +99,6 @@ export default class Content {
         if (!_.isEmpty(query)) {
             filters.query = query;
         }
-        logger.debug(`Contents are searching in database with the given filters`);
         this.searchInDB(filters)
             .then(data => {
                 data = _.map(data.docs, doc => _.omit(doc, ['_id', '_rev']));
@@ -118,7 +115,6 @@ export default class Content {
                     };
                 }
 
-                logger.info(`Received Content search Results`);
                 return res.send(Response.success('api.content.search', resObj));
             })
             .catch(err => {
@@ -178,7 +174,6 @@ export default class Content {
             try {
                 let id = req.params.id;
                 // get the data from content db
-                logger.info(`Getting the content: ${id} from contentDB`);
                 let content = await this.databaseSdk.get('content', id);
                 if (content.mimeType !== 'application/vnd.ekstep.content-collection') {
                     let filePath = this.fileSDK.getAbsPath(
@@ -198,7 +193,6 @@ export default class Content {
                                 path.join('ecars', content.desktopAppMetadata.ecarFile),
                                 path.join('temp', `${content.name}.ecar`)
                             );
-                            logger.debug(`Calling the cleanupexports method to clean the temp folder path for the content`)
                             this.cleanUpExports(path.join('temp', `${content.name}.ecar`));
                             res.status(200);
                             res.send(
@@ -290,7 +284,6 @@ export default class Content {
                         'temp',
                         `${parent.name}.ecar`
                     );
-                    logger.debug(`Calling the cleanupexports method to clean the temp folder path for the collection`)
                     this.cleanUpExports(path.join('temp', `${parent.name}.ecar`));
                     res.status(200);
                     res.send(
@@ -326,8 +319,6 @@ export default class Content {
         let interval = setInterval(() => {
             try {
                 this.fileSDK.remove(file);
-                logger.info(`temp folder path is removed for File: ${file}`)
-
                 clearInterval(interval);
             } catch (error) {
                 logger.error(
@@ -380,17 +371,14 @@ export default class Content {
                 listOfAllContentIds.push(content.identifier);
             }
             let filters = { identifier: listOfAllContentIds };
-            logger.debug(`Downloaded contents are searching in database`);
             await this.searchInDB(filters)
                 .then(data => {
-                    logger.debug(`Calling method to add addedToLibrary property for the content present in DB`);
                     for (let doc of data.docs) {
                         for (let content of contents) {
 
                             this.includeAddedToLibraryProperty(doc, content);
                         }
                     }
-                    logger.info(`Added property for the contents which are downloaded`)
                 })
                 .catch(err => {
                     console.log(err);
@@ -422,7 +410,6 @@ export default class Content {
                 contents.push(node.model);
             }
         });
-        logger.debug(`Calling method to decorate downloaded content with addtoLibrary property for dialCode contents`)
         return this.decorateContentWithProperty(contents);
     }
 
@@ -433,7 +420,6 @@ export default class Content {
             doc.addedToLibrary = true;
             content.addedToLibrary = true;
             try {
-                logger.debug(`Updating the content in Content Database with addedToLibrary property`);
                 this.databaseSdk.update('content', doc._id, doc);
             } catch (err) {
                 console.log(err);
