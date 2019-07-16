@@ -16,7 +16,7 @@ import ContentDownload from './controllers/content/contentDownload';
 import * as url from 'url';
 import config from './config';
 import { logger } from '@project-sunbird/ext-framework-server/logger';
-import  * as cleanStack  from 'clean-stack';
+
 
 const proxyUrl = process.env.APP_BASE_URL;
 
@@ -166,7 +166,6 @@ export class Router {
                 })
                 .catch(err => {
                   logger.error('Received error err.message', err);
-                  console.log(cleanStack(err.stack));
                   resolve(proxyData);
                 });
             } else {

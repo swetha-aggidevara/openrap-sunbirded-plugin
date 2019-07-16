@@ -135,6 +135,7 @@ export default class Content {
             });
     }
 
+
     import(req: any, res: any): any {
         let downloadsPath = this.fileSDK.getAbsPath(this.ecarsFolderPath);
         let busboy = new Busboy({ headers: req.headers });
@@ -315,7 +316,6 @@ export default class Content {
           This method will clear the exported files after 5 min from the time the file is created
       */
     private cleanUpExports(file: string) {
-
         let interval = setInterval(() => {
             try {
                 this.fileSDK.remove(file);
@@ -344,7 +344,6 @@ export default class Content {
             );
             return proxyResData;
         }
-        logger.info(`Successfully buffer data converted to json`);
         return proxyData;
     }
 
@@ -358,7 +357,7 @@ export default class Content {
                     contents.push(content);
                 }
             }
-        } 
+        }
         return this.decorateContentWithProperty(contents);
     }
 
@@ -375,7 +374,6 @@ export default class Content {
                 .then(data => {
                     for (let doc of data.docs) {
                         for (let content of contents) {
-
                             this.includeAddedToLibraryProperty(doc, content);
                         }
                     }
