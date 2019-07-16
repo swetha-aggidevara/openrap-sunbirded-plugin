@@ -42,12 +42,10 @@ export default class ContentDownload {
         (async () => {
             try {
                 // get the content using content read api
-                logger.info(`Getting the content using content read api for the Content: ${req.params.id}`);
                 let content = await HTTPService.get(`${process.env.APP_BASE_URL}/api/content/v1/read/${req.params.id}`, {}).toPromise()
                 if (_.get(content, 'data.result.content.mimeType')) {
                     let downloadManager = containerAPI.getDownloadManagerInstance(this.pluginId)
                     // check if the content is type collection
-                    logger.info(`Checking the content is of type collection`);
                     if (_.get(content, 'data.result.content.mimeType') !== "application/vnd.ekstep.content-collection") {
 
                         // insert to the to content_download_queue
@@ -64,7 +62,6 @@ export default class ContentDownload {
                             pkgVersion: _.get(content, 'data.result.content.pkgVersion'),
                             contentType: _.get(content, 'data.result.content.contentType'),
                         }
-                        logger.info(`queueMetaData is added to content and inserting the content into database`);
                         await this.databaseSdk.insert(dbName, {
                             downloadId: downloadId,
                             contentId: _.get(content, "data.result.content.identifier"),
@@ -74,7 +71,6 @@ export default class ContentDownload {
                             createdOn: Date.now(),
                             updatedOn: Date.now()
                         })
-                        logger.info(`Content Downloaded Successfully with ContentDownloadID: ${downloadId} and size: ${downloadFiles[0].size}`);
                         return res.send(Response.success("api.content.download", { downloadId }));
                         // return response the downloadId
                     } else {
@@ -88,7 +84,6 @@ export default class ContentDownload {
                         // get the child contents
                         let childNodes = _.get(content, "data.result.content.childNodes")
                         if (!_.isEmpty(childNodes)) {
-                            logger.info(`Getting the child content details for collection`);
                             let childrenContentsRes = await HTTPService.post(`${process.env.APP_BASE_URL}/api/content/v1/search`,
                                 {
                                     "request": {
@@ -130,7 +125,6 @@ export default class ContentDownload {
                             createdOn: Date.now(),
                             updatedOn: Date.now()
                         })
-                        logger.info(`${queueMetaData.contentType} is Downloaded Successfully of Size: `)
                         return res.send(Response.success("api.content.download", {downloadId}));
                     }
                 } else {
@@ -160,7 +154,6 @@ export default class ContentDownload {
                 let completed = [];
                 if (_.indexOf(status, API_DOWNLOAD_STATUS.submitted) !== -1) {
                     // submitted - get from the content downloadDB and merge with data
-                    logger.info(`submitted - get from the content downloadDB and merge with data`);
                     let submitted_CDB = await this.databaseSdk.find(dbName, {
                         "selector": {
                             "status": CONTENT_DOWNLOAD_STATUS.Submitted
@@ -182,7 +175,6 @@ export default class ContentDownload {
                     }
                 }
                 if (_.indexOf(status, API_DOWNLOAD_STATUS.completed) !== -1) {
-                    logger.info(`completed - get from the content downloadDB and merge with data`);
                     let completed_CDB = await this.databaseSdk.find(dbName, {
                         "selector": {
                             "status": CONTENT_DOWNLOAD_STATUS.Indexed,
@@ -215,7 +207,6 @@ export default class ContentDownload {
 
                 // inprogress - get from download queue and merge with content data
                 if (_.indexOf(status, API_DOWNLOAD_STATUS.inprogress) !== -1) {
-                    logger.info(`inprogress - get from download queue and merge with content data`);
                     let inprogressItems = await this.downloadManager.list(["INPROGRESS"]);
                     if (!_.isEmpty(inprogressItems)) {
                         let downloadIds = _.map(inprogressItems, 'id');
@@ -253,7 +244,6 @@ export default class ContentDownload {
                 // failed -  get from the content downloadDB and download queue
 
                 if (_.indexOf(status, API_DOWNLOAD_STATUS.failed) !== -1) {
-                    logger.info(`Failed - get from the content downloadDB and download queue`);
                     let failed_CDB = await this.databaseSdk.find(dbName, {
                         "selector": {
                             "status": CONTENT_DOWNLOAD_STATUS.Failed,
