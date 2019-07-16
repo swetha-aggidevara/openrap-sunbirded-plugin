@@ -63,7 +63,7 @@ export default class ContentManager {
             });
 
             if (parent) {
-                // check content compatibility level 
+                // check content compatibility level
 
                 if (_.get(parent, 'compatibilityLevel') && parent.compatibilityLevel > config.get("CONTENT_COMPATIBILITY_LEVEL")) {
                     throw `content compatibility is higher then content level : ${parent.compatibilityLevel} app supports ${config.get("CONTENT_COMPATIBILITY_LEVEL")}`;
@@ -74,7 +74,9 @@ export default class ContentManager {
                 parent['children'] = children;
                 parent.desktopAppMetadata = {
                     "ecarFile": fileName,  // relative to ecar folder
-                    "addedUsing": "import"
+                    "addedUsing": "import",
+                    "createdOn": Date.now(),
+                    "updatedOn": Date.now()
                 }
                 await this.dbSDK.upsert('content', parent.identifier, parent);
 
@@ -181,8 +183,8 @@ export default class ContentManager {
                 }
                 metaData.desktopAppMetadata = desktopAppMetadata;
                 //insert metadata to content database
-                // TODO: before insertion check if the first object is type of collection then prepare the collection and insert 
-
+                // TODO: before insertion check if the first object is type of collection then prepare the collection and insert
+ 
                 await this.dbSDK.upsert('content', metaData.identifier, metaData);
             }
 
