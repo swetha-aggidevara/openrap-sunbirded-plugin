@@ -307,15 +307,10 @@ export class Router {
     );
 
     app.post('/api/content/v1/import', (req, res) => {
-      logger.debug(`Received API call to import Content and checking for x-msgid`)
-      let x_msgId =_.get(req.headers, 'x-msgid');
-      if(_.isEmpty(x_msgId)) {
-        x_msgId = uuid.v4();
-        logger.info(` X-msgId is not found in headers so created a new X-msgid using uuid: ${x_msgId}`);
-      }
-      logger.info(` x-msgID:${x_msgId}`);
-      logger.debug(`X-msgID = "${x_msgId}": Calling  import method for importing content`);
-      content.import(req, res, x_msgId);
+      logger.debug(`Received API call to import Content `);
+      req.headers['X-msgid'] = req.get('X-msgid') || uuid.v4();
+      logger.debug(`ReqID = "${req.headers['X-msgid']}": Calling  import method for importing content`);
+      content.import(req, res);
     });
     app.get('/api/content/v1/export/:id', (req, res) => {
       content.export(req, res);

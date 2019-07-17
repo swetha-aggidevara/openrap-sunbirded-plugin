@@ -136,35 +136,35 @@ export default class Content {
     }
 
 
-    import(req: any, res: any, x_msgId): any {
-        logger.debug(`X-msgID = "${x_msgId}": Import method is called to import content`);
+    import(req: any, res: any): any {
+        logger.debug(`ReqID = "${req.headers['X-msgid']}": Import method is called to import content`);
         let downloadsPath = this.fileSDK.getAbsPath(this.ecarsFolderPath);
         let busboy = new Busboy({ headers: req.headers });
-        logger.info(` X-msgID = "${x_msgId}": Path to import Content: ${downloadsPath}`)
+        logger.info(`ReqID = "${req.headers['X-msgid']}": Path to import Content: ${downloadsPath}`)
         busboy.on('file', (fieldname, file, filename, encoding, mimetype) => {
             // since file name's are having spaces we will generate uniq string as filename
-            logger.info(` X-msgID = "${x_msgId}": since file name's are having spaces we will generate uniq string as filename`)
+            logger.info(`ReqID = "${req.headers['X-msgid']}": Generating UniqFileNames for the requested file`)
             let hash = new Hashids(uuid.v4(), 25);
             let uniqFileName = hash.encode(1).toLowerCase() + path.extname(filename);
-            logger.info(` X-msgID = "${x_msgId}": File: ${filename} is Generated to UniqFileName: ${uniqFileName}`);
+            logger.info(`ReqID = "${req.headers['X-msgid']}": UniqFileName: ${uniqFileName} is generated for File: ${filename} `);
             let filePath = path.join(downloadsPath, uniqFileName);
             req.fileName = uniqFileName;
             req.filePath = filePath;
-            logger.info(` X-msgID = "${x_msgId}": Uploading of file  ${filePath} started`);
+            logger.info(`ReqID = "${req.headers['X-msgid']}": Uploading of file  ${filePath} started`);
             file.pipe(fs.createWriteStream(filePath));
         });
         busboy.on('finish', () => {
-            logger.info(` X-msgID = "${x_msgId}": Upload complete of the file ${req.filePath}`);
-            logger.debug(`X-msgID = "${x_msgId}": File extraction is starting to import the file ${req.fileName}`);
+            logger.info(`ReqID = "${req.headers['X-msgid']}": Upload complete of the file ${req.filePath}`);
+            logger.debug(`ReqID = "${req.headers['X-msgid']}": File extraction is starting for the file ${req.fileName}`);
             this.contentManager
-                .startImport(req.fileName, x_msgId)
+                .startImport(req)
                 .then(data => {
-                    logger.info(` X-msgID = "${x_msgId}": File extraction successful for file ${req.filePath}`);
+                    logger.info(`ReqID = "${req.headers['X-msgid']}": File extraction successful for file ${req.filePath}`);
                     res.send({ success: true });
                 })
                 .catch(error => {
                     logger.error(
-                        `X-msgID = "${x_msgId}": Error while file extraction  of file ${req.filePath}`,
+                        `ReqID = "${req.headers['X-msgid']}": Error while file extraction  of file ${req.filePath}`,
                         error
                     );
                     res.send({ error: true });
