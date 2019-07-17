@@ -159,12 +159,12 @@ export default class Content {
             this.contentManager
                 .startImport(req.fileName, x_msgId)
                 .then(data => {
-                    logger.info(`File extraction successful for file ${req.filePath}`);
+                    logger.info(`X-msgID = "${x_msgId}": File extraction successful for file ${req.filePath}`);
                     res.send({ success: true });
                 })
                 .catch(error => {
                     logger.error(
-                        `Error while file extraction  of file ${req.filePath}`,
+                        `X-msgID = "${x_msgId}": Error while file extraction  of file ${req.filePath}`,
                         error
                     );
                     res.send({ error: true });
