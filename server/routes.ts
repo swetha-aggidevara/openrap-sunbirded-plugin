@@ -311,9 +311,9 @@ export class Router {
       let x_msgId =_.get(req.headers, 'x-msgid');
       if(_.isEmpty(x_msgId)) {
         x_msgId = uuid.v4();
-        logger.info(`X-msgId is not found in headers so created a new X-msgid using uuid: ${x_msgId}`);
+        logger.info(` X-msgId is not found in headers so created a new X-msgid using uuid: ${x_msgId}`);
       }
-      logger.info(`x-msgID:${x_msgId}`);
+      logger.info(` x-msgID:${x_msgId}`);
       logger.debug(`X-msgID = "${x_msgId}": Calling  import method for importing content`);
       content.import(req, res, x_msgId);
     });

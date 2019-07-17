@@ -78,7 +78,7 @@ export default class DatabaseSDK {
         });
         let result;
         if (docNotFound) {
-            logger.info(`Doc: ${docId}  NOT found in DB:${_.upperCase(database)}`)
+            logger.info(` Doc: ${docId}  NOT found in DB:${_.upperCase(database)}`)
             doc._id = docId;
             result = await db.put(doc);
         } else {
