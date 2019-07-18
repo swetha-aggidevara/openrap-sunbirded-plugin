@@ -16,6 +16,9 @@ import ContentDownload from './controllers/content/contentDownload';
 import * as url from 'url';
 import config from './config';
 import { logger } from '@project-sunbird/ext-framework-server/logger';
+import * as uuid from "uuid";
+
+
 const proxyUrl = process.env.APP_BASE_URL;
 
 export class Router {
@@ -293,7 +296,6 @@ export class Router {
                   resolve(proxyData);
                 })
                 .catch(err => {
-				  logger.error('Received error err.message', err);
                   resolve(proxyData);
                 });
             } else {
@@ -305,6 +307,9 @@ export class Router {
     );
 
     app.post('/api/content/v1/import', (req, res) => {
+      logger.debug(`Received API call to import Content `);
+      req.headers['X-msgid'] = req.get('X-msgid') || uuid.v4();
+      logger.debug(`ReqID = "${req.headers['X-msgid']}": Calling  import method for importing content`);
       content.import(req, res);
     });
     app.get('/api/content/v1/export/:id', (req, res) => {
