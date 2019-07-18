@@ -160,7 +160,7 @@ export default class Content {
                 .startImport(req)
                 .then(data => {
                     logger.info(`ReqID = "${req.headers['X-msgid']}": File extraction successful for file ${req.filePath}`);
-                    res.send({ success: true });
+                    res.send({ success: true, content: data });
                 })
                 .catch(error => {
                     logger.error(
