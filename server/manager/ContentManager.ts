@@ -168,6 +168,7 @@ export default class ContentManager {
                         });
                     }
                 })
+                return parent;
             } else {
 
                 logger.info(` ReqID = "${req.headers['X-msgid']}": Found Content is not of type Collection`);
@@ -204,6 +205,7 @@ export default class ContentManager {
                 // TODO: before insertion check if the first object is type of collection then prepare the collection and insert
                 logger.debug(`ReqID = "${req.headers['X-msgid']}": (Resource) Content is upserting in ContentDB`)
                 await this.dbSDK.upsert('content', metaData.identifier, metaData);
+                return metaData;
             }
 
         } else {
