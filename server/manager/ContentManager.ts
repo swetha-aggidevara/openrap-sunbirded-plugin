@@ -236,7 +236,7 @@ export default class ContentManager {
                 _.each(children, (child) => { this.createHierarchy(items, child, reqID) });
             }
         }
-        logger.info(` ReqID = "${reqID}": Child contents are fond for Parent: ${_.get(parent, 'identifier')}`);
+        logger.info(` ReqID = "${reqID}": Child contents are found for Parent: ${_.get(parent, 'identifier')}`);
         return tree;
     }
 

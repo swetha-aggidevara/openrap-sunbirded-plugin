@@ -143,7 +143,7 @@ export default class Content {
         logger.info(`ReqID = "${req.headers['X-msgid']}": Path to import Content: ${downloadsPath}`)
         busboy.on('file', (fieldname, file, filename, encoding, mimetype) => {
             // since file name's are having spaces we will generate uniq string as filename
-            logger.info(`ReqID = "${req.headers['X-msgid']}": Generating UniqFileNames for the requested file`)
+            logger.info(`ReqID = "${req.headers['X-msgid']}": Generating UniqFileName for the requested file: ${filename}`)
             let hash = new Hashids(uuid.v4(), 25);
             let uniqFileName = hash.encode(1).toLowerCase() + path.extname(filename);
             logger.info(`ReqID = "${req.headers['X-msgid']}": UniqFileName: ${uniqFileName} is generated for File: ${filename} `);
@@ -175,30 +175,38 @@ export default class Content {
     }
 
     export(req: any, res: any): any {
+        logger.debug(`ReqId = "${req.headers['X-msgid']}": export method is called to export Content`);
         (async () => {
             try {
                 let id = req.params.id;
                 // get the data from content db
+                logger.debug(`ReqId = "${req.headers['X-msgid']}": Get Content: ${id} from ContentDB`)
                 let content = await this.databaseSdk.get('content', id);
+                logger.info(`ReqId = "${req.headers['X-msgid']}": Found the content: ${content.identifier} in ContentDb`);
+                logger.debug(`ReqId = "${req.headers['X-msgid']}": Checking the content is of type Collection or not`);
                 if (content.mimeType !== 'application/vnd.ekstep.content-collection') {
+                    logger.info(`ReqId = "${req.headers['X-msgid']}": Found the Content:${id} is not of type Collection`)
                     let filePath = this.fileSDK.getAbsPath(
                         path.join('ecars', content.desktopAppMetadata.ecarFile)
                     );
                     fs.stat(filePath, async err => {
                         if (err) {
                             logger.error(
-                                `ecar file not available while exporting for content ${id} and err.message: ${
+                                `ReqId = "${req.headers['X-msgid']}": ecar file not available while exporting for content ${id} and err.message: ${
                                 err.message
                                 }`
                             );
                             res.status(500);
                             return res.send(Response.error('api.content.export', 500));
                         } else {
+                            logger.info(`ReqId = "${req.headers['X-msgid']}": joining the ecars and temp for the content path`)
                             await this.fileSDK.copy(
                                 path.join('ecars', content.desktopAppMetadata.ecarFile),
                                 path.join('temp', `${content.name}.ecar`)
                             );
-                            this.cleanUpExports(path.join('temp', `${content.name}.ecar`));
+                            logger.info(`ReqId = "${req.headers['X-msgid']}": joined ecars and temp for the content path`)
+                            logger.debug(`ReqId = "${req.headers['X-msgid']}": Has to call CleanUpExport to delete the Content after export`);
+                            this.cleanUpExports(path.join('temp', `${content.name}.ecar`), req.headers['X-msgid']);
                             res.status(200);
                             res.send(
                                 Response.success(`api.content.export`, {
@@ -209,25 +217,30 @@ export default class Content {
                                     }
                                 })
                             );
+                            logger.info(`ReqId = "${req.headers['X-msgid']}": Content:${id} Exported successfully`);
                         }
                     });
                 } else {
+                    logger.info(`ReqId = "${req.headers['X-msgid']}": Found content:${id} is of type Collection`);
                     //     - get the spine ecar
                     let collectionEcarPath = path.join(
                         'ecars',
                         content.desktopAppMetadata.ecarFile
                     );
                     //     - unzip to temp folder
+                    logger.info(`ReqId = "${req.headers['X-msgid']}": Unzipping the temp folder for Collection:${id}`);
                     await this.fileSDK.mkdir('temp');
                     let collectionFolderPath = await this.fileSDK.unzip(
                         collectionEcarPath,
                         'temp',
                         true
                     );
+                    logger.info(`ReqId = "${req.headers['X-msgid']}":  Reading the manifest file for Collection:${id}`)
                     let manifest = await this.fileSDK.readJSON(
                         path.join(collectionFolderPath, 'manifest.json')
                     );
                     // - read all childNodes and get non-collection items
+                    logger.info(`ReqId = "${req.headers['X-msgid']}": Reading all the childNodes and getting non-collection items`)
                     let items = _.get(manifest, 'archive.items');
                     let parent: any | undefined = _.find(items, i => {
                         return (
@@ -240,8 +253,9 @@ export default class Content {
                         'temp',
                         path.parse(collectionEcarPath).name
                     );
-
+                    logger.info(`ReqId = "${req.headers['X-msgid']}": Relativepath temp is added for the collection: ${id} `)
                     if (!_.isEmpty(childNodes)) {
+                        logger.debug(`ReqId = "${req.headers['X-msgid']}": Find all the childnodes in ContentDB`)
                         let { docs: childContents = [] } = await this.databaseSdk.find(
                             'content',
                             {
@@ -261,6 +275,7 @@ export default class Content {
                                 }
                             }
                         );
+                        logger.info(`ReqId = "${req.headers['X-msgid']}": Found the childnodes in ContentDB`);
                         for (let childContent of childContents) {
                             let ecarPath = _.get(childContent, 'desktopAppMetadata.ecarFile');
                             if (!_.isEmpty(ecarPath)) {
@@ -268,11 +283,13 @@ export default class Content {
                                     collectionFolderRelativePath,
                                     childContent.identifier
                                 );
+                                logger.info(`ReqId = "${req.headers['X-msgid']}": Deleting the folder in collection`);
                                 await this.fileSDK.remove(contentFolderPath).catch(error => {
                                     logger.error(
-                                        `while deleting the folder in collection ${contentFolderPath} `
+                                        `ReqId = "${req.headers['X-msgid']}": Received Error while deleting the folder in collection ${contentFolderPath} `
                                     );
                                 });
+                                logger.info(`ReqId = "${req.headers['X-msgid']}": making a New Directory for all the Contents in Collection`);
                                 await this.fileSDK.mkdir(contentFolderPath);
                                 await this.fileSDK.unzip(
                                     path.join('ecars', ecarPath),
@@ -284,12 +301,14 @@ export default class Content {
                     }
 
                     // - Zip the spine_folder and download
+                    logger.info(`ReqId = "${req.headers['X-msgid']}": Zipping the folder to download `)
                     await this.fileSDK.zip(
                         collectionFolderRelativePath,
                         'temp',
                         `${parent.name}.ecar`
                     );
-                    this.cleanUpExports(path.join('temp', `${parent.name}.ecar`));
+                    logger.debug(`ReqId = "${req.headers['X-msgid']}": Calling cleanUpExports to delte the Collection before export`)
+                    this.cleanUpExports(path.join('temp', `${parent.name}.ecar`), req.headers['X-msgid']);
                     res.status(200);
                     res.send(
                         Response.success(`api.content.export`, {
@@ -303,10 +322,11 @@ export default class Content {
                             }
                         })
                     );
+                    logger.info(`ReqId = "${req.headers['X-msgid']}": Collection:${id} Exported successfully`)
                 }
             } catch (error) {
                 logger.error(
-                    `Received error while processing the content export and err.message: ${
+                    `ReqId = "${req.headers['X-msgid']}": Received error while processing the content export and err.message: ${
                     error.message
                     } `
                 );
@@ -319,14 +339,16 @@ export default class Content {
     /*
           This method will clear the exported files after 5 min from the time the file is created
       */
-    private cleanUpExports(file: string) {
+    private cleanUpExports(file: string, reqId) {
+        logger.debug(`ReqId = "${reqId}": CleanUpExports method is called to delete the file after Export `)
         let interval = setInterval(() => {
             try {
+                logger.info(`ReqId = "${reqId}": Removed temp path for file: ${file} after export`);
                 this.fileSDK.remove(file);
                 clearInterval(interval);
             } catch (error) {
                 logger.error(
-                    `Received error while deleting the ${file} after export and err.message: ${
+                    `ReqId = "${reqId}": Received error while deleting the ${file} after export and err.message: ${
                     error.message
                     } `
                 );

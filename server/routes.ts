@@ -313,6 +313,9 @@ export class Router {
       content.import(req, res);
     });
     app.get('/api/content/v1/export/:id', (req, res) => {
+      logger.debug(`Received API call to export Content `);
+      req.headers['X-msgid'] = req.get('X-msgid') || uuid.v4();
+      logger.debug(`ReqId = "${req.headers['X-msgid']}": Calling  export method for exporting content`);
       content.export(req, res);
     });
 
