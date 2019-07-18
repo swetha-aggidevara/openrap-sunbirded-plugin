@@ -2,7 +2,8 @@
  * @author Harish Kumar Gangula <harishg@ilimi.in>
  */
 import { frameworkAPI } from '@project-sunbird/ext-framework-server/api';
-
+import { logger } from '@project-sunbird/ext-framework-server/logger';
+import * as _ from 'lodash';
 /**
 * This SDK helps in performing operations with database and to create them
 * 
@@ -63,9 +64,11 @@ export default class DatabaseSDK {
     }
 
     async upsert(database: string, docId: string, doc: any) {
+        logger.debug(`Upserting data in database: "${_.upperCase(database)}" with DOCID:${docId}`)
         let db = frameworkAPI.getPouchDBInstance(this.pluginId, database);
         let docNotFound = false;
         let docResponse = await db.get(docId).catch(err => {
+            logger.error(`Received error while getting Doc from DB: ${_.upperCase(database)} and Error:${err}`);
             if (err.status === 404) {
                 docNotFound = true;
             } else {
@@ -75,6 +78,7 @@ export default class DatabaseSDK {
         });
         let result;
         if (docNotFound) {
+            logger.info(` Doc: ${docId}  NOT found in DB:${_.upperCase(database)}`)
             doc._id = docId;
             result = await db.put(doc);
         } else {
