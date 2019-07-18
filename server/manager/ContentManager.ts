@@ -155,6 +155,7 @@ export default class ContentManager {
                         });
                     }
                 })
+                return parent;
             } else {
 
                 // check content compatibility level 
@@ -186,6 +187,7 @@ export default class ContentManager {
                 // TODO: before insertion check if the first object is type of collection then prepare the collection and insert
  
                 await this.dbSDK.upsert('content', metaData.identifier, metaData);
+                return metaData;
             }
 
         } else {

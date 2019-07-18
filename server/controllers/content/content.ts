@@ -155,7 +155,7 @@ export default class Content {
                 .startImport(req.fileName)
                 .then(data => {
                     logger.info(`File extraction successful for file ${req.filePath}`);
-                    res.send({ success: true });
+                    res.send({ success: true, content: data });
                 })
                 .catch(error => {
                     logger.error(
