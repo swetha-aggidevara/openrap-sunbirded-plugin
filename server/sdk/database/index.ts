@@ -21,6 +21,7 @@ export default class DatabaseSDK {
     }
 
     get(database: string, Id: string) {
+        logger.debug(`Getting the Content: ${Id} in Database: ${_.upperCase(database)}`)
         let db = frameworkAPI.getPouchDBInstance(this.pluginId, database);
         return db.get(Id);
     }
@@ -49,6 +50,7 @@ export default class DatabaseSDK {
     }
 
     find(database: string, searchObj: Object) {
+        logger.debug(`Finding data in database: ${_.upperCase(database)}`);
         let db = frameworkAPI.getPouchDBInstance(this.pluginId, database);
         return db.find(searchObj);
     }
@@ -64,7 +66,7 @@ export default class DatabaseSDK {
     }
 
     async upsert(database: string, docId: string, doc: any) {
-        logger.debug(`Upserting data in database: "${_.upperCase(database)}" with DOCID:${docId}`)
+        logger.debug(`Upserting data in database: "${_.upperCase(database)}" with DocId:${docId}`)
         let db = frameworkAPI.getPouchDBInstance(this.pluginId, database);
         let docNotFound = false;
         let docResponse = await db.get(docId).catch(err => {
