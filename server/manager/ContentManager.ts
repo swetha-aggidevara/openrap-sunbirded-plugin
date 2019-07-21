@@ -12,6 +12,7 @@ import { manifest } from '../manifest';
 import { isRegExp } from 'util';
 import config from '../config';
 import { IDesktopAppMetadata, IAddedUsingType } from '../controllers/content/IContent';
+import * as rimraf from 'rimraf';
 
 
 export default class ContentManager {
@@ -84,7 +85,8 @@ export default class ContentManager {
                     "updatedOn": Date.now()
                 }
                 logger.info(` ReqID = "${req.headers['X-msgid']}":  Collection: ${_.get(parent, 'identifier')} has to be upserted in database`);
-                await this.dbSDK.upsert('content', parent.identifier, parent);
+                const contentData = await this.dbSDK.get('content', parent.identifier);
+                const dbData = await this.dbSDK.upsert('content', parent.identifier, parent);
                 logger.info(` ReqID = "${req.headers['X-msgid']}": Collection is upserted in ContentDB `)
                 let resources = _.filter(items, (i) => {
                     return (i.mimeType !== 'application/vnd.ekstep.content-collection')
@@ -168,6 +170,11 @@ export default class ContentManager {
                         });
                     }
                 })
+                if (contentData !== undefined && _.get(dbData, 'id')) {
+                    const fileName =  _.split(contentData.desktopAppMetadata.ecarFile, '.');
+                    this.deleteContentFolder(fileName[0], 'ecarPath');
+                    this.deleteContentFolder(fileName[0], 'contentPath');
+                }
                 return parent;
             } else {
 
@@ -204,7 +211,13 @@ export default class ContentManager {
                 //insert metadata to content database
                 // TODO: before insertion check if the first object is type of collection then prepare the collection and insert
                 logger.debug(`ReqID = "${req.headers['X-msgid']}": (Resource) Content is upserting in ContentDB`)
-                await this.dbSDK.upsert('content', metaData.identifier, metaData);
+                const contentData = await this.dbSDK.get('content', metaData.identifier);
+                const dbData = await this.dbSDK.upsert('content', metaData.identifier, metaData);
+                if (contentData !== undefined && _.get(dbData, 'id')) {
+                    const fileName = path.basename(contentData.baseDir);
+                    this.deleteContentFolder(fileName, 'ecarPath');
+                    this.deleteContentFolder(fileName, 'contentPath');
+                }
                 return metaData;
             }
 
@@ -213,6 +226,11 @@ export default class ContentManager {
             throw Error(`ReqID = "${req.headers['X-msgid']}": Manifest doesn't have items to insert in database`)
         }
     }
+
+    deleteContentFolder(fileName, paths) {
+        const a = { ecarPath: path.join(this.downloadsFolderPath, `${fileName}.ecar`), contentPath: path.join(this.contentFilesPath, fileName) };
+        rimraf.sync(a[paths]);
+    } 
 
     createHierarchy(items: any[], parent: any, reqID?: any,tree?: any[]): any {
         logger.debug(`ReqID = "${reqID}": creating Hierarchy for the Collection`);

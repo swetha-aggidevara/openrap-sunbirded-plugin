@@ -20,10 +20,12 @@ export default class DatabaseSDK {
         this.url = url;
     }
 
-    get(database: string, Id: string) {
+    async get(database: string, Id: string) {
         logger.debug(`Getting the Content: ${Id} in Database: ${_.upperCase(database)}`)
         let db = frameworkAPI.getPouchDBInstance(this.pluginId, database);
-        return db.get(Id);
+        let docResponse = await db.get(Id)
+        .catch(err => {});
+        return docResponse
     }
 
     insert(database: string, doc: any, Id?: string) {
