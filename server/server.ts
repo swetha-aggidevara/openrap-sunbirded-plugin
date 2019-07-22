@@ -17,6 +17,7 @@ import { containerAPI } from 'OpenRAP/dist/api';
 import { addContentListener, reconciliation } from './controllers/content/contentHelper';
 import { TelemetryService } from "./services";
 import * as _ from 'lodash';
+import { EventManager } from '@project-sunbird/ext-framework-server/managers/EventManager';
 
 export class Server extends BaseServer {
 
@@ -46,10 +47,15 @@ export class Server extends BaseServer {
 
 
         this.initialize(manifest)
-            .catch(err => {
-                logger.error("Error while initializing open rap sunbird ed plugin", err);
-                this.sunbirded_plugin_initialized = true;
-            })
+        .then(() => {
+            this.sunbirded_plugin_initialized = true;
+            EventManager.emit(`${manifest.id}:initialized`, {});
+        })
+        .catch(err => {
+            logger.error("Error while initializing open rap sunbird ed plugin", err);
+            this.sunbirded_plugin_initialized = true;
+            EventManager.emit(`${manifest.id}:initialized`, {});
+        })
 
 
     }

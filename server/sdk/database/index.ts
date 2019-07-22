@@ -21,12 +21,13 @@ export default class DatabaseSDK {
     }
 
     get(database: string, Id: string) {
-        logger.debug(`Getting the Content: ${Id} in Database: ${_.upperCase(database)}`)
+        logger.debug(`Getting the document: ${Id} in Database: ${_.upperCase(database)}`)
         let db = frameworkAPI.getPouchDBInstance(this.pluginId, database);
         return db.get(Id);
     }
 
     insert(database: string, doc: any, Id?: string) {
+        logger.info(`Inserting document:${Id} in database: ${_.upperCase(database)}`);
         let db = frameworkAPI.getPouchDBInstance(this.pluginId, database);
         if (Id) {
             doc._id = Id;
@@ -36,6 +37,7 @@ export default class DatabaseSDK {
     }
 
     async update(database: string, docId, doc) {
+        logger.debug(`Updating document with docId: ${docId} in database: ${_.upperCase(database)}`)
         let db = frameworkAPI.getPouchDBInstance(this.pluginId, database);
         let docResponse = await db.get(docId);
         let result = await db.put({ ...docResponse, ...doc });
@@ -50,12 +52,13 @@ export default class DatabaseSDK {
     }
 
     find(database: string, searchObj: Object) {
-        logger.debug(`Finding data in database: ${_.upperCase(database)}`);
+        logger.debug(`Finding document in database: ${_.upperCase(database)}`);
         let db = frameworkAPI.getPouchDBInstance(this.pluginId, database);
         return db.find(searchObj);
     }
 
     bulk(database: string, documents: Object[]) {
+        logger.debug(`adding bulk documents to database: ${_.upperCase(database)}`)
         let db = frameworkAPI.getPouchDBInstance(this.pluginId, database);
         return db.bulkDocs(documents);
     }
@@ -66,11 +69,11 @@ export default class DatabaseSDK {
     }
 
     async upsert(database: string, docId: string, doc: any) {
-        logger.debug(`Upserting data in database: "${_.upperCase(database)}" with DocId:${docId}`)
+        logger.debug(`Upserting document with docId:${docId} in database: "${_.upperCase(database)}" `)
         let db = frameworkAPI.getPouchDBInstance(this.pluginId, database);
         let docNotFound = false;
         let docResponse = await db.get(docId).catch(err => {
-            logger.error(`Received error while getting Doc from DB: ${_.upperCase(database)} and Error:${err}`);
+            logger.error(`Received error while getting doc from DB: ${_.upperCase(database)} and Error:${err}`);
             if (err.status === 404) {
                 docNotFound = true;
             } else {

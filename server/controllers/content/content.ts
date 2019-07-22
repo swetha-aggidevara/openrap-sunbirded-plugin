@@ -34,22 +34,26 @@ export default class Content {
         );
     }
 
-    searchInDB(filters, sort?) {
+    searchInDB(filters, reqId, sort?) {
+        logger.debug(`ReqId = "${reqId}": Contents are searching in ContentDb with given filters`)
         let modifiedFilters: Object = _.mapValues(filters, (v, k) => {
             if (k !== 'query') return ({ '$in': v })
         });
         delete modifiedFilters['query'];
+        logger.info(`ReqId = "${reqId}": Deleted 'query' in modifiedFilters`);
         if (_.get(filters, 'query')) {
             modifiedFilters['name'] = {
                 "$regex": new RegExp(_.get(filters, 'query'), 'i')
             }
         }
         modifiedFilters['visibility'] = 'Default';
+        logger.info(`ReqId = "${reqId}": assigned Default for 'visibility' in modifiedFilters`);
         let dbFilters = {
             selector: modifiedFilters,
             limit: parseInt(config.get('CONTENT_SEARCH_LIMIT'), 10)
         }
         if (sort) {
+            logger.info(`ReqId = "${reqId}": Sort is present. Sorting the contents based on given sort properties`)
             for (let sortFields of Object.keys(sort)) {
                 dbFilters.selector[sortFields] = {
                     "$gt": null
@@ -57,11 +61,14 @@ export default class Content {
             }
             dbFilters['sort'] = [sort];
         }
+        logger.debug(`ReqId = "${reqId}": Find the contents in ContentDb with the given filters`)
         return this.databaseSdk.find('content', dbFilters);
     } 
    
     get(req: any, res: any): any {
+        logger.debug(`ReqId = "${req.headers['X-msgid']}": Called Content get method to get Content: ${req.params.id} `);
         let id = req.params.id;
+       logger.debug(`ReqId = "${req.headers['X-msgid']}": Get Content: ${id} from ContentDB`);
         this.databaseSdk
           .get('content', id)
           .then(data => {
@@ -69,11 +76,12 @@ export default class Content {
             let resObj = {
               content: data
             };
+            logger.info(`ReqId = "${req.headers['X-msgid']}": Found the content:${resObj.content.identifier} in ContentDB`);
             return res.send(Response.success('api.content.read', resObj));
           })
           .catch(err => {
             logger.error(
-              `Received error while getting the data from content database with id: ${id} and err.message: ${err}`
+              `ReqId = "${req.headers['X-msgid']}": Received error while getting the data from content database with id: ${id} and err.message: ${err}`
             );
             if (err.status === 404) {
               res.status(404);
@@ -87,10 +95,11 @@ export default class Content {
       }
 
       search(req: any, res: any): any {
+          logger.debug(`ReqId = "${req.headers['X-msgid']}": Called content search method`);
         let reqBody = req.body;
         let pageReqFilter = _.get(reqBody, 'request.filters');
         let contentSearchFields = config.get('CONTENT_SEARCH_FIELDS').split(',');
-
+        logger.info(`ReqId = "${req.headers['X-msgid']}": picked filters from the request`);
         let filters = _.pick(pageReqFilter, contentSearchFields);
         filters = _.mapValues(filters, function (v) {
             return _.isString(v) ? [v] : v;
@@ -99,16 +108,20 @@ export default class Content {
         if (!_.isEmpty(query)) {
             filters.query = query;
         }
-        this.searchInDB(filters)
+        logger.info(`ReqId = "${req.headers['X-msgid']}": Got query from the request ${query}`);
+        logger.debug(`ReqId = "${req.headers['X-msgid']}": Searching Content in Db with given filters`)
+        this.searchInDB(filters, req.headers['X-msgid'])
             .then(data => {
                 data = _.map(data.docs, doc => _.omit(doc, ['_id', '_rev']));
                 let resObj = {};
                 if (data.length === 0) {
+                    logger.info(`ReqId = "${req.headers['X-msgid']}": Contents NOT found in DB`);
                     resObj = {
                         content: [],
                         count: 0
                     };
                 } else {
+                    logger.info(`ReqId = "${req.headers['X-msgid']}": Contents = ${data.length} found in DB`)
                     resObj = {
                         content: data,
                         count: data.length
@@ -120,7 +133,7 @@ export default class Content {
             .catch(err => {
                 console.log(err);
                 logger.error(
-                    `Received error while searching content - err.message: ${
+                    `ReqId = "${req.headers['X-msgid']}":  Received error while searching content - err.message: ${
                     err.message
                     } ${err}`
                 );
@@ -137,34 +150,34 @@ export default class Content {
 
 
     import(req: any, res: any): any {
-        logger.debug(`ReqID = "${req.headers['X-msgid']}": Import method is called to import content`);
+        logger.debug(`ReqId = "${req.headers['X-msgid']}": Import method is called to import content`);
         let downloadsPath = this.fileSDK.getAbsPath(this.ecarsFolderPath);
         let busboy = new Busboy({ headers: req.headers });
-        logger.info(`ReqID = "${req.headers['X-msgid']}": Path to import Content: ${downloadsPath}`)
+        logger.info(`ReqId = "${req.headers['X-msgid']}": Path to import Content: ${downloadsPath}`)
         busboy.on('file', (fieldname, file, filename, encoding, mimetype) => {
             // since file name's are having spaces we will generate uniq string as filename
-            logger.info(`ReqID = "${req.headers['X-msgid']}": Generating UniqFileName for the requested file: ${filename}`)
+            logger.info(`ReqId = "${req.headers['X-msgid']}": Generating UniqFileName for the requested file: ${filename}`)
             let hash = new Hashids(uuid.v4(), 25);
             let uniqFileName = hash.encode(1).toLowerCase() + path.extname(filename);
-            logger.info(`ReqID = "${req.headers['X-msgid']}": UniqFileName: ${uniqFileName} is generated for File: ${filename} `);
+            logger.info(`ReqId = "${req.headers['X-msgid']}": UniqFileName: ${uniqFileName} is generated for File: ${filename} `);
             let filePath = path.join(downloadsPath, uniqFileName);
             req.fileName = uniqFileName;
             req.filePath = filePath;
-            logger.info(`ReqID = "${req.headers['X-msgid']}": Uploading of file  ${filePath} started`);
+            logger.info(`ReqId = "${req.headers['X-msgid']}": Uploading of file  ${filePath} started`);
             file.pipe(fs.createWriteStream(filePath));
         });
         busboy.on('finish', () => {
-            logger.info(`ReqID = "${req.headers['X-msgid']}": Upload complete of the file ${req.filePath}`);
-            logger.debug(`ReqID = "${req.headers['X-msgid']}": File extraction is starting for the file ${req.fileName}`);
+            logger.info(`ReqId = "${req.headers['X-msgid']}": Upload complete of the file ${req.filePath}`);
+            logger.debug(`ReqId = "${req.headers['X-msgid']}": File extraction is starting for the file ${req.fileName}`);
             this.contentManager
                 .startImport(req)
                 .then(data => {
-                    logger.info(`ReqID = "${req.headers['X-msgid']}": File extraction successful for file ${req.filePath}`);
+                    logger.info(`ReqId = "${req.headers['X-msgid']}": File extraction successful for file ${req.filePath}`);
                     res.send({ success: true, content: data });
                 })
                 .catch(error => {
                     logger.error(
-                        `ReqID = "${req.headers['X-msgid']}": Error while file extraction  of file ${req.filePath}`,
+                        `ReqId = "${req.headers['X-msgid']}": Error while file extraction  of file ${req.filePath}`,
                         error
                     );
                     res.send({ error: true });
@@ -359,23 +372,25 @@ export default class Content {
 
     /* This method converts the buffer data to json and if any error will catch and return the buffer data */
 
-    convertBufferToJson(proxyResData) {
+    convertBufferToJson(proxyResData,req) {
+        logger.debug(`ReqId = "${req.headers['X-msgid']}": Converting Bufferdata to json`)
         let proxyData;
         try {
             proxyData = JSON.parse(proxyResData.toString('utf8'));
         } catch (e) {
             console.log(e);
             logger.error(
-                `Received error while parsing the buffer data to json: ${e}`
+                `ReqId = "${req.headers['X-msgid']}": Received error while parsing the Bufferdata to json: ${e}`
             );
             return proxyResData;
         }
+        logger.info(`ReqId = "${req.headers['X-msgid']}": Succesfully converted Bufferdata to json`)
         return proxyData;
     }
 
     /*This method is to whether content is present and to store all the contents in all page sections to one array */
 
-    decorateSections(sections) {
+    decorateSections(sections, reqId) {
         let contents = [];
         for (let section of sections) {
             if (!_.isEmpty(section.contents)) {
@@ -384,30 +399,36 @@ export default class Content {
                 }
             }
         }
-        return this.decorateContentWithProperty(contents);
+        return this.decorateContentWithProperty(contents, reqId);
     }
 
     /* This method is to check contents are present in DB */
 
-    async decorateContentWithProperty(contents) {
+    async decorateContentWithProperty(contents, reqId) {
+        logger.debug(`ReqId = "${reqId}": Called decorateContent to decorate content`)
         try {
-            let listOfAllContentIds = [];
+            let listOfContentIds = [];
+            logger.info(`ReqId = "${reqId}": Pushing all the contentId's to an Array for all the requested Contents`)
             for (let content of contents) {
-                listOfAllContentIds.push(content.identifier);
+                listOfContentIds.push(content.identifier);
             }
-            let filters = { identifier: listOfAllContentIds };
-            await this.searchInDB(filters)
+            let filters = { identifier: listOfContentIds };
+            logger.debug(`ReqId = "${reqId}": Search all the contents in DB using content Id's`)
+            await this.searchInDB(filters, reqId)
                 .then(data => {
+                    logger.info(`ReqId = "${reqId}": Found the ${data.docs.length} contents in ContentDb`)
                     for (let doc of data.docs) {
                         for (let content of contents) {
-                            this.includeAddedToLibraryProperty(doc, content);
+                            logger.debug(`include addedToLibrary property for the contents which are downloaded`)
+                            this.includeAddedToLibraryProperty(doc, content, reqId);
+                            logger.info(`ReqId = "${reqId}": included addedToLibrary property for the contents which are downloaded`)
                         }
                     }
                 })
                 .catch(err => {
                     console.log(err);
                     logger.error(
-                        `Received error while getting the data from database and err.message: ${
+                        `ReqId = "${reqId}": Received error while getting the data from database and err.message: ${
                         err.message
                         } ${err}`
                     );
@@ -415,7 +436,7 @@ export default class Content {
                 });
         } catch (err) {
             console.log(err);
-            logger.error(`Received  error err.message: ${err.message} ${err}`);
+            logger.error(`ReqId = "${reqId}": Received  error err.message: ${err.message} ${err}`);
             return contents;
         }
         return contents;
@@ -423,32 +444,38 @@ export default class Content {
 
     /* This method is to check dialcode contents present in DB */
 
-    decorateDialCodeContents(content) {
+    decorateDialCodeContents(content, reqId) {
+        logger.debug(`ReqId = "${reqId}": Decorating Dial Code Contents`);
         const model = new TreeModel();
         let treeModel;
         treeModel = model.parse(content);
         let contents = [];
         contents.push(content);
+        logger.info(`ReqId = "${reqId}": walking through all the nodes and pushing all the child nodes to an array`);
         treeModel.walk(node => {
             if (node.model.mimeType !== 'application/vnd.ekstep.content-collection') {
                 contents.push(node.model);
             }
         });
-        return this.decorateContentWithProperty(contents);
+        logger.debug(`ReqId = "${reqId}": Calling decorateContent from decoratedialcode`)
+        return this.decorateContentWithProperty(contents, reqId);
     }
 
     /* This method is to include addedToLibrary property  for downloaded contents*/
 
-    includeAddedToLibraryProperty(doc, content) {
+    includeAddedToLibraryProperty(doc, content, reqId) {
+        logger.debug(`ReqId = "${reqId}": adding addedToLibrary property for the contents which are downloaded`)
         if (doc.identifier === content.identifier) {
             doc.addedToLibrary = true;
             content.addedToLibrary = true;
             try {
+                logger.debug(`ReqId = "${reqId}": Update content in contentDb`);
                 this.databaseSdk.update('content', doc._id, doc);
+                logger.info(`ReqId = "${reqId}": updated Content in ContentDb`)
             } catch (err) {
                 console.log(err);
                 logger.error(
-                    `Received error while updating the database and err.message: ${
+                    `ReqId = "${reqId}": Received error while updating content in database and err.message: ${
                     err.message
                     } ${err}`
                 );
