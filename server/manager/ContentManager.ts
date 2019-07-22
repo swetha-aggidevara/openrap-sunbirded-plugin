@@ -175,8 +175,8 @@ export default class ContentManager {
                 })
                 if (contentData !== undefined && _.get(dbData, 'id')) {
                     const fileName =  _.split(contentData.desktopAppMetadata.ecarFile, '.');
-                    this.deleteContentFolder(fileName[0], 'ecarPath');
-                    this.deleteContentFolder(fileName[0], 'contentPath');
+                    this.deleteContentFolder(path.join('ecars', contentData.desktopAppMetadata.ecarFile));
+                    this.deleteContentFolder(path.join('content', fileName[0]));
                 }
                 return parent;
             } else {
@@ -222,8 +222,8 @@ export default class ContentManager {
                 const dbData = await this.dbSDK.upsert('content', metaData.identifier, metaData);
                 if (contentData !== undefined && _.get(dbData, 'id')) {
                     const fileName = path.basename(contentData.baseDir);
-                    this.deleteContentFolder(fileName, 'ecarPath');
-                    this.deleteContentFolder(fileName, 'contentPath');
+                    this.deleteContentFolder(path.join('ecars', `${fileName}.ecar`));
+                    this.deleteContentFolder(path.join('content', fileName));
                 }
                 return metaData;
             }
@@ -234,11 +234,10 @@ export default class ContentManager {
         }
     }
 
-    async deleteContentFolder(fileName, paths) {
-        const pathObj = { ecarPath: path.join('ecars', `${fileName}.ecar`), contentPath: path.join('content', fileName) };
-        await this.fileSDK.remove(pathObj[paths]).catch(error => {
+    async deleteContentFolder(filepath) {
+        await this.fileSDK.remove(filepath).catch(error => {
             logger.error(
-                `Received Error while deleting the duplicate folder after import is successful for path= ${pathObj[paths]} and error= ${error}`
+                `Received Error while deleting the duplicate folder after import is successful for path= ${filepath} and error= ${error}`
             );
         });
     } 
