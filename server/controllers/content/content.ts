@@ -47,7 +47,6 @@ export default class Content {
             }
         }
         modifiedFilters['visibility'] = 'Default';
-        logger.info(`ReqId = "${reqId}": assigned 'Default' for 'visibility' in modifiedFilters`);
         let dbFilters = {
             selector: modifiedFilters,
             limit: parseInt(config.get('CONTENT_SEARCH_LIMIT'), 10)
