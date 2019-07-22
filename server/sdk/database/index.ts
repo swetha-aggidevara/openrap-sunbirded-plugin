@@ -36,6 +36,7 @@ export default class DatabaseSDK {
     }
 
     async update(database: string, docId, doc) {
+        logger.debug(`Updating content: ${docId} in database: ${_.upperCase(database)}`)
         let db = frameworkAPI.getPouchDBInstance(this.pluginId, database);
         let docResponse = await db.get(docId);
         let result = await db.put({ ...docResponse, ...doc });

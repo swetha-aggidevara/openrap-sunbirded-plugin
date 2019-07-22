@@ -24,6 +24,7 @@ const proxyUrl = process.env.APP_BASE_URL;
 export class Router {
   init(app: any, manifest: Manifest, auth?: any) {
     const enableProxy = req => {
+      logger.debug(`ReqId = "${req.headers['X-msgid']}": Checking the proxy`);
       let flag = false;
       const refererUrl = new url.URL(req.get('referer'));
       let pathName = refererUrl.pathname;
@@ -32,6 +33,7 @@ export class Router {
     };
 
     const updateRequestBody = req => {
+      logger.debug(`ReqId = "${req.headers['X-msgid']}": Updating requestbody filters`);
       if (_.get(req, 'body.request.filters')) {
         req.body.request.filters.compatibilityLevel = {
           "<=": config.get("CONTENT_COMPATIBILITY_LEVEL")
@@ -144,6 +146,7 @@ export class Router {
     app.post(
       '/api/data/v1/page/assemble',
       (req, res, next) => {
+        req.headers['X-msgid'] = req.get('X-msgid') || uuid.v4();
         if (enableProxy(req)) {
           req = updateRequestBody(req);
           next();
@@ -155,13 +158,14 @@ export class Router {
         proxyReqPathResolver: function(req) {
           return `/api/data/v1/page/assemble`;
         },
-        userResDecorator: function(proxyRes, proxyResData) {
+        userResDecorator: function(proxyRes, proxyResData, req) {
           return new Promise(function(resolve) {
-            const proxyData = content.convertBufferToJson(proxyResData);
+            req.headers['X-msgid'] = req.get('X-msgid') || uuid.v4();
+            const proxyData = content.convertBufferToJson(proxyResData, req);
             let sections = _.get(proxyData, 'result.response.sections');
             if (!_.isEmpty(sections)) {
               content
-                .decorateSections(sections)
+                .decorateSections(sections, req.headers['X-msgid'])
                 .then(() => {
                   resolve(proxyData);
                 })
@@ -199,9 +203,15 @@ export class Router {
     app.get(
       '/api/content/v1/read/:id',
       (req, res, next) => {
+        logger.debug(`Received API call to read Content: ${req.params.id}`);
+        req.headers['X-msgid'] = req.get('X-msgid') || uuid.v4();
+        logger.debug(`ReqId = "${req.headers['X-msgid']}": Check proxy`);
         if (enableProxy(req)) {
+          logger.info(`Proxy is Enabled`);
           next();
         } else {
+          logger.info(`ReqId = "${req.headers['X-msgid']}": Proxy is disabled`);
+          logger.debug(`ReqId = "${req.headers['X-msgid']}": Calling Content get method to get Content: ${req.params.id} `);
           content.get(req, res);
           return;
         }
@@ -212,21 +222,27 @@ export class Router {
             req.query.fields
           }`;
         },
-        userResDecorator: function(proxyRes, proxyResData) {
+        userResDecorator: function(proxyRes, proxyResData,req) {
           return new Promise(function(resolve) {
-            const proxyData = content.convertBufferToJson(proxyResData);
+            req.headers['X-msgid'] = req.get('X-msgid') || uuid.v4();
+            logger.info(`Proxy is Enabled for Content: ${req.params.id}`);
+            logger.debug(`ReqId = "${req.headers['X-msgid']}": Convert buffer data to json`)
+            const proxyData = content.convertBufferToJson(proxyResData, req);
             let contents = _.get(proxyData, 'result.content');
             if (!_.isEmpty(contents)) {
+              logger.debug(`ReqId = "${req.headers['X-msgid']}": Calling decorateContent to decorate a content`)
               content
-                .decorateContentWithProperty([contents])
+                .decorateContentWithProperty([contents], req.headers['X-msgid'] )
                 .then(() => {
+                  logger.info(`ReqId = "${req.headers['X-msgid']}": Resolving Data after decorating content `)
                   resolve(proxyData);
                 })
                 .catch(err => {
-				  logger.error('Received error err.message', err);
+				          logger.error(`ReqId = "${req.headers['X-msgid']}": Received error err.message`, err);
                   resolve(proxyData);
                 });
             } else {
+              logger.info(`ReqId = "${req.headers['X-msgid']}": Resolving data if there in no content in request`);
               resolve(proxyData);
             }
           });
@@ -237,9 +253,15 @@ export class Router {
     app.get(
       '/api/course/v1/hierarchy/:id',
       (req, res, next) => {
+        logger.debug(`Received API call to get Course hierarchy: ${req.params.id}`);
+        req.headers['X-msgid'] = req.get('X-msgid') || uuid.v4();
+        logger.debug(`ReqId = "${req.headers['X-msgid']}": Check proxy`);
         if (enableProxy(req)) {
+          logger.info(`Proxy is Enabled`);
           next();
         } else {
+          logger.info(`ReqId = "${req.headers['X-msgid']}": Proxy is disabled`);
+          logger.debug(`ReqId = "${req.headers['X-msgid']}": Calling Content get method to get CourseHierarchy: ${req.params.id} `);
           content.get(req, res);
           return;
         }
@@ -248,21 +270,27 @@ export class Router {
         proxyReqPathResolver: function(req) {
           return `/api/course/v1/hierarchy/${req.params.id}`;
         },
-        userResDecorator: function(proxyRes, proxyResData) {
+        userResDecorator: function(proxyRes, proxyResData, req) {
           return new Promise(function(resolve) {
-            const proxyData = content.convertBufferToJson(proxyResData);
+            req.headers['X-msgid'] = req.get('X-msgid') || uuid.v4();
+            logger.info(`Proxy is Enabled for Content: ${req.params.id}`);
+            logger.debug(`ReqId = "${req.headers['X-msgid']}": Convert buffer data to json`)
+            const proxyData = content.convertBufferToJson(proxyResData, req);
             let contents = _.get(proxyData, 'result.content');
             if (!_.isEmpty(contents)) {
+              logger.debug(`ReqId = "${req.headers['X-msgid']}": Calling decorateDialCodeContent to decorate a content`)
               content
-                .decorateDialCodeContents(contents)
+                .decorateDialCodeContents(contents, req.headers['X-msgid'])
                 .then(() => {
+                  logger.info(`ReqId = "${req.headers['X-msgid']}": Resolving Data after decorating DialCodecontent `)
                   resolve(proxyData);
                 })
                 .catch(err => {
-				  logger.error('Received error err.message', err);
+				  logger.error(`ReqId = "${req.headers['X-msgid']}": Received error err.message`, err);
                   resolve(proxyData);
                 });
             } else {
+              logger.info(`ReqId = "${req.headers['X-msgid']}": Resolving data if there in no content in course hierarchy request`);
               resolve(proxyData);
             }
           });
@@ -273,10 +301,17 @@ export class Router {
     app.post(
       '/api/content/v1/search',
       (req, res, next) => {
+        logger.debug(`Received API call to search content`);
+        req.headers['X-msgid'] = req.get('X-msgid') || uuid.v4();
+        logger.debug(`ReqId = "${req.headers['X-msgid']}": Check proxy`);
         if (enableProxy(req)) {
+          logger.info(`Proxy is Enabled `);
+          logger.debug(`ReqId = "${req.headers['X-msgid']}": Update requestbody`)
           req = updateRequestBody(req);
+          logger.info(`ReqId = "${req.headers['X-msgid']}": Request body filters updated successfully`);
           next();
         } else {
+          logger.debug(`ReqId = "${req.headers['X-msgid']}": Calling content search method`);
           content.search(req, res);
           return;
         }
@@ -285,20 +320,27 @@ export class Router {
         proxyReqPathResolver: function(req) {
           return `/api/content/v1/search`;
         },
-        userResDecorator: function(proxyRes, proxyResData) {
+        userResDecorator: function(proxyRes, proxyResData, req) {
           return new Promise(function(resolve) {
-            const proxyData = content.convertBufferToJson(proxyResData);
+            req.headers['X-msgid'] = req.get('X-msgid') || uuid.v4();
+            logger.info(`Proxy is Enabled for Content`);
+            logger.debug(`ReqId = "${req.headers['X-msgid']}": Convert buffer data to json`)
+            const proxyData = content.convertBufferToJson(proxyResData, req);
             let contents = _.get(proxyData, 'result.content');
             if (!_.isEmpty(contents)) {
+              logger.debug(`ReqId = "${req.headers['X-msgid']}": Calling decorateContent to decorate contents in contentSearch`)
               content
-                .decorateContentWithProperty(contents)
+                .decorateContentWithProperty(contents, req.headers['X-msgid'])
                 .then(() => {
+                  logger.info(`ReqId = "${req.headers['X-msgid']}": Resolving Data after decorating contents in contentSearch `)
                   resolve(proxyData);
                 })
                 .catch(err => {
+                  logger.error(`ReqId = "${req.headers['X-msgid']}": Received error err.message`, err);
                   resolve(proxyData);
                 });
             } else {
+              logger.info(`ReqId = "${req.headers['X-msgid']}": Resolving data if there in no content in contentSearch request`);
               resolve(proxyData);
             }
           });
@@ -309,7 +351,7 @@ export class Router {
     app.post('/api/content/v1/import', (req, res) => {
       logger.debug(`Received API call to import Content `);
       req.headers['X-msgid'] = req.get('X-msgid') || uuid.v4();
-      logger.debug(`ReqID = "${req.headers['X-msgid']}": Calling  import method for importing content`);
+      logger.debug(`ReqId = "${req.headers['X-msgid']}": Calling  import method for importing content`);
       content.import(req, res);
     });
     app.get('/api/content/v1/export/:id', (req, res) => {
