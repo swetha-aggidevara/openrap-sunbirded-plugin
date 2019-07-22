@@ -12,7 +12,6 @@ import { manifest } from '../manifest';
 import { isRegExp } from 'util';
 import config from '../config';
 import { IDesktopAppMetadata, IAddedUsingType } from '../controllers/content/IContent';
-import * as rimraf from 'rimraf';
 
 
 export default class ContentManager {
@@ -85,7 +84,11 @@ export default class ContentManager {
                     "updatedOn": Date.now()
                 }
                 logger.info(` ReqID = "${req.headers['X-msgid']}":  Collection: ${_.get(parent, 'identifier')} has to be upserted in database`);
-                const contentData = await this.dbSDK.get('content', parent.identifier);
+                const contentData = await this.dbSDK.get('content', parent.identifier).catch(error => {
+                    logger.error(
+                        `Received Error while getting content data from db where error = ${error}`
+                    );
+                });
                 const dbData = await this.dbSDK.upsert('content', parent.identifier, parent);
                 logger.info(` ReqID = "${req.headers['X-msgid']}": Collection is upserted in ContentDB `)
                 let resources = _.filter(items, (i) => {
@@ -211,7 +214,11 @@ export default class ContentManager {
                 //insert metadata to content database
                 // TODO: before insertion check if the first object is type of collection then prepare the collection and insert
                 logger.debug(`ReqID = "${req.headers['X-msgid']}": (Resource) Content is upserting in ContentDB`)
-                const contentData = await this.dbSDK.get('content', metaData.identifier);
+                const contentData = await this.dbSDK.get('content', metaData.identifier).catch(error => {
+                    logger.error(
+                        `Received Error while getting content data from db where error = ${error}`
+                    );
+                });
                 const dbData = await this.dbSDK.upsert('content', metaData.identifier, metaData);
                 if (contentData !== undefined && _.get(dbData, 'id')) {
                     const fileName = path.basename(contentData.baseDir);
@@ -227,9 +234,13 @@ export default class ContentManager {
         }
     }
 
-    deleteContentFolder(fileName, paths) {
-        const a = { ecarPath: path.join(this.downloadsFolderPath, `${fileName}.ecar`), contentPath: path.join(this.contentFilesPath, fileName) };
-        rimraf.sync(a[paths]);
+    async deleteContentFolder(fileName, paths) {
+        const pathObj = { ecarPath: path.join('ecars', `${fileName}.ecar`), contentPath: path.join('content', fileName) };
+        await this.fileSDK.remove(pathObj[paths]).catch(error => {
+            logger.error(
+                `Received Error while deleting the duplicate folder after import is successful for path= ${pathObj[paths]} and error= ${error}`
+            );
+        });
     } 
 
     createHierarchy(items: any[], parent: any, reqID?: any,tree?: any[]): any {
