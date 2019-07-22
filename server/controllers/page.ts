@@ -93,7 +93,7 @@ export class Page {
                         }
                     })
                 }
-                sectionPromises.push(this.getSection(dbFilter, section, sortData));
+                sectionPromises.push(this.getSection(dbFilter, section, sortData, req.headers['X-msgid']));
             })
             Promise.all(sectionPromises)
                 .then((sections) => {
@@ -125,9 +125,9 @@ export class Page {
         })
     }
 
-    getSection(filter, section, sortData) {
+    getSection(filter, section, sortData, reqId) {
         return new Promise((resolve, reject) => {
-            this.content.searchInDB(filter, sortData).then(data => {
+            this.content.searchInDB(filter, reqId, sortData).then(data => {
                 if (data.docs.length) {
                     section.count = data.docs.length
                     let contents = _.map(data.docs, doc => _.omit(doc, ['_id', '_rev']))
