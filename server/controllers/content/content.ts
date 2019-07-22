@@ -47,7 +47,7 @@ export default class Content {
             }
         }
         modifiedFilters['visibility'] = 'Default';
-        logger.info(`ReqId = "${reqId}": assigned Default for 'visibility' in modifiedFilters`);
+        logger.info(`ReqId = "${reqId}": assigned 'Default' for 'visibility' in modifiedFilters`);
         let dbFilters = {
             selector: modifiedFilters,
             limit: parseInt(config.get('CONTENT_SEARCH_LIMIT'), 10)
@@ -391,7 +391,9 @@ export default class Content {
     /*This method is to whether content is present and to store all the contents in all page sections to one array */
 
     decorateSections(sections, reqId) {
+        logger.debug(`ReqId = "${reqId}": Called decorateSections to decorate content`)
         let contents = [];
+        logger.info(`ReqId = "${reqId}": Fetching all the contentId's from all the sections into an array`);
         for (let section of sections) {
             if (!_.isEmpty(section.contents)) {
                 for (let content of section.contents) {
@@ -399,6 +401,7 @@ export default class Content {
                 }
             }
         }
+        logger.debug(`ReqId = "${reqId}": Calling decorateContent from decoratesections`)
         return this.decorateContentWithProperty(contents, reqId);
     }
 

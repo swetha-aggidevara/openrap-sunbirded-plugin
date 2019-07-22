@@ -45,7 +45,7 @@ export class Page {
     }
 
     get(req: any, res: any) {
-
+        logger.debug(`ReqId = "${req.headers['X-msgid']}": Getting page data`);
         let reqBody = req.body;
         let pageReqObject = {
             selector: {
@@ -55,23 +55,25 @@ export class Page {
 
         let pageReqFilter = _.get(reqBody, 'request.filters');
         let mode = _.get(reqBody, 'request.mode');
+        logger.debug(`ReqId = "${req.headers['X-msgid']}": Get Content search fields from config file`);
         let contentSearchFields = config.get('CONTENT_SEARCH_FIELDS').split(',');
-
+        logger.info(`ReqId = "${req.headers['X-msgid']}": Content search fields are ${contentSearchFields.toString()}`)
         let filters = _.pick(pageReqFilter, contentSearchFields);
         filters = _.mapValues(filters, function (v) { return _.isString(v) ? [v] : v; });
 
-        logger.info(`Getting the data from page database`)
+        logger.info(`Getting the data from page database`);
         this.databaseSdk.find('page', pageReqObject).then(data => {
             data = _.map(data.docs, doc => _.omit(doc, ['_id', '_rev']))
             if (data.length <= 0) {
-                logger.error(`Received empty data while searching with pageReqObject: ${pageReqObject} in page database`)
+                logger.error(`ReqId = "${req.headers['X-msgid']}": Received empty data while searching with pageReqObject: ${pageReqObject} in page database`)
                 res.status(404);
                 return res.send(Response.error("api.page.assemble", 404));
             }
-            logger.info(`Received data from page database`)
+            logger.info(`ReqId = "${req.headers['X-msgid']}": Received data from page database`)
             let page = data[0];
 
             let sectionPromises = [];
+            logger.info(`ReqId = "${req.headers['X-msgid']}": For each section getting SearchQuery`);
             page.sections.forEach((section) => {
                 let searchQuery = JSON.parse(section.searchQuery);
                 let sortData = _.get(searchQuery, 'request.sort_by')
@@ -81,9 +83,12 @@ export class Page {
                 let dbFilter = {}
                 //  If mode is soft we are not adding the filters from the request object 
                 //  else we will concat and uniq the filters and if is not empty then
+                logger.info(`ReqId = "${req.headers['X-msgid']}": Checking if the mode is soft or not`);
                 if (mode === 'soft') {
+                    logger.info(`ReqId = "${req.headers['X-msgid']}": Mode is soft`);
                     dbFilter = sectionFilters;
                 } else {
+                    logger.info(`ReqId = "${req.headers['X-msgid']}": Mode is not soft`);
                     _.forEach(contentSearchFields, (v) => {
                         sectionFilters[v] = sectionFilters[v] || [];
                         filters[v] = filters[v] || [];
@@ -93,6 +98,7 @@ export class Page {
                         }
                     })
                 }
+                logger.debug(`ReqId = "${req.headers['X-msgid']}": Get section data based on filters for section: : ${section.id}`)
                 sectionPromises.push(this.getSection(dbFilter, section, sortData, req.headers['X-msgid']));
             })
             Promise.all(sectionPromises)
@@ -105,15 +111,16 @@ export class Page {
                             sections: sections
                         }
                     }
+                    logger.info(`ReqId = "${req.headers['X-msgid']}": Receive Page Data`);
                     return res.send(Response.success("api.page.assemble", result));
                 })
                 .catch(err => {
-                    logger.error(`Received error while getting all the page sections and err.message:  ${err.message}`)
+                    logger.error(` ReqId = "${req.headers['X-msgid']}": Received error while getting all the page sections and err.message:  ${err.message}`)
                     return res.send(Response.error("api.page.assemble", 500));
                 })
 
         }).catch(err => {
-            logger.error(`Received error while getting the data from page database and err.message: ${err.message} ${err}`)
+            logger.error(`ReqId = "${req.headers['X-msgid']}": Received error while getting the data from page database and err.message: ${err.message} ${err}`)
             if (err.status === 404) {
                 res.status(404)
                 return res.send(Response.error("api.page.assemble", 404));
@@ -126,8 +133,11 @@ export class Page {
     }
 
     getSection(filter, section, sortData, reqId) {
+        logger.debug(`ReqId = "${reqId}": Getting section data based on filters for section : ${section.id}`)
         return new Promise((resolve, reject) => {
+            logger.debug(`ReqId = "${reqId}": Search section Contents in ContentDb`);
             this.content.searchInDB(filter, reqId, sortData).then(data => {
+                logger.info(`ReqId = "${reqId}": Contents:${data.docs.length} are found in section: ${section.id}`);
                 if (data.docs.length) {
                     section.count = data.docs.length
                     let contents = _.map(data.docs, doc => _.omit(doc, ['_id', '_rev']))
@@ -142,7 +152,7 @@ export class Page {
                 section.count = 0;
                 section.contents = null;
                 resolve(section)
-                logger.error(`Received error while getting page section and err.message: ${err.message}`)
+                logger.error(`ReqId = "${reqId}": Received error while getting page section and err.message: ${err.message}`)
             });
         })
     }
