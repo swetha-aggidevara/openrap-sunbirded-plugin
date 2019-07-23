@@ -35,11 +35,12 @@ export class Channel {
 
 
     get(req, res) {
+        logger.debug(`ReqId = "${req.headers['X-msgid']}": Getting Channel data for channel with Id: ${req.params.id}`);
         let id = req.params.id;
-        logger.info(`Getting the data from channel database with id: ${id}`)
+        logger.info(`ReqId = "${req.headers['X-msgid']}": Getting the data from channel database with id: ${id}`)
         this.databaseSdk.get('channel', id)
             .then(data => {
-                logger.info(`Received data from channel database`)
+                logger.info(`ReqId = "${req.headers['X-msgid']}": Received data from channel database`)
                 data = _.omit(data, ['_id', '_rev'])
                 let resObj = {
                     channel: data
@@ -47,7 +48,7 @@ export class Channel {
                 return res.send(Response.success("api.channel.read", resObj));
             })
             .catch(err => {
-                logger.error(`Received error while getting the data from channel database with id: ${id} and err.message: ${err.message} ${err}`)
+                logger.error(`ReqId = "${req.headers['X-msgid']}": Received error while getting the data from channel database with id: ${id} and err.message: ${err.message} ${err}`)
                 if (err.status === 404) {
                     res.status(404)
                     return res.send(Response.error("api.channel.read", 404));

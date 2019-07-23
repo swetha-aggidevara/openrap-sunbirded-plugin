@@ -37,13 +37,13 @@ export class Organization {
     }
 
     search(req, res) {
-
+        logger.debug(`ReqId = "${req.headers['X-msgid']}": Organisation search method is called`);
         let requestBody = req.body;
 
         let searchObj = {
             selector: _.get(requestBody, 'request.filters')
         }
-        logger.info(`Getting the data from organization database`)
+        logger.debug(`ReqId = "${req.headers['X-msgid']}": Finding the data from organization database`)
         this.databaseSdk.find('organization', searchObj)
             .then(data => {
                 data = _.map(data.docs, doc => _.omit(doc, ['_id', '_rev']))
@@ -53,11 +53,11 @@ export class Organization {
                         count: data.length
                     }
                 }
-                logger.info(`Received data from organization database`)
+                logger.info(`ReqId = "${req.headers['X-msgid']}": Received data from organization database`)
                 return res.send(Response.success("api.org.search", resObj));
             })
             .catch(err => {
-                logger.error(`Received error while searching in organization database and err.message: ${err.message} ${err}`)
+                logger.error(`ReqId = "${req.headers['X-msgid']}": Received error while searching in organization database and err.message: ${err.message} ${err}`)
                 if (err.status === 404) {
                     res.status(404)
                     return res.send(Response.error("api.org.search", 404));
