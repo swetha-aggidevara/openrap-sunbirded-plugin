@@ -173,7 +173,7 @@ export default class ContentManager {
                         });
                     }
                 })
-                if (contentData !== undefined && _.get(dbData, 'id')) {
+                if (contentData !== undefined && _.get(contentData, 'desktopAppMetadata.ecarFile') && _.get(dbData, 'id')) {
                     const fileName = path.basename(contentData.desktopAppMetadata.ecarFile, '.ecar');
                     this.deleteContentFolder(path.join('ecars', contentData.desktopAppMetadata.ecarFile));
                     this.deleteContentFolder(path.join('content', fileName));
@@ -220,9 +220,9 @@ export default class ContentManager {
                 });
                 logger.debug(`ReqID = "${req.headers['X-msgid']}": (Resource) Content is upserting in ContentDB`)
                 const dbData = await this.dbSDK.upsert('content', metaData.identifier, metaData);
-                if (contentData !== undefined && _.get(dbData, 'id')) {
-                    const fileName = path.basename(contentData.baseDir);
-                    this.deleteContentFolder(path.join('ecars', `${fileName}.ecar`));
+                if (contentData !== undefined && _.get(contentData, 'desktopAppMetadata.ecarFile') && _.get(dbData, 'id')) {
+                    const fileName = path.basename(contentData.desktopAppMetadata.ecarFile, '.ecar');
+                    this.deleteContentFolder(path.join('ecars', contentData.desktopAppMetadata.ecarFile));
                     this.deleteContentFolder(path.join('content', fileName));
                 }
                 return metaData;
