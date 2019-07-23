@@ -67,6 +67,8 @@ export class TelemetryService extends TelemetryHelper {
         }
     }
     addEvents(events: object[]) {
+        logger.debug(`addEvents in telemetry service is called`);
+        logger.debug(`Should add events for ${events.length}:events  in database`)
         // Add the events to database
         return this.databaseSdk.bulk('telemetry', events)
 
