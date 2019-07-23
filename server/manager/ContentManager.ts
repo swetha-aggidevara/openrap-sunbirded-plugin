@@ -83,9 +83,14 @@ export default class ContentManager {
                     "createdOn": Date.now(),
                     "updatedOn": Date.now()
                 }
-                logger.info(` ReqId = "${req.headers['X-msgid']}":  Collection: ${_.get(parent, 'identifier')} has to be upserted in database`);
-                await this.dbSDK.upsert('content', parent.identifier, parent);
-                logger.info(` ReqId = "${req.headers['X-msgid']}": Collection is upserted in ContentDB `)
+                const contentData = await this.dbSDK.get('content', parent.identifier).catch(error => {
+                    logger.error(
+                        `Received Error while getting content data from db where error = ${error}`
+                    );
+                });
+                logger.info(` ReqID = "${req.headers['X-msgid']}":  Collection: ${_.get(parent, 'identifier')} has to be upserted in database`);
+                const dbData = await this.dbSDK.upsert('content', parent.identifier, parent);
+                logger.info(` ReqID = "${req.headers['X-msgid']}": Collection is upserted in ContentDB `)
                 let resources = _.filter(items, (i) => {
                     return (i.mimeType !== 'application/vnd.ekstep.content-collection')
                 });
@@ -168,6 +173,11 @@ export default class ContentManager {
                         });
                     }
                 })
+                if (contentData !== undefined && _.get(contentData, 'desktopAppMetadata.ecarFile') && _.get(dbData, 'id')) {
+                    const fileName = path.basename(contentData.desktopAppMetadata.ecarFile, '.ecar');
+                    this.deleteContentFolder(path.join('ecars', contentData.desktopAppMetadata.ecarFile));
+                    this.deleteContentFolder(path.join('content', fileName));
+                }
                 return parent;
             } else {
 
@@ -203,8 +213,18 @@ export default class ContentManager {
                 metaData.desktopAppMetadata = desktopAppMetadata;
                 //insert metadata to content database
                 // TODO: before insertion check if the first object is type of collection then prepare the collection and insert
-                logger.debug(`ReqId = "${req.headers['X-msgid']}": (Resource) Content is upserting in ContentDB`)
-                await this.dbSDK.upsert('content', metaData.identifier, metaData);
+                const contentData = await this.dbSDK.get('content', metaData.identifier).catch(error => {
+                    logger.error(
+                        `Received Error while getting content data from db where error = ${error}`
+                    );
+                });
+                logger.debug(`ReqID = "${req.headers['X-msgid']}": (Resource) Content is upserting in ContentDB`)
+                const dbData = await this.dbSDK.upsert('content', metaData.identifier, metaData);
+                if (contentData !== undefined && _.get(contentData, 'desktopAppMetadata.ecarFile') && _.get(dbData, 'id')) {
+                    const fileName = path.basename(contentData.desktopAppMetadata.ecarFile, '.ecar');
+                    this.deleteContentFolder(path.join('ecars', contentData.desktopAppMetadata.ecarFile));
+                    this.deleteContentFolder(path.join('content', fileName));
+                }
                 return metaData;
             }
 
@@ -213,6 +233,14 @@ export default class ContentManager {
             throw Error(`ReqId = "${req.headers['X-msgid']}": Manifest doesn't have items to insert in database`)
         }
     }
+
+    async deleteContentFolder(filepath) {
+        await this.fileSDK.remove(filepath).catch(error => {
+            logger.error(
+                `Received Error while deleting the duplicate folder after import is successful for path= ${filepath} and error= ${error}`
+            );
+        });
+    } 
 
     createHierarchy(items: any[], parent: any, reqID?: any,tree?: any[]): any {
         logger.debug(`ReqId = "${reqID}": creating Hierarchy for the Collection`);
