@@ -5,7 +5,6 @@ import config from "./../config";
 import Response from './../utils/response';
 import { Manifest } from "@project-sunbird/ext-framework-server/models";
 import { logger } from '@project-sunbird/ext-framework-server/logger';
-
 import { TelemetryService } from "../services";
 
 
@@ -24,7 +23,7 @@ export default class Telemetry {
 
     addEvents(req, res) {
         logger.debug(`ReqId = "${req.headers['X-msgid']}": Called telemetry addEvents method`);
-        logger.info(`ReqId = "${req.headers['X-msgid']}": req.body.events, ${req.body.events.toString()}`);
+        logger.info(`ReqId = "${req.headers['X-msgid']}": adding telemetry events: ${req.body.events.length}`);
         let events = req.body.events;
         if (_.isArray(events) && events.length) {
             logger.debug(`ReqId = "${req.headers['X-msgid']}": telemetry service is called to add telemetryEvents`)
@@ -37,6 +36,7 @@ export default class Telemetry {
                 return res.send(Response.error('api.telemetry', 500));
             });
         } else {
+            
             logger.error(`ReqId = "${req.headers['X-msgid']}": Received err and err.res.status: 400`);
             res.status(400);
             return res.send(Response.error('api.telemetry', 400));
