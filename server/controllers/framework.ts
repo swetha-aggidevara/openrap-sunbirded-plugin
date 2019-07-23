@@ -36,11 +36,12 @@ export class Framework {
     }
 
     get(req: any, res: any): any {
+        logger.debug(`ReqId = "${req.headers['X-msgid']}": Getting Framework data for framework with Id: ${req.params.id}`);
         let id = req.params.id;
-        logger.info(`Getting the data from framework database with id: ${id}`)
+        logger.info(`ReqId = "${req.headers['X-msgid']}": Getting the data from framework database with id: ${id}`)
         this.databaseSdk.get('framework', id)
             .then(data => {
-                logger.info(`Received data with id: ${id} from framework database`)
+                logger.info(`ReqId = "${req.headers['X-msgid']}": Received data with id: ${id} from framework database`)
                 data = _.omit(data, ['_id', '_rev'])
                 let resObj = {
                     framework: data
@@ -48,7 +49,7 @@ export class Framework {
                 return res.send(Response.success("api.framework.read", resObj));
             })
             .catch(err => {
-                logger.error(`Received error while getting the data from framework database with id: ${id} and err.message: ${err.message} ${err}`)
+                logger.error(`ReqId = "${req.headers['X-msgid']}": Received error while getting the data from framework database with id: ${id} and err.message: ${err.message} ${err}`)
                 if (err.status === 404) {
                     res.status(404)
                     return res.send(Response.error("api.framework.read", 404));

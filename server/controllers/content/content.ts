@@ -13,6 +13,7 @@ import * as uuid from "uuid";
 import Hashids from "hashids";
 import { containerAPI } from "OpenRAP/dist/api";
 import * as TreeModel from "tree-model";
+
 export default class Content {
     private contentsFilesPath: string = 'content';
     private ecarsFolderPath: string = 'ecars';
@@ -107,7 +108,7 @@ export default class Content {
         if (!_.isEmpty(query)) {
             filters.query = query;
         }
-        logger.info(`ReqId = "${req.headers['X-msgid']}": Got query from the request ${query}`);
+        logger.info(`ReqId = "${req.headers['X-msgid']}": Got query from the request`);
         logger.debug(`ReqId = "${req.headers['X-msgid']}": Searching Content in Db with given filters`)
         this.searchInDB(filters, req.headers['X-msgid'])
             .then(data => {
