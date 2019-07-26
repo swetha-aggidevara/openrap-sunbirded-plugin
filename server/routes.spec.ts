@@ -187,7 +187,7 @@ describe('Routes', () => {
             })
     });
 
-    it('Set referrer for tenant with ID', (done) => {
+    it('tenant with ID', (done) => {
         supertest(app)
             .get('/v1/tenant/info/sunbird')
             .expect(200)
