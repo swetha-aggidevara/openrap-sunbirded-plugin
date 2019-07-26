@@ -9,19 +9,14 @@ import { logger } from '@project-sunbird/ext-framework-server/logger';
 export class ConnectToServer {
     expressApp = express();
     app;
+
+    
     async startServer() {
-
         let subApp = express();
-
-        const getFilesPath = () => {
-            if (_.startsWith(_.toLower(process.env.APP_ID), "local")) {
-                return __dirname;
-            }
-        };
         subApp.use(bodyParser.json({ limit: "100mb" }));
         this.expressApp.use("/", subApp);
         frameworkConfig.db.pouchdb.path = process.env.DATABASE_PATH;
-        frameworkConfig["logBasePath"] = getFilesPath();
+        frameworkConfig["logBasePath"] = __dirname;
         await frameworkAPI
             .bootstrap(frameworkConfig, subApp);
         await new Promise((resolve, reject) => {

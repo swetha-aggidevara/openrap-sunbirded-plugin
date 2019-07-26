@@ -16,15 +16,12 @@ describe('Routes', () => {
     let app;
     initialzeEnv.init();
     before('StartServer', async () => {
-        await server.startServer().then(res => {
-            console.log('appppp', res);
-            app = res;
-            logger.info(`Server Connected`);
-
-        }).catch(err => {
-            logger.error(`Received Error while connecting to server err: ${err}`);
-
-        });
+            await server.startServer().then(res => {
+                app = res;
+                logger.info(`Server Connected`);
+            }).catch(err => {
+                logger.error(`Received Error while connecting to server err: ${err}`);
+            });
     });
 
     it('resourcebundles', (done) => {
@@ -34,11 +31,9 @@ describe('Routes', () => {
             .expect(200)
             .end((err, res) => {
                 if (err) throw err;
-                console.log(res.body);
                 expect(res.body.result.id).to.equal('api.resoucebundles.read').and.string;
                 expect(res.body.result.ver).to.equal('1.0').and.string;
                 expect(res.body.result.result).to.have.property('consumption');
-                expect(res.body.result.result).to.have.property('creation');
                 done();
             });
     });
