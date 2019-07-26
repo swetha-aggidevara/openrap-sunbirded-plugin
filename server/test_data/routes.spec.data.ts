@@ -1,5 +1,4 @@
 import * as path from "path";
-import { IServerSchema } from "@project-sunbird/ext-framework-server/models";
 
 export const frameworkConfig = {
     db: {
@@ -32,11 +31,11 @@ export const frameworkConfig = {
             id: "openrap-sunbirded-plugin", ver: "1.0"
         }
     ],
-    pluginBasePath: path.join(__dirname, "test") + "/"
+    pluginBasePath: path.join(__dirname, "../test") + "/"
 }
 
 export const env = {
-    "APP_BASE_URL": "https://diksha.gov.in",
+    "APP_BASE_URL": "https://dev.sunbirded.org/",
     "CHANNEL": "sunbird",
     "TELEMETRY_SYNC_INTERVAL_IN_SECS": "30",
     "APP_ID": "local.sunbird.desktop",

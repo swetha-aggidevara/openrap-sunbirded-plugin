@@ -7,9 +7,9 @@ import * as _ from "lodash";
 import { logger } from '@project-sunbird/ext-framework-server/logger';
 
 export class ConnectToServer {
-expressApp = express();
-app;
-  async startServer() {
+    expressApp = express();
+    app;
+    async startServer() {
 
         let subApp = express();
 
@@ -22,10 +22,10 @@ app;
         this.expressApp.use("/", subApp);
         frameworkConfig.db.pouchdb.path = process.env.DATABASE_PATH;
         frameworkConfig["logBasePath"] = getFilesPath();
-       await frameworkAPI
+        await frameworkAPI
             .bootstrap(frameworkConfig, subApp);
-       await new Promise((resolve, reject) => {
-           this.app = this.expressApp.listen(process.env.APPLICATION_PORT, (error: any) => {
+        await new Promise((resolve, reject) => {
+            this.app = this.expressApp.listen(process.env.APPLICATION_PORT, (error: any) => {
                 if (error) {
                     logger.error('errrror', error);
                     reject(error);
@@ -35,7 +35,7 @@ app;
                 }
             });
         });
-       await new Promise((resolve) => {
+        await new Promise((resolve) => {
             EventManager.subscribe('openrap-sunbirded-plugin:initialized', () => {
                 resolve()
             })
