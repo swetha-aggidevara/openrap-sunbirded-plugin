@@ -19,6 +19,7 @@ import { logger } from '@project-sunbird/ext-framework-server/logger';
 import * as uuid from "uuid";
 
 
+
 const proxyUrl = process.env.APP_BASE_URL;
 
 export class Router {
@@ -26,10 +27,12 @@ export class Router {
     const enableProxy = req => {
       logger.debug(`ReqId = "${req.headers['X-msgid']}": Checking the proxy`);
       let flag = false;
-      const refererUrl = new url.URL(req.get('referer'));
-      let pathName = refererUrl.pathname;
-      flag = _.startsWith(pathName, '/browse');
-      return flag;
+      if(req.get('referer')){
+        const refererUrl = new url.URL(req.get('referer'));
+        let pathName = refererUrl.pathname;
+        flag = _.startsWith(pathName, '/browse');
+      }
+        return flag;
     };
 
     const updateRequestBody = req => {
@@ -219,7 +222,7 @@ export class Router {
     app.get(
       ['/v1/tenant/info/', '/v1/tenant/info/:id'],
       (req, res, next) => {
-        logger.debug(`Received API call to get tenant data`);
+        logger.debug(`Received API call to get tenant data ${_.upperCase(_.get(req, 'params.id'))}`);
         req.headers['X-msgid'] = req.get('X-msgid') || uuid.v4();
         logger.debug(`ReqId = "${req.headers['X-msgid']}": Check proxy`);
         if (enableProxy(req)) {
