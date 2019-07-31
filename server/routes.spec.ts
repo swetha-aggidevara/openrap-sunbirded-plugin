@@ -53,6 +53,24 @@ describe('Test Resourcebundle', () => {
                 expect(res.body.id).to.equal('api.resoucebundles.read').to.be.a('string');
                 expect(res.body.ver).to.equal('1.0').to.be.a('string');
                 expect(res.body.result.result).to.have.property('consumption');
+                expect(res.body.result.result.consumption.frmelmnts.lbl).to.deep.include({creators: 'Creators'});
+                done();
+            });
+    });
+
+    it('#resourcebundle', (done) => {
+        supertest(app)
+            .get(`/resourcebundles/v1/read/te`)
+            .expect('Content-Type', 'application/json; charset=utf-8')
+            .expect(200)
+            .end((err, res) => {
+                if (res.statusCode >= 500) { logger.error(err); return done(); }
+                if (err && res.stausCode >= 400) { expect.fail(); return done(err); };
+                expect(res.body.responseCode).to.equal('OK');
+                expect(res.body.id).to.equal('api.resoucebundles.read').to.be.a('string');
+                expect(res.body.ver).to.equal('1.0').to.be.a('string');
+                expect(res.body.result).to.have.property('consumption');
+                expect(res.body.result.consumption.frmelmnts.lbl).to.deep.include({creators: 'సృష్టికర్తలు'});
                 done();
             });
     });
@@ -116,7 +134,9 @@ describe('Test Form with and without referrer', () => {
                 expect(res.body.id).to.equal('api.form.read').to.be.a('string');
                 expect(res.body.ver).to.equal('1.0').to.be.a('string');
                 expect(res.body.result.form).to.deep.include({ type: 'content' });
+                expect(res.body.result.form).to.deep.include({ subtype: 'resourcebundle' });
                 expect(res.body.result.form).to.deep.include({ action: 'search' });
+
                 done();
             });
     });
@@ -135,6 +155,7 @@ describe('Test Form with and without referrer', () => {
                 expect(res.body.ver).to.equal('1.0').to.be.a('string');
                 expect(res.body.result.form).to.deep.include({ type: 'content' });
                 expect(res.body.result.form).to.deep.include({ action: 'search' });
+                expect(res.body.result.form).to.deep.include({ subtype: 'resourcebundle' });
                 done();
             });
     });
@@ -142,6 +163,7 @@ describe('Test Form with and without referrer', () => {
 
 
 describe('Test Channel with and without referrer', () => {
+
     it('#Channel', (done) => {
         supertest(app)
             .get('/api/channel/v1/read/505c7c48ac6dc1edc9b08f21db5a571d')
@@ -153,7 +175,6 @@ describe('Test Channel with and without referrer', () => {
                 expect(res.body.id).to.equal('api.channel.read').to.be.a('string');
                 expect(res.body.ver).to.equal('1.0').to.be.a('string');
                 expect(res.body.result.channel.identifier).to.equal('505c7c48ac6dc1edc9b08f21db5a571d');
-                expect(res.body.result.channel.identifier).to.equal(res.body.result.channel.code);
                 expect(res.body.result.channel.status).to.equal('Live');
                 done();
 
@@ -168,11 +189,9 @@ describe('Test Channel with and without referrer', () => {
             .end((err, res) => {
                 if (res.statusCode >= 500) { logger.error(err); return done(); }
                 if (err && res.stausCode >= 400) { expect.fail(); return done(err); };
-                expect(res.body.responseCode).to.equal('OK');
                 expect(res.body.id).to.equal('api.channel.read').to.be.a('string');
                 expect(res.body.ver).to.equal('1.0').to.be.a('string');
                 expect(res.body.result.channel.identifier).to.equal('505c7c48ac6dc1edc9b08f21db5a571d');
-                expect(res.body.result.channel.identifier).to.equal(res.body.result.channel.code);
                 expect(res.body.result.channel.status).to.equal('Live');
                 done();
             });
