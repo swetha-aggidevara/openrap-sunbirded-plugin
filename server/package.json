@@ -22,7 +22,8 @@
       "**/**/*.spec.*",
       "*.spec.*",
       "test/openrap-sunbirded-plugin/build/*.js",
-      "test/openrap-sunbirded-plugin/services/telemetry/*.js"
+      "test/openrap-sunbirded-plugin/services/telemetry/*.js",
+      "test/openrap-sunbirded-plugin/test_data/*.js"
     ],
     "include": [
       "test/openrap-sunbirded-plugin/**/*.js"
