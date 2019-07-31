@@ -53,7 +53,7 @@ describe('Test Resourcebundle', () => {
                 expect(res.body.id).to.equal('api.resoucebundles.read').to.be.a('string');
                 expect(res.body.ver).to.equal('1.0').to.be.a('string');
                 expect(res.body.result.result).to.have.property('consumption');
-                expect(res.body.result.result.consumption.frmelmnts.lbl).to.deep.include({creators: 'Creators'});
+                expect(res.body.result.result.consumption.frmelmnts.lbl).to.deep.include({ creators: 'Creators' });
                 done();
             });
     });
@@ -70,7 +70,7 @@ describe('Test Resourcebundle', () => {
                 expect(res.body.id).to.equal('api.resoucebundles.read').to.be.a('string');
                 expect(res.body.ver).to.equal('1.0').to.be.a('string');
                 expect(res.body.result).to.have.property('consumption');
-                expect(res.body.result.consumption.frmelmnts.lbl).to.deep.include({creators: 'సృష్టికర్తలు'});
+                expect(res.body.result.consumption.frmelmnts.lbl).to.deep.include({ creators: 'సృష్టికర్తలు' });
                 done();
             });
     });
@@ -105,7 +105,7 @@ describe('Test Organisation with and without referrer', () => {
                 expect(res.body.responseCode).to.equal('OK');
                 expect(res.body.id).to.equal('api.org.search').to.be.a('string');
                 expect(res.body.ver).to.equal('1.0').to.be.a('string');
-                expect(res.body.result.response.content[0]).to.deep.include({slug: 'sunbird'});
+                expect(res.body.result.response.content[0]).to.deep.include({ slug: 'sunbird' });
                 expect(res.body.result.response).to.have.property('content');
                 expect(res.body.result.response).to.have.property('count');
                 done();
@@ -124,7 +124,7 @@ describe('Test Organisation with and without referrer', () => {
                 expect(res.body.responseCode).to.equal('OK');
                 expect(res.body.id).to.equal('api.org.search').to.be.a('string');
                 expect(res.body.ver).to.equal('v1').to.be.a('string');
-                expect(res.body.result.response.content[0]).to.deep.include({slug:'sunbird'});
+                expect(res.body.result.response.content[0]).to.deep.include({ slug: 'sunbird' });
                 expect(res.body.result.response).to.have.property('content');
                 expect(res.body.result.response).to.have.property('count');
                 done();
@@ -164,7 +164,7 @@ describe('Test Form with and without referrer', () => {
                 expect(res.body.result.form).to.deep.include({ type: 'content' });
                 expect(res.body.result.form).to.deep.include({ subtype: 'resourcebundle' });
                 expect(res.body.result.form).to.deep.include({ action: 'search' });
-               
+
                 done();
             });
     });
@@ -521,6 +521,7 @@ describe('Test Content search with and without referrer', () => {
     });
 
 });
+
 describe('Test Download Content', () => {
     it('#Download Content', (done) => {
         supertest(app)
@@ -582,6 +583,7 @@ describe('Test Download Content', () => {
         }, 2000);
     }).timeout(200000)
 });
+
 describe('Test Read Content/Collection with and without referrer', () => {
     it('#Get Content', (done) => {
         supertest(app)
@@ -687,16 +689,17 @@ describe('Test Import Content/Collection', () => {
         req.end((err, res) => {
             if (res.statusCode >= 500) { logger.error(err); return done(); }
             if (err && res.stausCode >= 400) { expect.fail(); return done(err); };
-                expect(res.body.success).to.be.true;
-                expect(res.body.content.name).to.be.a('string');
-                expect(res.body.content.name).to.be.a('string').to.equal('TextBookTest');
-                expect(res.body.content.pkgVersion).to.be.a('number');
-                expect(res.body.content.identifier).to.be.a('string');
-                done();
-            });
+            expect(res.body.success).to.be.true;
+            expect(res.body.content.name).to.be.a('string');
+            expect(res.body.content.name).to.be.a('string').to.equal('TextBookTest');
+            expect(res.body.content.pkgVersion).to.be.a('number');
+            expect(res.body.content.identifier).to.be.a('string');
+            done();
+        });
     }).timeout(20000);
 
 });
+
 describe('Test Export Content/Collection', () => {
     it('#Export Content', (done) => {
         supertest(app)
@@ -705,14 +708,14 @@ describe('Test Export Content/Collection', () => {
             .expect('Content-Type', 'application/json; charset=utf-8')
             .expect(200)
             .end((err, res) => {
-            if (res.statusCode >= 500) { logger.error(err); return done(); }
-            if (err && res.stausCode >= 400) { expect.fail(); return done(err); };
-                    expect(res.body.responseCode).to.equal('OK');
-                    expect(res.body.id).to.equal('api.content.export').to.be.a('string');
-                    expect(res.body.ver).to.equal('1.0').to.be.a('string');
-                    expect(res.body.result.response).to.have.property('url');
+                if (res.statusCode >= 500) { logger.error(err); return done(); }
+                if (err && res.stausCode >= 400) { expect.fail(); return done(err); };
+                expect(res.body.responseCode).to.equal('OK');
+                expect(res.body.id).to.equal('api.content.export').to.be.a('string');
+                expect(res.body.ver).to.equal('1.0').to.be.a('string');
+                expect(res.body.result.response).to.have.property('url');
                 done();
-                
+
             });
     }).timeout(100000);
     it('#Export Collection', (done) => {
@@ -722,17 +725,18 @@ describe('Test Export Content/Collection', () => {
             .expect('Content-Type', 'application/json; charset=utf-8')
             .expect(200)
             .end((err, res) => {
-            if (res.statusCode >= 500) { logger.error(err); return done(); }
-            if (err && res.stausCode >= 400) { expect.fail(); return done(err); };
-                    expect(res.body.responseCode).to.equal('OK');
-                    expect(res.body.id).to.equal('api.content.export').to.be.a('string');
-                    expect(res.body.ver).to.equal('1.0').to.be.a('string');
-                    expect(res.body.result.response).to.have.property('url');
+                if (res.statusCode >= 500) { logger.error(err); return done(); }
+                if (err && res.stausCode >= 400) { expect.fail(); return done(err); };
+                expect(res.body.responseCode).to.equal('OK');
+                expect(res.body.id).to.equal('api.content.export').to.be.a('string');
+                expect(res.body.ver).to.equal('1.0').to.be.a('string');
+                expect(res.body.result.response).to.have.property('url');
                 done();
-                
+
             });
     }).timeout(100000);
 });
+
 after('Disconnect Server', (done) => {
     server.close();
     done();
