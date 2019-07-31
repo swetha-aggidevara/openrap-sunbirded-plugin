@@ -31,7 +31,6 @@ describe('All', () => {
             .set('Content-Type', 'text/html; charset=utf-8')
             .expect(200)
             .end((err, res) => {
-                console.log(res.body);
                 if (res.statusCode >= 500) { logger.error(err); return done(); }
                 if (err && res.stausCode >= 400) { expect.fail(); return done(err); };
                 done();
@@ -48,7 +47,6 @@ describe('Test Resourcebundle', () => {
             .expect('Content-Type', 'application/json; charset=utf-8')
             .expect(200)
             .end((err, res) => {
-                console.log(res.body);
                 if (res.statusCode >= 500) { logger.error(err); return done(); }
                 if (err && res.stausCode >= 400) { expect.fail(); return done(err); };
                 expect(res.body.responseCode).to.equal('OK');
@@ -70,7 +68,6 @@ describe('Test Organisation with and without referrer', () => {
             .send({ "request": { "filters": { "slug": "sunbird", "isRootOrg": true } } })
             .expect(200)
             .end((err, res) => {
-                console.log(res.body.result.response.content);
                 if (res.statusCode >= 500) { logger.error(err); return done(); }
                 if (err && res.stausCode >= 400) { expect.fail(); return done(err); };
                 expect(res.body.responseCode).to.equal('OK');
@@ -90,7 +87,6 @@ describe('Test Organisation with and without referrer', () => {
             .send({ "request": { "filters": { "slug": "sunbird", "isRootOrg": true } } })
             .expect(200)
             .end((err, res) => {
-                console.log(res.body);
                 if (res.statusCode >= 500) { logger.error(err); return done(); }
                 if (err && res.stausCode >= 400) { expect.fail(); return done(err); };
                 expect(res.body.responseCode).to.equal('OK');
@@ -114,7 +110,6 @@ describe('Test Form with and without referrer', () => {
             .send({ "request": { "type": "content", "action": "search", "subType": "resourcebundle", "rootOrgId": "505c7c48ac6dc1edc9b08f21db5a571d" } })
             .expect(200)
             .end((err, res) => {
-                console.log(res.body);
                 if (res.statusCode >= 500) { logger.error(err); return done(); }
                 if (err && res.stausCode >= 400) { expect.fail(); return done(err); };
                 expect(res.body.responseCode).to.equal('OK');
@@ -133,7 +128,6 @@ describe('Test Form with and without referrer', () => {
             .send({ "request": { "type": "content", "action": "search", "subType": "resourcebundle", "rootOrgId": "505c7c48ac6dc1edc9b08f21db5a571d" } })
             .expect(200)
             .end((err, res) => {
-                console.log(res.body);
                 if (res.statusCode >= 500) { logger.error(err); return done(); }
                 if (err && res.stausCode >= 400) { expect.fail(); return done(err); };
                 expect(res.body.responseCode).to.equal('OK');
@@ -153,7 +147,6 @@ describe('Test Channel with and without referrer', () => {
             .get('/api/channel/v1/read/505c7c48ac6dc1edc9b08f21db5a571d')
             .expect(200)
             .end((err, res) => {
-                console.log(res.body);
                 if (res.statusCode >= 500) { logger.error(err); return done(); }
                 if (err && res.stausCode >= 400) { expect.fail(); return done(err); };
                 expect(res.body.responseCode).to.equal('OK');
@@ -173,7 +166,6 @@ describe('Test Channel with and without referrer', () => {
             .set('Referer', 'http://localhost:9010/browse')
             .expect(200)
             .end((err, res) => {
-                console.log(res.body);
                 if (res.statusCode >= 500) { logger.error(err); return done(); }
                 if (err && res.stausCode >= 400) { expect.fail(); return done(err); };
                 expect(res.body.responseCode).to.equal('OK');
@@ -195,7 +187,6 @@ describe('Test Framework with and without referrer', () => {
             .get('/api/framework/v1/read/TEST')
             .expect(200)
             .end((err, res) => {
-                console.log(res.body);
                 if (res.statusCode >= 500) { logger.error(err); return done(); }
                 if (err && res.stausCode >= 400) { expect.fail(); return done(err); };
                 expect(res.body.responseCode).to.equal('OK');
@@ -213,7 +204,6 @@ describe('Test Framework with and without referrer', () => {
             .set('Referer', 'http://localhost:9010/browse')
             .expect(200)
             .end((err, res) => {
-                console.log(res.body);
                 if (res.statusCode >= 500) { logger.error(err); return done(); }
                 if (err && res.stausCode >= 400) { expect.fail(); return done(err); };
                 expect(res.body.responseCode).to.equal('OK');
@@ -233,7 +223,6 @@ describe('Test Tenant with and without referrer', () => {
             .get('/v1/tenant/info/')
             .expect(200)
             .end((err, res) => {
-                console.log(res.body);
                 if (res.statusCode >= 500) { logger.error(err); return done(); }
                 if (err && res.stausCode >= 400) { expect.fail(); return done(err); };
                 expect(res.body.responseCode).to.equal('OK');
@@ -252,7 +241,6 @@ describe('Test Tenant with and without referrer', () => {
             .set('Referer', 'http://localhost:9010/browse')
             .expect(200)
             .end((err, res) => {
-                console.log(res.body);
                 if (res.statusCode >= 500) { logger.error(err); return done(); }
                 if (err && res.stausCode >= 400) { expect.fail(); return done(err); };
                 expect(res.body.responseCode).to.equal('OK');
@@ -275,7 +263,6 @@ describe('Test Telemetry', () => {
             .send(registerDevice)
             .expect(200)
             .end((err, res) => {
-                console.log(res.body);
                 if (res.statusCode >= 500) { logger.error(err); return done(); }
                 if (err && res.stausCode >= 400) { expect.fail(); return done(err); };
                 expect(res.body.responseCode).to.equal('OK');
@@ -292,7 +279,6 @@ describe('Test Telemetry', () => {
             .send(telemetry_v1)
             .expect(200)
             .end((err, res) => {
-                console.log(res.body);
                 if (res.statusCode >= 500) { logger.error(err); return done(); }
                 if (err && res.stausCode >= 400) { expect.fail(); return done(err); };
                 expect(res.body.responseCode).to.equal('OK');
@@ -310,7 +296,6 @@ describe('Test Telemetry', () => {
             .send(telemetry_v3)
             .expect(200)
             .end((err, res) => {
-                console.log(res.body);
                 if (res.statusCode >= 500) { logger.error(err); return done(); }
                 if (err && res.stausCode >= 400) { expect.fail(); return done(err); };
                 expect(res.body.responseCode).to.equal('OK');
