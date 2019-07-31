@@ -470,7 +470,7 @@ describe('Test Page assemble with and without referrer', () => {
 
 describe('Test Content search with and without referrer', () => {
 
-    it.only('#Search Content', (done) => {
+    it('#Search Content', (done) => {
         supertest(app)
             .post('/api/content/v1/search')
             .send({ "request": { "filters": { "channel": "505c7c48ac6dc1edc9b08f21db5a571d", "contentType": ["Collection", "TextBook", "LessonPlan", "Resource"] }, "limit": 20, "softConstraints": { "badgeAssertions": 98, "board": 99, "channel": 100 }, "mode": "soft", "facets": ["board", "medium", "gradeLevel", "subject", "contentType"], "offset": 0 } })
