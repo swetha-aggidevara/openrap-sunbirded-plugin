@@ -14,9 +14,19 @@ import Hashids from "hashids";
 import { containerAPI } from "OpenRAP/dist/api";
 import * as TreeModel from "tree-model";
 
+export enum DOWNLOAD_STATUS {
+    Submitted = "SUBMITTED",
+    Completed = "COMPLETED",
+    Extracted = "EXTRACTED",
+    Indexed = "INDEXED",
+    Failed = "FAILED"
+}
 export default class Content {
     private contentsFilesPath: string = 'content';
     private ecarsFolderPath: string = 'ecars';
+    private downloaded;
+    private downloading;
+    private failed;
     @Inject
     private databaseSdk: DatabaseSDK;
 
@@ -33,6 +43,9 @@ export default class Content {
             this.fileSDK.getAbsPath(this.contentsFilesPath),
             this.fileSDK.getAbsPath(this.ecarsFolderPath)
         );
+        this.downloaded = [DOWNLOAD_STATUS.Indexed];
+        this.downloading = [DOWNLOAD_STATUS.Completed, DOWNLOAD_STATUS.Extracted, DOWNLOAD_STATUS.Submitted];
+        this.failed = [DOWNLOAD_STATUS.Failed];
     }
 
     searchInDB(filters, reqId, sort?) {
@@ -416,14 +429,14 @@ export default class Content {
                 listOfContentIds.push(content.identifier);
             }
             let filters = { identifier: listOfContentIds };
-            logger.debug(`ReqId = "${reqId}": Search all the contents in DB using content Id's`)
-            await this.searchInDB(filters, reqId)
+            logger.debug(`ReqId = "${reqId}": Search downloaded and downlaoding  contents in DB using content Id's`)
+            await this.searchDownloadingContent(listOfContentIds, reqId)
                 .then(data => {
                     logger.info(`ReqId = "${reqId}": Found the ${data.docs.length} contents in ContentDb`)
                     for (let doc of data.docs) {
                         for (let content of contents) {
                             logger.debug(`include addedToLibrary property for the contents which are downloaded`)
-                            this.includeAddedToLibraryProperty(doc, content, reqId);
+                            this.includeDownloadStatus(doc, content, reqId);
                             logger.info(`ReqId = "${reqId}": included addedToLibrary property for the contents which are downloaded`)
                         }
                     }
@@ -466,23 +479,26 @@ export default class Content {
 
     /* This method is to include addedToLibrary property  for downloaded contents*/
 
-    includeAddedToLibraryProperty(doc, content, reqId) {
-        logger.debug(`ReqId = "${reqId}": adding addedToLibrary property for the contents which are downloaded`)
-        if (doc.identifier === content.identifier) {
-            doc.addedToLibrary = true;
-            content.addedToLibrary = true;
-            try {
-                logger.debug(`ReqId = "${reqId}": Update content in contentDb`);
-                this.databaseSdk.update('content', doc._id, doc);
-                logger.info(`ReqId = "${reqId}": updated Content in ContentDb`)
-            } catch (err) {
-                console.log(err);
-                logger.error(
-                    `ReqId = "${reqId}": Received error while updating content in database and err.message: ${
-                    err.message
-                    } ${err}`
-                );
-            }
+    includeDownloadStatus(doc, content, reqId) {
+        logger.debug(`ReqId = "${reqId}": adding addedToLibrary property for the contents which are downloaded`);
+        if (doc.contentId === content.identifier) {
+            content.downloadStatus =  this.downloaded.includes(doc.status) ? 'DOWNLOADED' :
+                                      this.downloading.includes(doc.status) ? 'DOWNLOADING': this.failed[0];
         }
     }
+
+    searchDownloadingContent(contents, reqId) {
+        logger.debug(`ReqId = "${reqId}": searchDownloadingContent method is called`);
+        let dbFilters =  {
+          "selector": {
+              "contentId": {
+                  "$in": contents
+              },
+              "createdOn": {
+                  "$gt": null
+              }
+              }
+          }
+        return this.databaseSdk.find('content_download', dbFilters)
+      }
 }
