@@ -482,8 +482,8 @@ export default class Content {
     includeDownloadStatus(doc, content, reqId) {
         logger.debug(`ReqId = "${reqId}": adding addedToLibrary property for the contents which are downloaded`);
         if (doc.contentId === content.identifier) {
-            content.downloadStatus =  this.downloaded.includes(doc.status) ? 'DOWNLOADED' :
-                                      this.downloading.includes(doc.status) ? 'DOWNLOADING': this.failed[0];
+            content.downloadStatus = this.downloaded.includes(doc.status) ? 'DOWNLOADED' :
+                this.downloading.includes(doc.status) ? 'DOWNLOADING' : this.failed[0];
         }
     }
 
