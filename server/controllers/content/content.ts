@@ -14,6 +14,13 @@ import Hashids from "hashids";
 import { containerAPI } from "OpenRAP/dist/api";
 import * as TreeModel from "tree-model";
 
+export enum DOWNLOAD_STATUS {
+    SUBMITTED = "DOWNLOADING",
+    COMPLETED = "DOWNLOADING",
+    EXTRACTED = "DOWNLOADING",
+    INDEXED = "DOWNLOADED",
+    FAILED = "FAILED"
+}
 export default class Content {
     private contentsFilesPath: string = 'content';
     private ecarsFolderPath: string = 'ecars';
@@ -415,16 +422,15 @@ export default class Content {
             for (let content of contents) {
                 listOfContentIds.push(content.identifier);
             }
-            let filters = { identifier: listOfContentIds };
-            logger.debug(`ReqId = "${reqId}": Search all the contents in DB using content Id's`)
-            await this.searchInDB(filters, reqId)
+            logger.debug(`ReqId = "${reqId}": Search downloaded and downloading  contents in DB using content Id's`)
+            await this.searchDownloadingContent(listOfContentIds, reqId)
                 .then(data => {
-                    logger.info(`ReqId = "${reqId}": Found the ${data.docs.length} contents in ContentDb`)
+                    logger.info(`ReqId = "${reqId}": Found the ${data.docs.length} contents in Content_Download Db`)
                     for (let doc of data.docs) {
                         for (let content of contents) {
-                            logger.debug(`include addedToLibrary property for the contents which are downloaded`)
-                            this.includeAddedToLibraryProperty(doc, content, reqId);
-                            logger.info(`ReqId = "${reqId}": included addedToLibrary property for the contents which are downloaded`)
+                            if (doc.contentId === content.identifier) {
+                                content.downloadStatus = DOWNLOAD_STATUS[doc.status];
+                            }
                         }
                     }
                 })
@@ -464,25 +470,18 @@ export default class Content {
         return this.decorateContentWithProperty(contents, reqId);
     }
 
-    /* This method is to include addedToLibrary property  for downloaded contents*/
+    /* This method is to search contents for download status in database  */
 
-    includeAddedToLibraryProperty(doc, content, reqId) {
-        logger.debug(`ReqId = "${reqId}": adding addedToLibrary property for the contents which are downloaded`)
-        if (doc.identifier === content.identifier) {
-            doc.addedToLibrary = true;
-            content.addedToLibrary = true;
-            try {
-                logger.debug(`ReqId = "${reqId}": Update content in contentDb`);
-                this.databaseSdk.update('content', doc._id, doc);
-                logger.info(`ReqId = "${reqId}": updated Content in ContentDb`)
-            } catch (err) {
-                console.log(err);
-                logger.error(
-                    `ReqId = "${reqId}": Received error while updating content in database and err.message: ${
-                    err.message
-                    } ${err}`
-                );
-            }
-        }
-    }
+    searchDownloadingContent(contents, reqId) {
+        logger.debug(`ReqId = "${reqId}": searchDownloadingContent method is called`);
+        let dbFilters =  {
+          "selector": {
+              "contentId": {
+                  "$in": contents
+              }
+              }
+          }
+          logger.info(`ReqId = "${reqId}": finding downloading, downloaded or failed contents in database`)
+        return this.databaseSdk.find('content_download', dbFilters)
+      }
 }
