@@ -429,15 +429,15 @@ export default class Content {
                 listOfContentIds.push(content.identifier);
             }
             let filters = { identifier: listOfContentIds };
-            logger.debug(`ReqId = "${reqId}": Search downloaded and downlaoding  contents in DB using content Id's`)
+            logger.debug(`ReqId = "${reqId}": Search downloaded and downloading  contents in DB using content Id's`)
             await this.searchDownloadingContent(listOfContentIds, reqId)
                 .then(data => {
-                    logger.info(`ReqId = "${reqId}": Found the ${data.docs.length} contents in ContentDb`)
+                    logger.info(`ReqId = "${reqId}": Found the ${data.docs.length} contents in Content_Download Db`)
                     for (let doc of data.docs) {
                         for (let content of contents) {
-                            logger.debug(`include addedToLibrary property for the contents which are downloaded`)
+                            logger.debug(`add downloadStatus for the contents`)
                             this.includeDownloadStatus(doc, content, reqId);
-                            logger.info(`ReqId = "${reqId}": included addedToLibrary property for the contents which are downloaded`)
+                            logger.info(`ReqId = "${reqId}": added downloadStatus for the contents`)
                         }
                     }
                 })
@@ -477,15 +477,18 @@ export default class Content {
         return this.decorateContentWithProperty(contents, reqId);
     }
 
-    /* This method is to include addedToLibrary property  for downloaded contents*/
+    /* This method is to include downloadStatus property  for downloaded contents*/
 
     includeDownloadStatus(doc, content, reqId) {
-        logger.debug(`ReqId = "${reqId}": adding addedToLibrary property for the contents which are downloaded`);
+        logger.debug(`ReqId = "${reqId}": add downloadStatus for the contents`);
         if (doc.contentId === content.identifier) {
-            content.downloadStatus = this.downloaded.includes(doc.status) ? 'DOWNLOADED' :
-                this.downloading.includes(doc.status) ? 'DOWNLOADING' : this.failed[0];
+            content.downloadStatus =  this.downloaded.includes(doc.status) ? 'DOWNLOADED' :
+                                      this.downloading.includes(doc.status) ? 'DOWNLOADING':
+                                      this.failed.includes(doc.status)? 'FAILED' : 'DOWNLOAD';
         }
     }
+
+    /* This method is to search contents for download status in database  */
 
     searchDownloadingContent(contents, reqId) {
         logger.debug(`ReqId = "${reqId}": searchDownloadingContent method is called`);
@@ -499,6 +502,7 @@ export default class Content {
               }
               }
           }
+          logger.info(`ReqId = "${reqId}": finding downloading, downloaded or failed contents in database`)
         return this.databaseSdk.find('content_download', dbFilters)
       }
 }
