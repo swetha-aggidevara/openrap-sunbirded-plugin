@@ -15,18 +15,15 @@ import { containerAPI } from "OpenRAP/dist/api";
 import * as TreeModel from "tree-model";
 
 export enum DOWNLOAD_STATUS {
-    Submitted = "SUBMITTED",
-    Completed = "COMPLETED",
-    Extracted = "EXTRACTED",
-    Indexed = "INDEXED",
-    Failed = "FAILED"
+    SUBMITTED = "DOWNLOADING",
+    COMPLETED = "DOWNLOADING",
+    EXTRACTED = "DOWNLOADING",
+    INDEXED = "DOWNLOADED",
+    FAILED = "FAILED"
 }
 export default class Content {
     private contentsFilesPath: string = 'content';
     private ecarsFolderPath: string = 'ecars';
-    private downloaded;
-    private downloading;
-    private failed;
     @Inject
     private databaseSdk: DatabaseSDK;
 
@@ -43,9 +40,6 @@ export default class Content {
             this.fileSDK.getAbsPath(this.contentsFilesPath),
             this.fileSDK.getAbsPath(this.ecarsFolderPath)
         );
-        this.downloaded = [DOWNLOAD_STATUS.Indexed];
-        this.downloading = [DOWNLOAD_STATUS.Completed, DOWNLOAD_STATUS.Extracted, DOWNLOAD_STATUS.Submitted];
-        this.failed = [DOWNLOAD_STATUS.Failed];
     }
 
     searchInDB(filters, reqId, sort?) {
@@ -428,16 +422,15 @@ export default class Content {
             for (let content of contents) {
                 listOfContentIds.push(content.identifier);
             }
-            let filters = { identifier: listOfContentIds };
             logger.debug(`ReqId = "${reqId}": Search downloaded and downloading  contents in DB using content Id's`)
             await this.searchDownloadingContent(listOfContentIds, reqId)
                 .then(data => {
                     logger.info(`ReqId = "${reqId}": Found the ${data.docs.length} contents in Content_Download Db`)
                     for (let doc of data.docs) {
                         for (let content of contents) {
-                            logger.debug(`add downloadStatus for the contents`)
-                            this.includeDownloadStatus(doc, content, reqId);
-                            logger.info(`ReqId = "${reqId}": added downloadStatus for the contents`)
+                            if (doc.contentId === content.identifier) {
+                                content.downloadStatus = DOWNLOAD_STATUS[doc.status];
+                            }
                         }
                     }
                 })
@@ -477,17 +470,6 @@ export default class Content {
         return this.decorateContentWithProperty(contents, reqId);
     }
 
-    /* This method is to include downloadStatus property  for downloaded contents*/
-
-    includeDownloadStatus(doc, content, reqId) {
-        logger.debug(`ReqId = "${reqId}": add downloadStatus for the contents`);
-        if (doc.contentId === content.identifier) {
-            content.downloadStatus =  this.downloaded.includes(doc.status) ? 'DOWNLOADED' :
-                                      this.downloading.includes(doc.status) ? 'DOWNLOADING':
-                                      this.failed.includes(doc.status)? 'FAILED' : 'DOWNLOAD';
-        }
-    }
-
     /* This method is to search contents for download status in database  */
 
     searchDownloadingContent(contents, reqId) {
@@ -496,9 +478,6 @@ export default class Content {
           "selector": {
               "contentId": {
                   "$in": contents
-              },
-              "createdOn": {
-                  "$gt": null
               }
               }
           }
