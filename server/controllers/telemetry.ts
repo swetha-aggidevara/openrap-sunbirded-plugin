@@ -17,11 +17,12 @@ export default class Telemetry {
     private databaseSdk: DatabaseSDK;
 
     private systemSDK;
+    public deviceId;
 
     constructor(manifest: Manifest) {
         this.databaseSdk.initialize(manifest.id);
         this.systemSDK = containerAPI.getSystemSDKInstance(manifest.id);
-        process.env.DEVICE_ID = this.systemSDK.deviceId;
+        this.deviceId = this.systemSDK.deviceId;
     }
 
     addEvents(req, res) {
