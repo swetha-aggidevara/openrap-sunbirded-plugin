@@ -504,6 +504,8 @@ export class Router {
     locals.offlineDesktopAppReleaseDate = '';
     locals.offlineDesktopAppSupportedLanguage = '';
     locals.offlineDesktopAppDownloadUrl = '';
+    locals.logFingerprintDetails = '';
+    locals.deviceId = process.env.DEVICE_ID;
     return locals;
   }
 }
