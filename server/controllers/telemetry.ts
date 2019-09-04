@@ -6,7 +6,7 @@ import Response from './../utils/response';
 import { Manifest } from "@project-sunbird/ext-framework-server/models";
 import { logger } from '@project-sunbird/ext-framework-server/logger';
 import { TelemetryService } from "../services";
-
+import { containerAPI } from 'OpenRAP/dist/api';
 
 export default class Telemetry {
 
@@ -16,9 +16,13 @@ export default class Telemetry {
     @Inject
     private databaseSdk: DatabaseSDK;
 
+    private systemSDK;
+    public deviceId;
 
     constructor(manifest: Manifest) {
         this.databaseSdk.initialize(manifest.id);
+        this.systemSDK = containerAPI.getSystemSDKInstance(manifest.id);
+        this.deviceId = this.systemSDK.deviceId;
     }
 
     addEvents(req, res) {

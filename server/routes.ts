@@ -17,11 +17,10 @@ import * as url from 'url';
 import config from './config';
 import { logger } from '@project-sunbird/ext-framework-server/logger';
 import * as uuid from "uuid";
-
+let telemetry;
 
 
 const proxyUrl = process.env.APP_BASE_URL;
-
 export class Router {
   init(app: any, manifest: Manifest, auth?: any) {
     const enableProxy = req => {
@@ -417,8 +416,8 @@ export class Router {
       contentDownload.download(req, res);
     });
 
-    let telemetry = new Telemetry(manifest);
-
+    telemetry = new Telemetry(manifest);
+    
     app.post('/content/data/v1/telemetry', (req, res) => {
       logger.debug(`Received API call to get v1 telemetry data`);
       req.headers['X-msgid'] = req.get('X-msgid') || uuid.v4();
@@ -504,6 +503,8 @@ export class Router {
     locals.offlineDesktopAppReleaseDate = '';
     locals.offlineDesktopAppSupportedLanguage = '';
     locals.offlineDesktopAppDownloadUrl = '';
+    locals.logFingerprintDetails = '';
+    locals.deviceId = telemetry.deviceId;
     return locals;
   }
 }
