@@ -48,7 +48,7 @@ export default class ContentManager {
                 if(error){
                     logger.error(`ReqId = "${req.headers['X-msgid']}": File extraction failed for file: ${filePath}`)
                     return reject(error);
-                } else {
+                } else if(filePath === data.filePath){
                     logger.error(`ReqId = "${req.headers['X-msgid']}": File extraction successful for file: ${filePath}`)
                     return resolve();
                 }
