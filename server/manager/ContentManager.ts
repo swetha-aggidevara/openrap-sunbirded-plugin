@@ -12,6 +12,8 @@ import { manifest } from '../manifest';
 import { isRegExp } from 'util';
 import config from '../config';
 import { IDesktopAppMetadata, IAddedUsingType } from '../controllers/content/IContent';
+import { fork } from 'child_process';
+let unzipChildProcess;
 
 
 export default class ContentManager {
@@ -35,8 +37,24 @@ export default class ContentManager {
         this.fileSDK = containerAPI.getFileSDKInstance(manifest.id);
     }
 
-
-
+    // this method works for only one task at a time. Multiple unzip request at a time will fail
+    async unzip(filePath: string, destPath: string, extractToFolder: boolean){
+        if(!unzipChildProcess){
+            unzipChildProcess = fork(path.join(__dirname, '..', 'utils', 'unzip.js'));
+        }
+        return new Promise((resolve, reject) => {
+            unzipChildProcess.send({ message: 'UNZIP', filePath, destPath, extractToFolder, pluginId: manifest.id});
+            unzipChildProcess.on('message' , ({error, data}) => {
+                console.log('------------------child process UNZIP failed---------------------');
+                if(error){
+                    console.log('------------------child process UNZIP failed---------------------', error);
+                    return reject(error);
+                }
+                console.log('------------------child process UNZIP succuss---------------------', data);
+                return resolve();
+            });
+        })
+    }
     // unzip ecar 
     // read manifest
     // check if the ecar is content or collection
@@ -51,7 +69,8 @@ export default class ContentManager {
         logger.debug(`ReqId = "${req.headers['X-msgid']}": File extraction is started for the file: ${req.fileName}`)
         // unzip to content_files folder
         logger.info(` ReqId = "${req.headers['X-msgid']}": File has to be unzipped`);
-        await this.fileSDK.unzip(path.join('ecars', req.fileName), 'content', true)
+        // await this.fileSDK.unzip(path.join('ecars', req.fileName), 'content', true)
+        await this.unzip(path.join('ecars', req.fileName), 'content', true);
         logger.info(` ReqId = "${req.headers['X-msgid']}": File is unzipped, reading manifest file and adding baseDir to manifest`);
         // read manifest file and add baseDir to manifest as content and folder name relative path
         let manifest = await this.fileSDK.readJSON(path.join(this.contentFilesPath, path.basename(req.fileName, path.extname(req.fileName)), 'manifest.json'));
@@ -164,7 +183,8 @@ export default class ContentManager {
                                             // unzip the file if we have zip file
                                             logger.info(` ReqId = "${req.headers['X-msgid']}":  Unzipping the file:${file} if the file is zip file`)
                                             let filePath = path.relative(this.fileSDK.getAbsPath(''), zipFilePath[0]);
-                                            await this.fileSDK.unzip(filePath, path.join("content", file), false)
+                                            // await this.fileSDK.unzip(filePath, path.join("content", file), false)
+                                            await this.unzip(filePath, path.join("content", file), false)
                                             logger.info(` ReqId = "${req.headers['X-msgid']}":   file is unzipped`)
                                         }
                                     }
@@ -197,7 +217,8 @@ export default class ContentManager {
                     let filePath = path.relative(this.fileSDK.getAbsPath(''), zipFilePath[0]);
                     // unzip the file if we have zip file
                     logger.info(` ReqId = "${req.headers['X-msgid']}": Unzipping the file if there are any zip files`)
-                    await this.fileSDK.unzip(filePath, path.join("content", path.basename(req.fileName, path.extname(req.fileName))), false)
+                    // await this.fileSDK.unzip(filePath, path.join("content", path.basename(req.fileName, path.extname(req.fileName))), false)
+                    await this.unzip(filePath, path.join("content", path.basename(req.fileName, path.extname(req.fileName))), false)
                     logger.info(` ReqId = "${req.headers['X-msgid']}": Unzipped the zip file `)
                 }
 
