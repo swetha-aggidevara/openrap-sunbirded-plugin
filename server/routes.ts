@@ -389,7 +389,7 @@ export class Router {
       })
     );
 
-    app.post('/api/content/v1/import', (req, res) => {
+    app.post('/api/content/v1/import', this.setConnectionTimeout(1200000), (req, res) => {
       logger.debug(`Received API call to import Content `);
       req.headers['X-msgid'] = req.get('X-msgid') || uuid.v4();
       logger.debug(`ReqId = "${req.headers['X-msgid']}": Calling  import method for importing content`);
@@ -470,6 +470,13 @@ export class Router {
         }
       })
     );
+  }
+
+  setConnectionTimeout (time : Number) {
+    return (req, res, next) => {
+      req.connection.setTimeout(time);
+      next();
+    }
   }
 
   getLocals() {
