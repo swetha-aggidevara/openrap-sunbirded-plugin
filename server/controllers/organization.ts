@@ -20,27 +20,30 @@ export class Organization {
         this.fileSDK = containerAPI.getFileSDKInstance(manifest.id);
     }
 
-    public insert() {
-        let organizationFiles = path.join(__dirname, '..', 'data', 'organizations', '**', '*.json');
+    public async insert() {
+        let organizationFiles = this.fileSDK.getAbsPath(path.join('data', 'organizations', '**', '*.json'));
         let files = glob.sync(organizationFiles, {});
 
-        files.forEach(async (file) => {
+        for (let file of files) {
             let organization = await this.fileSDK.readJSON(file);
             let _id = path.basename(file, path.extname(file));
             let doc = _.get(organization, 'result.response.content[0]');
             await this.databaseSdk.upsert('organization', _id, doc).catch(err => {
-                logger.error(`while upserting the ${_id} to channel database ${err.message} ${err.reason}`)
+                logger.error(`Received error while upserting the ${_id} to channel database and err.message: ${err.message}`)
             });;
-        });
+        }
+
+
     }
 
     search(req, res) {
-
+        logger.debug(`ReqId = "${req.headers['X-msgid']}": Organisation search method is called`);
         let requestBody = req.body;
 
         let searchObj = {
             selector: _.get(requestBody, 'request.filters')
         }
+        logger.debug(`ReqId = "${req.headers['X-msgid']}": Finding the data from organization database`)
         this.databaseSdk.find('organization', searchObj)
             .then(data => {
                 data = _.map(data.docs, doc => _.omit(doc, ['_id', '_rev']))
@@ -50,17 +53,18 @@ export class Organization {
                         count: data.length
                     }
                 }
+                logger.info(`ReqId = "${req.headers['X-msgid']}": Received data from organization database`)
                 return res.send(Response.success("api.org.search", resObj));
             })
             .catch(err => {
-                console.log(err)
-                if (err.statusCode === 404) {
+                logger.error(`ReqId = "${req.headers['X-msgid']}": Received error while searching in organization database and err.message: ${err.message} ${err}`)
+                if (err.status === 404) {
                     res.status(404)
                     return res.send(Response.error("api.org.search", 404));
                 } else {
-                    let statusCode = err.statusCode || 500;
-                    res.status(statusCode)
-                    return res.send(Response.error("api.org.search", statusCode));
+                    let status = err.status || 500;
+                    res.status(status)
+                    return res.send(Response.error("api.org.search", status));
                 }
             });
     }

@@ -17,6 +17,7 @@ import { containerAPI } from 'OpenRAP/dist/api';
 import { addContentListener, reconciliation } from './controllers/content/contentHelper';
 import { TelemetryService } from "./services";
 import * as _ from 'lodash';
+import { EventManager } from '@project-sunbird/ext-framework-server/managers/EventManager';
 
 export class Server extends BaseServer {
 
@@ -43,14 +44,41 @@ export class Server extends BaseServer {
 
         // Added timeout since db creation is async and it is taking time and insertion is failing
         this.fileSDK = containerAPI.getFileSDKInstance(manifest.id);
-        this.initialize(manifest).catch(err => {
+
+
+        this.initialize(manifest)
+        .then(() => {
+            this.sunbirded_plugin_initialized = true;
+            EventManager.emit(`${manifest.id}:initialized`, {});
+        })
+        .catch(err => {
             logger.error("Error while initializing open rap sunbird ed plugin", err);
             this.sunbirded_plugin_initialized = true;
+            EventManager.emit(`${manifest.id}:initialized`, {});
         })
 
 
     }
     async initialize(manifest: Manifest) {
+
+        //registerAcrossAllSDKS()
+        this.databaseSdk.initialize(manifest.id);
+
+
+        frameworkAPI.registerStaticRoute(this.fileSDK.getAbsPath(this.contentFilesPath), '/contentPlayer/preview/content');
+        frameworkAPI.registerStaticRoute(this.fileSDK.getAbsPath(this.contentFilesPath), '/contentPlayer/preview');
+        frameworkAPI.registerStaticRoute(this.fileSDK.getAbsPath(this.contentFilesPath), '/contentPlayer/preview/content/*/content-plugins');
+        frameworkAPI.registerStaticRoute(path.join(__dirname, '..', '..', 'public', 'contentPlayer', 'preview'), '/contentPlayer/preview');
+        frameworkAPI.registerStaticRoute(this.fileSDK.getAbsPath(this.contentFilesPath), '/content');
+        frameworkAPI.registerStaticRoute(this.fileSDK.getAbsPath(this.ecarsFolderPath), '/ecars');
+        frameworkAPI.registerStaticRoute(this.fileSDK.getAbsPath(this.tempPath), '/temp');
+        frameworkAPI.registerStaticRoute(path.join(__dirname, '..', '..', 'public', 'portal'));
+        frameworkAPI.registerStaticRoute(path.join(__dirname, '..', '..', 'public', 'sunbird-plugins'), '/sunbird-plugins');
+        frameworkAPI.setStaticViewEngine('ejs');
+
+        // insert meta data for app
+        await this.insertConfig(manifest)
+
         await this.telemetryService.initialize(manifest.id);
         const pluginConfig = {
             pluginVer: manifest.version,
@@ -64,8 +92,7 @@ export class Server extends BaseServer {
         await this.fileSDK.mkdir(this.ecarsFolderPath)
         await this.fileSDK.mkdir(this.telemetryArchivedFolderPath)
 
-        //registerAcrossAllSDKS()
-        this.databaseSdk.initialize(manifest.id);
+
 
         // listener to index content when content downloaded
         addContentListener(manifest.id);
@@ -78,19 +105,9 @@ export class Server extends BaseServer {
         this.contentManager.initialize(manifest.id, this.fileSDK.getAbsPath(this.contentFilesPath),
             this.fileSDK.getAbsPath(this.ecarsFolderPath))
 
-        frameworkAPI.registerStaticRoute(this.fileSDK.getAbsPath(this.contentFilesPath), '/contentPlayer/preview/content');
-        frameworkAPI.registerStaticRoute(this.fileSDK.getAbsPath(this.contentFilesPath), '/contentPlayer/preview');
-        frameworkAPI.registerStaticRoute(this.fileSDK.getAbsPath(this.contentFilesPath), '/contentPlayer/preview/content/*/content-plugins');
-        frameworkAPI.registerStaticRoute(path.join(__dirname, '..', '..', 'public', 'contentPlayer', 'preview'), '/contentPlayer/preview');
-        frameworkAPI.registerStaticRoute(this.fileSDK.getAbsPath(this.contentFilesPath), '/content');
-        frameworkAPI.registerStaticRoute(this.fileSDK.getAbsPath(this.ecarsFolderPath), '/ecars');
-        frameworkAPI.registerStaticRoute(this.fileSDK.getAbsPath(this.tempPath), '/temp');
-        frameworkAPI.registerStaticRoute(path.join(__dirname, '..', '..', 'public', 'portal'));
-        frameworkAPI.registerStaticRoute(path.join(__dirname, '..', '..', 'public', 'sunbird-plugins'), '/sunbird-plugins');
-        frameworkAPI.setStaticViewEngine('ejs')
 
-        // insert meta data for app
-        await this.insertConfig(manifest)
+        // delete contents in temp directory
+        await this.fileSDK.remove('temp').catch(err => logger.error(`while emptying temp folder on startup ${err}`))
         //- reIndex()
         //- reConfigure()
     }
@@ -103,12 +120,12 @@ export class Server extends BaseServer {
         const channel = new Channel(manifest);
         const form = new Form(manifest);
 
-        resourceBundle.insert();
-        framework.insert();
-        organization.insert();
-        channel.insert();
-        form.insert();
-        page.insert();
+        await organization.insert();
+        await resourceBundle.insert();
+        await framework.insert();
+        await channel.insert();
+        await form.insert();
+        await page.insert();
 
     }
 

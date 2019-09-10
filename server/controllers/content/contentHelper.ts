@@ -7,6 +7,7 @@ import { logger } from "@project-sunbird/ext-framework-server/logger";
 import * as glob from 'glob';
 import * as _ from 'lodash';
 import { STATUS } from "OpenRAP/dist/managers/DownloadManager/DownloadManager";
+import { IDesktopAppMetadata, IAddedUsingType } from './IContent';
 
 let dbSDK = new DatabaseSDK();
 
@@ -47,7 +48,7 @@ export const addContentListener = (pluginId) => {
                     let zipFilePath = glob.sync(path.join(fileSDK.getAbsPath('content'), fileName, '**', '*.zip'), {});
                     if (zipFilePath.length > 0) {
                         // unzip the file if we have zip file
-                        let filePath = _.replace(zipFilePath[0], fileSDK.getAbsPath(''), '');
+                        let filePath = path.relative(fileSDK.getAbsPath(''), zipFilePath[0]);
                         await fileSDK.unzip(filePath, path.join("content", fileName), false)
                     }
 
@@ -72,10 +73,14 @@ export const addContentListener = (pluginId) => {
                         metaData.visibility = "Parent"
                     }
                     metaData.baseDir = `content/${fileName}`;
-                    metaData.desktopAppMetadata = {
+
+                    const desktopAppMetadata: IDesktopAppMetadata = {
                         "ecarFile": file.file,  // relative to ecar folder
-                        "addedUsing": "download"
+                        "addedUsing": IAddedUsingType.download,
+                        "createdOn": Date.now(),
+                        "updatedOn": Date.now()
                     }
+                    metaData.desktopAppMetadata = desktopAppMetadata;
                     metaData.appIcon = metaData.appIcon ? `content/${fileName}/${metaData.appIcon}` : metaData.appIcon;
                     //insert metadata to content database
                     // TODO: before insertion check if the first object is type of collection then prepare the collection and insert 
@@ -89,7 +94,7 @@ export const addContentListener = (pluginId) => {
                     // update the status to indexed
                 } catch (error) {
                     failFlagCount++
-                    logger.error(`while content is extracted ${data.id}, ${error}`)
+                    logger.error(`Received error while content is extracted for id: ${data.id} and and err.message: ${error.message}`)
                 }
             }
             if (failFlagCount === data.files.length) {
@@ -98,7 +103,7 @@ export const addContentListener = (pluginId) => {
                 await dbSDK.update(dbName, _id, { status: CONTENT_DOWNLOAD_STATUS.Indexed, updatedOn: Date.now() })
             }
         } catch (error) {
-            logger.error(`while listening to content complete event ${data.id}, ${error}`)
+            logger.error(`Received error while listening to content complete event for id: ${data.id} and err.message: ${error.message}`)
         }
     })
 
@@ -112,7 +117,7 @@ export const addContentListener = (pluginId) => {
             let _id = docs[0]["_id"];
             await dbSDK.update(dbName, _id, { status: CONTENT_DOWNLOAD_STATUS.Failed, updatedOn: Date.now() })
         } catch (error) {
-            logger.error(`While updating the failed status in content download DB ${error}`);
+            logger.error(`Received error while updating the failed status in content download DB and err.message: ${error.message}`);
         }
     })
 }
@@ -172,7 +177,7 @@ export const reconciliation = async (pluginId) => {
         }
 
     } catch (error) {
-        logger.error(`while running reconciliation in plugin for content update sync ${error}`)
+        logger.error(`Received error while running reconciliation in plugin for content update sync and err.message: ${error.message}`)
     }
 
 

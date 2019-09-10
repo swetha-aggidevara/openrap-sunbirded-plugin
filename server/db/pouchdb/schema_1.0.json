@@ -1,5 +1,5 @@
 {
-    "type": "couchdb",
+    "type": "pouchdb",
     "config": {},
     "databases": [
         {
@@ -16,6 +16,14 @@
                         ]
                     },
                     "name": "search"
+                },
+                {
+                    "index": {
+                        "fields": [
+                            "desktopAppMetadata.updatedOn"
+                        ]
+                    },
+                    "name": "sort_updatedOn_index"
                 }
             ]
         },
@@ -92,16 +100,7 @@
             ]
         },
         {
-            "name": "telemetry",
-            "indexes": [
-                {
-                    "index": {
-                        "fields": [
-                            "syncStatus"
-                        ]
-                    }
-                }
-            ]
+            "name": "telemetry"
         },
         {
             "name": "config"
@@ -117,6 +116,18 @@
                     },
                     "type": "json",
                     "name": "created_on_sort_index"
+                },
+                {
+                    "index": {
+                        "fields": [
+                            "createdOn",
+                            "_id",
+                            "downloadId",
+                            "status"
+                        ]
+                    },
+                    "type": "json",
+                    "name": "search"
                 }
             ]
         }

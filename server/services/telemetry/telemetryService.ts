@@ -47,8 +47,8 @@ export class TelemetryService extends TelemetryHelper {
                 apislug: '',
                 sid: uuid(),
                 channel: orgDetails.hashTagId,
-                env: 'offline',
-                enableValidation: true,
+                env: 'plugin',
+                enableValidation: false,
                 timeDiff: 0,
                 runningEnv: 'server',
                 dispatcher: {
@@ -58,7 +58,7 @@ export class TelemetryService extends TelemetryHelper {
         }
         this.init(this.telemetryConfig);
     }
-    dispatcher(data){
+    dispatcher(data) {
         this.telemetryBatch.push(data);
         if (this.telemetryBatch.length >= this.telemetryConfig.config.batchsize) {
             this.addEvents(this.telemetryBatch.splice(0, this.telemetryBatch.length)).catch(() => {
@@ -67,6 +67,8 @@ export class TelemetryService extends TelemetryHelper {
         }
     }
     addEvents(events: object[]) {
+        logger.debug(`addEvents in telemetry service is called`);
+        logger.debug(`Should add events for ${events.length}:events  in database`)
         // Add the events to database
         return this.databaseSdk.bulk('telemetry', events)
 

@@ -21,24 +21,27 @@ export class Framework {
         this.databaseSdk.initialize(manifest.id);
         this.fileSDK = containerAPI.getFileSDKInstance(manifest.id);
     }
-    public insert() {
-        let frameworkFiles = path.join(__dirname, '..', 'data', 'frameworks', '**', '*.json');
+    public async insert() {
+        let frameworkFiles = this.fileSDK.getAbsPath(path.join('data', 'frameworks', '**', '*.json'));
         let files = glob.sync(frameworkFiles, {});
 
-        files.forEach(async (file) => {
+        for (let file of files) {
             let framework = await this.fileSDK.readJSON(file);
             let _id = path.basename(file, path.extname(file));
             let doc = _.get(framework, 'result.framework');
             await this.databaseSdk.upsert('framework', _id, doc).catch(err => {
-                logger.error(`while upserting the ${_id} to framework database ${err.message} ${err.reason}`)
+                logger.error(`Received error while upserting the ${_id} to framework database err.message: ${err.message}`)
             });;
-        });
+        };
     }
 
     get(req: any, res: any): any {
+        logger.debug(`ReqId = "${req.headers['X-msgid']}": Getting Framework data for framework with Id: ${req.params.id}`);
         let id = req.params.id;
+        logger.info(`ReqId = "${req.headers['X-msgid']}": Getting the data from framework database with id: ${id}`)
         this.databaseSdk.get('framework', id)
             .then(data => {
+                logger.info(`ReqId = "${req.headers['X-msgid']}": Received data with id: ${id} from framework database`)
                 data = _.omit(data, ['_id', '_rev'])
                 let resObj = {
                     framework: data
@@ -46,14 +49,14 @@ export class Framework {
                 return res.send(Response.success("api.framework.read", resObj));
             })
             .catch(err => {
-
-                if (err.statusCode === 404) {
+                logger.error(`ReqId = "${req.headers['X-msgid']}": Received error while getting the data from framework database with id: ${id} and err.message: ${err.message} ${err}`)
+                if (err.status === 404) {
                     res.status(404)
                     return res.send(Response.error("api.framework.read", 404));
                 } else {
-                    let statusCode = err.statusCode || 500;
-                    res.status(statusCode)
-                    return res.send(Response.error("api.framework.read", statusCode));
+                    let status = err.status || 500;
+                    res.status(status)
+                    return res.send(Response.error("api.framework.read", status));
                 }
             });
     }
