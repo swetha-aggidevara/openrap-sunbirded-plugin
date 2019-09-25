@@ -13,6 +13,7 @@ import * as uuid from "uuid";
 import Hashids from "hashids";
 import { containerAPI } from "OpenRAP/dist/api";
 import * as TreeModel from "tree-model";
+import { HTTPService } from "@project-sunbird/ext-framework-server/services";
 
 export enum DOWNLOAD_STATUS {
     SUBMITTED = "DOWNLOADING",
@@ -71,34 +72,42 @@ export default class Content {
         logger.debug(`ReqId = "${reqId}": Find the contents in ContentDb with the given filters`)
         return this.databaseSdk.find('content', dbFilters);
     } 
-   
-    get(req: any, res: any): any {
-        logger.debug(`ReqId = "${req.headers['X-msgid']}": Called Content get method to get Content: ${req.params.id} `);
-        let id = req.params.id;
-       logger.debug(`ReqId = "${req.headers['X-msgid']}": Get Content: ${id} from ContentDB`);
-        this.databaseSdk
-          .get('content', id)
-          .then(data => {
-            data = _.omit(data, ['_id', '_rev']);
-            let resObj = {
-              content: data
-            };
-            logger.info(`ReqId = "${req.headers['X-msgid']}": Found the content:${resObj.content.identifier} in ContentDB`);
-            return res.send(Response.success('api.content.read', resObj));
-          })
-          .catch(err => {
-            logger.error(
-              `ReqId = "${req.headers['X-msgid']}": Received error while getting the data from content database with id: ${id} and err.message: ${err}`
-            );
-            if (err.status === 404) {
-              res.status(404);
-              return res.send(Response.error('api.content.read', 404));
-            } else {
-              let status = err.status || 500;
-              res.status(status);
-              return res.send(Response.error('api.content.read', status));
-            }
-          });
+
+     get(req: any, res: any): any {
+            logger.debug(`ReqId = "${req.headers['X-msgid']}": Called Content get method to get Content: ${req.params.id} `);
+            let id = req.params.id;
+            logger.debug(`ReqId = "${req.headers['X-msgid']}": Get Content: ${id} from ContentDB`);
+            this.databaseSdk
+              .get('content', id)
+              .then(data => {
+                data = _.omit(data, ['_id', '_rev']);
+                  let resObj = {};
+                  let currentTime = Date.now();
+                  let isUpdated = _.get(data, 'desktopAppMetadata.updateAvailable');
+                  let lastUpdateCheckTime = _.get(data, 'desktopAppMetadata.lastUpdateCheckTime');
+                  if ((!isUpdated && !lastUpdateCheckTime) || ((lastUpdateCheckTime && !isUpdated) && (((currentTime - lastUpdateCheckTime) / 3600000) > 10))) {
+                      this.isUpdateAvailable(data).then(content => {
+                          resObj['content'] = content;
+                          return res.send(Response.success('api.content.read', resObj));
+                      });
+                  } else {
+                      resObj['content'] = data;
+                      return res.send(Response.success('api.content.read', resObj));
+                  }
+                   
+              }).catch(err => {
+                logger.error(
+                  `ReqId = "${req.headers['X-msgid']}": Received error while getting the data from content database with id: ${id} and err.message: ${err}`
+                );
+                if (err.status === 404) {
+                  res.status(404);
+                  return res.send(Response.error('api.content.read', 404));
+                } else {
+                  let status = err.status || 500;
+                  res.status(status);
+                  return res.send(Response.error('api.content.read', status));
+                }
+              });
       }
 
       search(req: any, res: any): any {
@@ -484,4 +493,24 @@ export default class Content {
           logger.info(`ReqId = "${reqId}": finding downloading, downloaded or failed contents in database`)
         return this.databaseSdk.find('content_download', dbFilters)
       }
+
+      isUpdateAvailable(content) {
+        return new Promise(async (resolve, reject) =>  {
+            try {
+                let apiData = await HTTPService.get(`${process.env.APP_BASE_URL}/api/content/v1/read/${content.identifier}?field=pkgVersion`, {}).toPromise();
+                    if(_.get(content, 'pkgVersion') < _.get(apiData, 'data.result.content.pkgVersion')) {
+                        content.desktopAppMetadata.updateAvailable = true;
+                        content.desktopAppMetadata.lastUpdateCheckTime = Date.now();
+                        this.databaseSdk.update('content', content.identifier, content);
+                        resolve(content);
+                    } else {
+                        content.desktopAppMetadata.lastUpdateCheckTime = Date.now();
+                        this.databaseSdk.update('content', content.identifier, content);
+                        resolve(content);
+                    }
+                } catch(err) {
+                    resolve(content);
+                }
+        })
+        }
 }

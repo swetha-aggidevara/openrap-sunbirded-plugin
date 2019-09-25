@@ -120,6 +120,12 @@ export default class ContentManager {
                         logger.info(` ReqId = "${req.headers['X-msgid']}": including baseDir for all the resources in collection`)
                         // if (_.indexOf(['application/vnd.ekstep.ecml-archive', 'application/vnd.ekstep.html-archive'], resource.mimeType) >= 0) {
                         resource.baseDir = `content/${resource.identifier}`;
+                        resource.desktopAppMetadata = {
+                            "ecarFile": resource.identifier + '.ecar',  // relative to ecar folder
+                            "addedUsing": IAddedUsingType.import,
+                            "createdOn": Date.now(),
+                            "updatedOn": Date.now(),
+                        }
                         // } else {
                         //     resource.baseDir = 'content';
                         // }
