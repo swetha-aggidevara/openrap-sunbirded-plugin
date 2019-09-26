@@ -13,6 +13,7 @@ import Content from './controllers/content/content';
 import Telemetry from './controllers/telemetry';
 import * as proxy from 'express-http-proxy';
 import ContentDownload from './controllers/content/contentDownload';
+import ContentUpdate from './controllers/content/contentUpdate';
 import * as url from 'url';
 import config from './config';
 import { logger } from '@project-sunbird/ext-framework-server/logger';
@@ -449,6 +450,14 @@ export class Router {
       req.headers['X-msgid'] = req.get('X-msgid') || uuid.v4();
       logger.debug(`ReqId = "${req.headers['X-msgid']}": Calling telemetry registerDevice method to register device`);
       telemetry.registerDevice(req, res);
+    });
+
+    let contentUpdate = new ContentUpdate(manifest);
+    app.post('/api/content/v1/update/:id', (req, res) => {
+      logger.debug(`Received API call to download list`);
+      req.headers['X-msgid'] = req.get('X-msgid') || uuid.v4();
+      logger.debug(`ReqId = "${req.headers['X-msgid']}": Calling contentUpdate list method`);
+      contentUpdate.contentUpdate(req, res);
     });
 
     app.use(
