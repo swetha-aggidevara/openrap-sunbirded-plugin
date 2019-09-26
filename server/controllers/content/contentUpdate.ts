@@ -53,7 +53,7 @@ export default class ContentDownload {
         } catch (error) {
             let status = error.status ? error.status : 500;
             res.status(status);
-            return res.send(Response.error("api.content.update", status));
+            return res.send(Response.error("api.content.update", status, error.message));
         }
     }
 
