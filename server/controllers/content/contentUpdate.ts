@@ -30,7 +30,7 @@ export default class ContentDownload {
             if (parentId && _.get(liveContentData, 'data.result.content.mimeType') !== "application/vnd.ekstep.content-collection" && _.get(liveContentData, 'data.result.content.pkgVersion') > localContentData.pkgVersion) {
                 // Resource update inside collection
                 logger.debug(`Resource Id inside collection = "${id}" for content update`);
-                let a = await this.resourceInsideCollectionUpdate(parentId, liveContentData).then(data => { return res.send(Response.success('api.content.read', data)); });
+                let a = await this.resourceInsideCollectionUpdate(parentId, liveContentData).then(data => { return res.send(Response.success('api.content.update', data)); });
                 return a;
             }
             else if (_.get(liveContentData, 'data.result.content.mimeType') === "application/vnd.ekstep.content-collection" && _.get(liveContentData, 'data.result.content.pkgVersion') > localContentData.pkgVersion) {
@@ -42,7 +42,7 @@ export default class ContentDownload {
             else if (_.get(liveContentData, 'data.result.content.mimeType') !== "application/vnd.ekstep.content-collection" && _.get(liveContentData, 'data.result.content.pkgVersion') > localContentData.pkgVersion) {
                 // Resource update
                 logger.debug(`Resource Id = "${id}" for content update`);
-                let a = await this.resourceUpdate(liveContentData).then(data => { return res.send(Response.success('api.content.read', data)); });
+                let a = await this.resourceUpdate(liveContentData).then(data => { return res.send(Response.success('api.content.update', data)); });
                 return a;
             }
             else {
