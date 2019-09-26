@@ -6,14 +6,7 @@ import { Manifest } from "@project-sunbird/ext-framework-server/models";
 import { logger } from '@project-sunbird/ext-framework-server/logger';
 import { containerAPI } from "OpenRAP/dist/api";
 import { HTTPService } from "@project-sunbird/ext-framework-server/services";
-
-export enum CONTENT_DOWNLOAD_STATUS {
-    Submitted = "SUBMITTED",
-    Completed = "COMPLETED",
-    Extracted = "EXTRACTED",
-    Indexed = "INDEXED",
-    Failed = "FAILED"
-}
+import { CONTENT_DOWNLOAD_STATUS } from './contentDownload';
 
 let dbName = "content_download";
 export default class ContentDownload {
@@ -27,24 +20,30 @@ export default class ContentDownload {
         this.pluginId = manifest.id;
     }
 
-    async contentUpdate(req: any, res: any): Promise<any> {
+    async contentUpdate(req: any, res: any) {
         try {
             let id = req.params.id;
-            const localContentData = await this.databaseSdk.get('content', id).catch(error => {
-                logger.error(`Received Error while getting content data from db for content updating where error = ${error}`);
-                res.status(500);
-                return res.send(Response.error("api.content.update", 500));
-            });
-            let liveContentData = await HTTPService.get(`${process.env.APP_BASE_URL}/api/content/v1/read/${req.params.id}`, {}).toPromise();
-            if (_.get(liveContentData, 'data.result.content.mimeType') === "application/vnd.ekstep.content-collection" && _.get(liveContentData, 'data.result.content.pkgVersion') > localContentData.pkgVersion) {
+            let parentId = _.get(req.body, 'request.parentId');
+            const localContentData = await this.databaseSdk.get('content', id);
+            let liveContentData = await HTTPService.get(`${process.env.APP_BASE_URL}/api/content/v1/read/${id}`, {}).toPromise();
+
+            if (parentId && _.get(liveContentData, 'data.result.content.mimeType') !== "application/vnd.ekstep.content-collection" && _.get(liveContentData, 'data.result.content.pkgVersion') > localContentData.pkgVersion) {
+                // Resource update inside collection
+                logger.debug(`Resource Id inside collection = "${id}" for content update`);
+                let a = await this.resourceInsideCollectionUpdate(parentId, liveContentData).then(data => { return res.send(Response.success('api.content.read', data)); });
+                return a;
+            }
+            else if (_.get(liveContentData, 'data.result.content.mimeType') === "application/vnd.ekstep.content-collection" && _.get(liveContentData, 'data.result.content.pkgVersion') > localContentData.pkgVersion) {
 
                 // Todo collection update
-                logger.debug(`Collection Id = "${id}": for content update`);
+                logger.debug(`Collection Id = "${id}" for content update`);
 
             }
             else if (_.get(liveContentData, 'data.result.content.mimeType') !== "application/vnd.ekstep.content-collection" && _.get(liveContentData, 'data.result.content.pkgVersion') > localContentData.pkgVersion) {
-                logger.debug(`Resource Id = "${id}": for content update`);
-                await this.resourceUpdate(req, res, localContentData, liveContentData);
+                // Resource update
+                logger.debug(`Resource Id = "${id}" for content update`);
+                let a = await this.resourceUpdate(liveContentData).then(data => { return res.send(Response.success('api.content.read', data)); });
+                return a;
             }
             else {
                 logger.error(`ReqId = "${req.headers['X-msgid']}": Received error while processing content update for content ${req.params.id}`);
@@ -57,31 +56,72 @@ export default class ContentDownload {
         }
     }
 
-    async resourceUpdate(req, res, localContentData, liveContentData) {
-        let downloadManager = containerAPI.getDownloadManagerInstance(this.pluginId)
-        let downloadFiles = [{
-            id: (_.get(liveContentData, "data.result.content.identifier") as string),
-            url: (_.get(liveContentData, "data.result.content.downloadUrl") as string),
-            size: (_.get(liveContentData, "data.result.content.size") as number)
-        }]
-        let downloadId = await downloadManager.download(downloadFiles, 'ecars');
-        let queueMetaData = {
-            mimeType: _.get(liveContentData, 'data.result.content.mimeType'),
-            items: downloadFiles,
-            pkgVersion: _.get(liveContentData, 'data.result.content.pkgVersion'),
-            contentType: _.get(liveContentData, 'data.result.content.contentType'),
-        }
-        logger.debug(`ReqId = "${req.headers['X-msgid']}": insert to the content_download for content update`);
-        await this.databaseSdk.insert(dbName, {
-            downloadId: downloadId,
-            contentId: _.get(liveContentData, "data.result.content.identifier"),
-            name: _.get(liveContentData, "data.result.content.name"),
-            status: CONTENT_DOWNLOAD_STATUS.Submitted,
-            queueMetaData: queueMetaData,
-            createdOn: Date.now(),
-            updatedOn: Date.now()
+    resourceInsideCollectionUpdate(parentId, liveContentData) {
+        return new Promise(async (resolve, reject) => {
+            try {
+                let downloadManager = containerAPI.getDownloadManagerInstance(this.pluginId);
+                let parentContentData = await HTTPService.get(`${process.env.APP_BASE_URL}/api/content/v1/read/${parentId}`, {}).toPromise();
+                        let downloadFiles = [{
+                            id: (_.get(liveContentData, "data.result.content.identifier") as string),
+                            url: (_.get(liveContentData, "data.result.content.downloadUrl") as string),
+                            size: (_.get(liveContentData, "data.result.content.size") as number)
+                        }];
+                        let downloadId = await downloadManager.download(downloadFiles, 'ecars');
+                        let queueMetaData = {
+                            mimeType: _.get(parentContentData, 'data.result.content.mimeType'),
+                            items: downloadFiles,
+                            pkgVersion: _.get(parentContentData, 'data.result.content.pkgVersion'),
+                            contentType: _.get(parentContentData, 'data.result.content.contentType'),
+                        }
+                        logger.debug(`insert to the content_download for content update`);
+                        await this.databaseSdk.insert(dbName, {
+                            downloadId: downloadId,
+                            contentId: _.get(parentContentData, "data.result.content.identifier"),
+                            name: _.get(parentContentData, "data.result.content.name"),
+                            status: CONTENT_DOWNLOAD_STATUS.Submitted,
+                            queueMetaData: queueMetaData,
+                            createdOn: Date.now(),
+                            updatedOn: Date.now()
+                        })
+                        logger.info(`Resource inserted in database successfully for content update`);
+                        resolve(downloadId);
+            } catch (err) {
+                reject(err);
+            }
         })
-        logger.info(`ReqId = "${req.headers['X-msgid']}": Resource inserted in database successfully for content update`);
-        return res.send(Response.success("api.content.update", { downloadId }));
+    }
+
+    resourceUpdate(liveContentData) {
+        return new Promise(async (resolve, reject) => {
+            try {
+                let downloadManager = containerAPI.getDownloadManagerInstance(this.pluginId)
+                let downloadFiles = [{
+                    id: (_.get(liveContentData, "data.result.content.identifier") as string),
+                    url: (_.get(liveContentData, "data.result.content.downloadUrl") as string),
+                    size: (_.get(liveContentData, "data.result.content.size") as number)
+                }];
+                let downloadId = await downloadManager.download(downloadFiles, 'ecars');
+                let queueMetaData = {
+                    mimeType: _.get(liveContentData, 'data.result.content.mimeType'),
+                    items: downloadFiles,
+                    pkgVersion: _.get(liveContentData, 'data.result.content.pkgVersion'),
+                    contentType: _.get(liveContentData, 'data.result.content.contentType'),
+                }
+                logger.debug(`Insert to the content_download for content update`);
+                await this.databaseSdk.insert(dbName, {
+                    downloadId: downloadId,
+                    contentId: _.get(liveContentData, "data.result.content.identifier"),
+                    name: _.get(liveContentData, "data.result.content.name"),
+                    status: CONTENT_DOWNLOAD_STATUS.Submitted,
+                    queueMetaData: queueMetaData,
+                    createdOn: Date.now(),
+                    updatedOn: Date.now()
+                })
+                logger.info(`Resource inserted in database successfully for content update`);
+                resolve(downloadId);
+            } catch (err) {
+                reject(err);
+            }
+        })
     }
 }
