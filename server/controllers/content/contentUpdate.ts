@@ -47,12 +47,13 @@ export default class ContentDownload {
             }
             else {
                 logger.error(`ReqId = "${req.headers['X-msgid']}": Received error while processing content update for content ${req.params.id}`);
-                res.status(500)
-                return res.send(Response.error("api.content.update", 500))
+                res.status(500);
+                return res.send(Response.error("api.content.update", 500));
             }
         } catch (error) {
-            res.status(500);
-            return res.send(Response.error("api.content.update", 500));
+            let status = error.status ? error.status : 500;
+            res.status(status);
+            return res.send(Response.error("api.content.update", status));
         }
     }
 
