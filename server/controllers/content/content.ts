@@ -74,43 +74,41 @@ export default class Content {
     } 
 
      get(req: any, res: any): any {
-            logger.debug(`ReqId = "${req.headers['X-msgid']}": Called Content get method to get Content: ${req.params.id} `);
-            let id = req.params.id;
-            logger.debug(`ReqId = "${req.headers['X-msgid']}": Get Content: ${id} from ContentDB`);
-            this.databaseSdk
-              .get('content', id)
-              .then(data => {
-                data = _.omit(data, ['_id', '_rev']);
-                  let resObj = {};
-                  let currentTime = Date.now();
-                  let isUpdated = _.get(data, 'desktopAppMetadata.updateAvailable');
-                  let lastUpdateCheckTime = _.get(data, 'desktopAppMetadata.lastUpdateCheckTime');
-                  if ((!isUpdated && !lastUpdateCheckTime) || ((lastUpdateCheckTime && !isUpdated) && (((currentTime - lastUpdateCheckTime) / 3600000) > 10))) {
-                      this.isUpdateAvailable(data).then(content => {
-                          resObj['content'] = content;
-                          return res.send(Response.success('api.content.read', resObj));
-                      });
-                  } else {
-                      resObj['content'] = data;
-                      return res.send(Response.success('api.content.read', resObj));
-                  }
-                   
-              }).catch(err => {
-                logger.error(
-                  `ReqId = "${req.headers['X-msgid']}": Received error while getting the data from content database with id: ${id} and err.message: ${err}`
-                );
-                if (err.status === 404) {
-                  res.status(404);
-                  return res.send(Response.error('api.content.read', 404));
-                } else {
-                  let status = err.status || 500;
-                  res.status(status);
-                  return res.send(Response.error('api.content.read', status));
-                }
-              });
+         logger.debug(`ReqId = "${req.headers['X-msgid']}": Called Content get method to get Content: ${req.params.id} `);
+         let id = req.params.id;
+         logger.debug(`ReqId = "${req.headers['X-msgid']}": Get Content: ${id} from ContentDB`);
+         this.databaseSdk
+             .get('content', id)
+             .then(data => {
+                 data = _.omit(data, ['_id', '_rev']);
+                 let resObj = {};
+                let isUpdated = this.shouldCheckUpdate(data);
+                 if (isUpdated) {
+                     this.isUpdateAvailable(data).then(content => {
+                         resObj['content'] = content;
+                         return res.send(Response.success('api.content.read', resObj));
+                    });
+                 } else {
+                     resObj['content'] = data;
+                     return res.send(Response.success('api.content.read', resObj));
+                 }
+
+             }).catch(err => {
+                 logger.error(
+                     `ReqId = "${req.headers['X-msgid']}": Received error while getting the data from content database with id: ${id} and err.message: ${err}`
+                 );
+                 if (err.status === 404) {
+                     res.status(404);
+                     return res.send(Response.error('api.content.read', 404));
+                 } else {
+                     let status = err.status || 500;
+                     res.status(status);
+                     return res.send(Response.error('api.content.read', status));
+                 }
+             });
       }
 
-      search(req: any, res: any): any {
+    search(req: any, res: any): any {
           logger.debug(`ReqId = "${req.headers['X-msgid']}": Called content search method`);
         let reqBody = req.body;
         let pageReqFilter = _.get(reqBody, 'request.filters');
@@ -494,18 +492,27 @@ export default class Content {
         return this.databaseSdk.find('content_download', dbFilters)
       }
 
+    shouldCheckUpdate(content) {
+        if (_.get(content, 'desktopAppMetadata.updateAvailable')) {
+            return false;
+        } else if (_.get(content, 'desktopAppMetadata.lastUpdateCheckedOn')) {
+            return ((Date.now() - _.get(content, 'desktopAppMetadata.lastUpdateCheckedOn')) / 3600000) > 10 ? true: false;
+        }
+        return true;
+    }
+
       isUpdateAvailable(content) {
         return new Promise(async (resolve, reject) =>  {
             try {
                 let apiData = await HTTPService.get(`${process.env.APP_BASE_URL}/api/content/v1/read/${content.identifier}?field=pkgVersion`, {}).toPromise();
                     if(_.get(content, 'pkgVersion') < _.get(apiData, 'data.result.content.pkgVersion')) {
                         content.desktopAppMetadata.updateAvailable = true;
-                        content.desktopAppMetadata.lastUpdateCheckTime = Date.now();
-                        this.databaseSdk.update('content', content.identifier, content);
+                        content.desktopAppMetadata.lastUpdateCheckedOn = Date.now();
+                        await this.databaseSdk.update('content', content.identifier, content);
                         resolve(content);
                     } else {
-                        content.desktopAppMetadata.lastUpdateCheckTime = Date.now();
-                        this.databaseSdk.update('content', content.identifier, content);
+                        content.desktopAppMetadata.lastUpdateCheckedOn = Date.now();
+                        await this.databaseSdk.update('content', content.identifier, content);
                         resolve(content);
                     }
                 } catch(err) {
@@ -513,4 +520,5 @@ export default class Content {
                 }
         })
         }
+
 }

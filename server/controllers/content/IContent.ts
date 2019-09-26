@@ -9,5 +9,5 @@ export interface IDesktopAppMetadata {
     'createdOn': number;
     'updatedOn': number;
     'updateAvailable'?: boolean;
-    'lastUpdateCheckTime'?: number;
+    'lastUpdateCheckedOn'?: number;
 }
