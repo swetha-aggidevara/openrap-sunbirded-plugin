@@ -22,6 +22,12 @@ export enum DOWNLOAD_STATUS {
     INDEXED = "DOWNLOADED",
     FAILED = "FAILED"
 }
+export enum CONTENT_UPDATE {
+    NO_Of_HOURS = 1,
+    InHrs = 3600000,
+    InMin = 60000,
+    NO_OF_MINUTES = 10
+}
 export default class Content {
     private contentsFilesPath: string = 'content';
     private ecarsFolderPath: string = 'ecars';
@@ -82,9 +88,8 @@ export default class Content {
              .then(data => {
                  data = _.omit(data, ['_id', '_rev']);
                  let resObj = {};
-                let isUpdated = this.shouldCheckUpdate(data);
-                 if (isUpdated) {
-                     this.isUpdateAvailable(data).then(content => {
+                 if (this.isUpdateRequired(data)) {
+                     this.checkForUpdates(data).then(content => {
                          resObj['content'] = content;
                          return res.send(Response.success('api.content.read', resObj));
                     });
@@ -492,31 +497,34 @@ export default class Content {
         return this.databaseSdk.find('content_download', dbFilters)
       }
 
-    shouldCheckUpdate(content) {
+    isUpdateRequired(content) {
         if (_.get(content, 'desktopAppMetadata.updateAvailable')) {
             return false;
         } else if (_.get(content, 'desktopAppMetadata.lastUpdateCheckedOn')) {
-            return ((Date.now() - _.get(content, 'desktopAppMetadata.lastUpdateCheckedOn')) / 3600000) > 10 ? true: false;
+            return ((Date.now() - _.get(content, 'desktopAppMetadata.lastUpdateCheckedOn')) / CONTENT_UPDATE.InHrs) > CONTENT_UPDATE.NO_Of_HOURS ? true: false;
         }
         return true;
     }
 
-      isUpdateAvailable(content) {
+    
+      checkForUpdates(offlineContent) {
         return new Promise(async (resolve, reject) =>  {
             try {
-                let apiData = await HTTPService.get(`${process.env.APP_BASE_URL}/api/content/v1/read/${content.identifier}?field=pkgVersion`, {}).toPromise();
-                    if(_.get(content, 'pkgVersion') < _.get(apiData, 'data.result.content.pkgVersion')) {
-                        content.desktopAppMetadata.updateAvailable = true;
-                        content.desktopAppMetadata.lastUpdateCheckedOn = Date.now();
-                        await this.databaseSdk.update('content', content.identifier, content);
-                        resolve(content);
+                let onlineContent = await HTTPService.get(`${process.env.APP_BASE_URL}/api/content/v1/read/${offlineContent.identifier}?field=pkgVersion`, {}).toPromise();
+                    if(_.get(offlineContent, 'pkgVersion') < _.get(onlineContent, 'data.result.content.pkgVersion')) {
+                        offlineContent.desktopAppMetadata.updateAvailable = true;
+                        offlineContent.desktopAppMetadata.lastUpdateCheckedOn = Date.now();
+                        offlineContent.desktopAppMetadata.updatedOn = Date.now();
+                        await this.databaseSdk.update('content', offlineContent.identifier, offlineContent);
+                        resolve(offlineContent);
                     } else {
-                        content.desktopAppMetadata.lastUpdateCheckedOn = Date.now();
-                        await this.databaseSdk.update('content', content.identifier, content);
-                        resolve(content);
+                        offlineContent.desktopAppMetadata.lastUpdateCheckedOn = Date.now();
+                        offlineContent.desktopAppMetadata.updatedOn = Date.now();
+                        await this.databaseSdk.update('content', offlineContent.identifier, offlineContent);
+                        resolve(offlineContent);
                     }
                 } catch(err) {
-                    resolve(content);
+                    resolve(offlineContent);
                 }
         })
         }

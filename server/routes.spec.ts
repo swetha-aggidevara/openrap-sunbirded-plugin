@@ -4,7 +4,7 @@ import * as _ from "lodash";
 import * as supertest from 'supertest';
 import { ConnectToServer } from './test_data/routes.test.server';
 import { expect } from 'chai';
-import { telemetry_v1, telemetry_v3, registerDevice } from './test_data/routes.spec.data';
+import { telemetry_v1, telemetry_v3, registerDevice, error_telemetry_v1, error_telemetry_v3 } from './test_data/routes.spec.data';
 
 
 const initialzeEnv = new InitializeEnv();
@@ -32,7 +32,7 @@ describe('All', () => {
             .expect(200)
             .end((err, res) => {
                 if (res.statusCode >= 500) { logger.error(err); return done(); }
-                if (err && res.stausCode >= 400) { expect.fail(); return done(err); };
+                if (err && res.stausCode >= 400) { expect.fail(); return done(); };
                 done();
             });
     }).timeout(20000);
@@ -48,7 +48,7 @@ describe('Test Resourcebundle', () => {
             .expect(200)
             .end((err, res) => {
                 if (res.statusCode >= 500) { logger.error(err); return done(); }
-                if (err && res.stausCode >= 400) { expect.fail(); return done(err); };
+                if (err && res.stausCode >= 400) { expect.fail(); return done(); };
                 expect(res.body.responseCode).to.equal('OK');
                 expect(res.body.id).to.equal('api.resoucebundles.read').to.be.a('string');
                 expect(res.body.ver).to.equal('1.0').to.be.a('string');
@@ -65,7 +65,7 @@ describe('Test Resourcebundle', () => {
             .expect(200)
             .end((err, res) => {
                 if (res.statusCode >= 500) { logger.error(err); return done(); }
-                if (err && res.stausCode >= 400) { expect.fail(); return done(err); };
+                if (err && res.stausCode >= 400) { expect.fail(); return done(); };
                 expect(res.body.responseCode).to.equal('OK');
                 expect(res.body.id).to.equal('api.resoucebundles.read').to.be.a('string');
                 expect(res.body.ver).to.equal('1.0').to.be.a('string');
@@ -82,7 +82,7 @@ describe('Test Resourcebundle', () => {
             .expect(404)
             .end((err, res) => {
                 if (res.statusCode >= 500) { logger.error(err); return done(); }
-                if (err && res.stausCode >= 400) { expect.fail(); return done(err); };
+                if (err && res.stausCode >= 400) { expect.fail(); return done(); };
                 expect(res.body.responseCode).to.equal('RESOURCE_NOT_FOUND');
                 expect(res.body.id).to.equal('api.resoucebundles.read').to.be.a('string');
                 expect(res.body.ver).to.equal('1.0').to.be.a('string');
@@ -101,7 +101,7 @@ describe('Test Organisation with and without referrer', () => {
             .expect(200)
             .end((err, res) => {
                 if (res.statusCode >= 500) { logger.error(err); return done(); }
-                if (err && res.stausCode >= 400) { expect.fail(); return done(err); };
+                if (err && res.stausCode >= 400) { expect.fail(); return done(); };
                 expect(res.body.responseCode).to.equal('OK');
                 expect(res.body.id).to.equal('api.org.search').to.be.a('string');
                 expect(res.body.ver).to.equal('1.0').to.be.a('string');
@@ -120,7 +120,7 @@ describe('Test Organisation with and without referrer', () => {
             .expect(200)
             .end((err, res) => {
                 if (res.statusCode >= 500) { logger.error(err); return done(); }
-                if (err && res.stausCode >= 400) { expect.fail(); return done(err); };
+                if (err && res.stausCode >= 400) { expect.fail(); return done(); };
                 expect(res.body.responseCode).to.equal('OK');
                 expect(res.body.id).to.equal('api.org.search').to.be.a('string');
                 expect(res.body.ver).to.equal('v1').to.be.a('string');
@@ -138,7 +138,7 @@ describe('Test Organisation with and without referrer', () => {
             .expect(500)
             .end((err, res) => {
                 if (res.statusCode >= 500) { logger.error(err); return done(); }
-                if (err && res.stausCode >= 400) { expect.fail(); return done(err); };
+                if (err && res.stausCode >= 400) { expect.fail(); return done(); };
                 expect(res.body.responseCode).to.equal('OK');
                 expect(res.body.id).to.equal('api.org.search').to.be.a('string');
                 expect(res.body.ver).to.equal('1.0').to.be.a('string');
@@ -157,7 +157,7 @@ describe('Test Form with and without referrer', () => {
             .expect(200)
             .end((err, res) => {
                 if (res.statusCode >= 500) { logger.error(err); return done(); }
-                if (err && res.stausCode >= 400) { expect.fail(); return done(err); };
+                if (err && res.stausCode >= 400) { expect.fail(); return done(); };
                 expect(res.body.responseCode).to.equal('OK');
                 expect(res.body.id).to.equal('api.form.read').to.be.a('string');
                 expect(res.body.ver).to.equal('1.0').to.be.a('string');
@@ -177,7 +177,7 @@ describe('Test Form with and without referrer', () => {
             .expect(200)
             .end((err, res) => {
                 if (res.statusCode >= 500) { logger.error(err); return done(); }
-                if (err && res.stausCode >= 400) { expect.fail(); return done(err); };
+                if (err && res.stausCode >= 400) { expect.fail(); return done(); };
                 expect(res.body.responseCode).to.equal('OK');
                 expect(res.body.id).to.equal('api.form.read').to.be.a('string');
                 expect(res.body.ver).to.equal('1.0').to.be.a('string');
@@ -195,7 +195,7 @@ describe('Test Form with and without referrer', () => {
             .expect(404)
             .end((err, res) => {
                 if (res.statusCode >= 500) { logger.error(err); return done(); }
-                if (err && res.stausCode >= 400) { expect.fail(); return done(err); };
+                if (err && res.stausCode >= 400) { expect.fail(); return done(); };
                 expect(res.body.responseCode).to.equal('RESOURCE_NOT_FOUND');
                 expect(res.body.id).to.equal('api.form.read').to.be.a('string');
                 expect(res.body.ver).to.equal('1.0').to.be.a('string');
@@ -213,7 +213,7 @@ describe('Test Channel with and without referrer', () => {
             .expect(200)
             .end((err, res) => {
                 if (res.statusCode >= 500) { logger.error(err); return done(); }
-                if (err && res.stausCode >= 400) { expect.fail(); return done(err); };
+                if (err && res.stausCode >= 400) { expect.fail(); return done(); };
                 expect(res.body.responseCode).to.equal('OK');
                 expect(res.body.id).to.equal('api.channel.read').to.be.a('string');
                 expect(res.body.ver).to.equal('1.0').to.be.a('string');
@@ -231,7 +231,7 @@ describe('Test Channel with and without referrer', () => {
             .expect(200)
             .end((err, res) => {
                 if (res.statusCode >= 500) { logger.error(err); return done(); }
-                if (err && res.stausCode >= 400) { expect.fail(); return done(err); };
+                if (err && res.stausCode >= 400) { expect.fail(); return done(); };
                 expect(res.body.id).to.equal('api.channel.read').to.be.a('string');
                 expect(res.body.ver).to.equal('1.0').to.be.a('string');
                 expect(res.body.result.channel.identifier).to.equal('505c7c48ac6dc1edc9b08f21db5a571d');
@@ -246,7 +246,7 @@ describe('Test Channel with and without referrer', () => {
             .expect(404)
             .end((err, res) => {
                 if (res.statusCode >= 500) { logger.error(err); return done(); }
-                if (err && res.stausCode >= 400) { expect.fail(); return done(err); };
+                if (err && res.stausCode >= 400) { expect.fail(); return done(); };
                 expect(res.body.responseCode).to.equal('RESOURCE_NOT_FOUND');
                 expect(res.body.id).to.equal('api.channel.read').to.be.a('string');
                 expect(res.body.ver).to.equal('1.0').to.be.a('string');
@@ -265,7 +265,7 @@ describe('Test Framework with and without referrer', () => {
             .expect(200)
             .end((err, res) => {
                 if (res.statusCode >= 500) { logger.error(err); return done(); }
-                if (err && res.stausCode >= 400) { expect.fail(); return done(err); };
+                if (err && res.stausCode >= 400) { expect.fail(); return done(); };
                 expect(res.body.responseCode).to.equal('OK');
                 expect(res.body.id).to.equal('api.framework.read').to.be.a('string');
                 expect(res.body.ver).to.equal('1.0').to.be.a('string');
@@ -281,7 +281,7 @@ describe('Test Framework with and without referrer', () => {
             .expect(200)
             .end((err, res) => {
                 if (res.statusCode >= 500) { logger.error(err); return done(); }
-                if (err && res.stausCode >= 400) { expect.fail(); return done(err); };
+                if (err && res.stausCode >= 400) { expect.fail(); return done(); };
                 expect(res.body.responseCode).to.equal('OK');
                 expect(res.body.id).to.equal('api.framework.read').to.be.a('string');
                 expect(res.body.ver).to.equal('1.0').to.be.a('string');
@@ -296,7 +296,7 @@ describe('Test Framework with and without referrer', () => {
             .expect(404)
             .end((err, res) => {
                 if (res.statusCode >= 500) { logger.error(err); return done(); }
-                if (err && res.stausCode >= 400) { expect.fail(); return done(err); };
+                if (err && res.stausCode >= 400) { expect.fail(); return done(); };
                 expect(res.body.responseCode).to.equal('RESOURCE_NOT_FOUND');
                 expect(res.body.id).to.equal('api.framework.read').to.be.a('string');
                 expect(res.body.ver).to.equal('1.0').to.be.a('string');
@@ -315,7 +315,7 @@ describe('Test Tenant with and without referrer', () => {
             .expect(200)
             .end((err, res) => {
                 if (res.statusCode >= 500) { logger.error(err); return done(); }
-                if (err && res.stausCode >= 400) { expect.fail(); return done(err); };
+                if (err && res.stausCode >= 400) { expect.fail(); return done(); };
                 expect(res.body.responseCode).to.equal('OK');
                 expect(res.body.id).to.equal('api.tenant.info').to.be.a('string');
                 expect(res.body.ver).to.equal('1.0').to.be.a('string');
@@ -333,7 +333,7 @@ describe('Test Tenant with and without referrer', () => {
             .expect(200)
             .end((err, res) => {
                 if (res.statusCode >= 500) { logger.error(err); return done(); }
-                if (err && res.stausCode >= 400) { expect.fail(); return done(err); };
+                if (err && res.stausCode >= 400) { expect.fail(); return done(); };
                 expect(res.body.responseCode).to.equal('OK');
                 expect(res.body.id).to.equal('api.tenant.info').to.be.a('string');
                 expect(res.body.ver).to.equal('1.0').to.be.a('string');
@@ -354,8 +354,9 @@ describe('Test Telemetry', () => {
             .send(registerDevice)
             .expect(200)
             .end((err, res) => {
+
                 if (res.statusCode >= 500) { logger.error(err); return done(); }
-                if (err && res.stausCode >= 400) { expect.fail(); return done(err); };
+                if (err && res.stausCode >= 400) { expect.fail(); return done(); };
                 expect(res.body.responseCode).to.equal('OK');
                 expect(res.body.id).to.equal('api.device.registry').to.be.a('string');
                 expect(res.body.ver).to.equal('1.0').to.be.a('string');
@@ -371,7 +372,7 @@ describe('Test Telemetry', () => {
             .expect(200)
             .end((err, res) => {
                 if (res.statusCode >= 500) { logger.error(err); return done(); }
-                if (err && res.stausCode >= 400) { expect.fail(); return done(err); };
+                if (err && res.stausCode >= 400) { expect.fail(); return done(); };
                 expect(res.body.responseCode).to.equal('OK');
 
                 expect(res.body.id).to.equal('api.telemetry').to.be.a('string');
@@ -388,7 +389,7 @@ describe('Test Telemetry', () => {
             .expect(200)
             .end((err, res) => {
                 if (res.statusCode >= 500) { logger.error(err); return done(); }
-                if (err && res.stausCode >= 400) { expect.fail(); return done(err); };
+                if (err && res.stausCode >= 400) { expect.fail(); return done(); };
                 expect(res.body.responseCode).to.equal('OK');
                 expect(res.body.id).to.equal('api.telemetry').to.be.a('string');
                 expect(res.body.ver).to.equal('1.0').to.be.a('string');
@@ -404,7 +405,7 @@ describe('Test Telemetry', () => {
             .expect(400)
             .end((err, res) => {
                 if (res.statusCode >= 500) { logger.error(err); return done(); }
-                if (err && res.stausCode >= 400) { expect.fail(); return done(err); };
+                if (err && res.stausCode >= 400) { expect.fail(); return done(); };
                 expect(res.body.responseCode).to.equal('CLIENT_ERROR');
                 expect(res.body.id).to.equal('api.device.registry').to.be.a('string');
                 expect(res.body.ver).to.equal('1.0').to.be.a('string');
@@ -413,6 +414,36 @@ describe('Test Telemetry', () => {
             });
     });
 
+    it('#add v1 Telemetry Events (ERROR)', (done) => {
+        supertest(app)
+            .post('/content/data/v1/telemetry')
+            .send(error_telemetry_v1)
+            .expect(400)
+            .end((err, res) => {
+                
+                if (res.statusCode >= 500) { logger.error(err); return done(); }
+                if (err && res.stausCode >= 400) { expect.fail(); return done(); };
+                expect(res.body.id).to.equal('api.telemetry').to.be.a('string');
+                expect(res.body.ver).to.equal('1.0').to.be.a('string');
+                done();
+
+            });
+    });
+    it('#add v3 Telemetry Events (ERROR)', (done) => {
+        supertest(app)
+            .post('/action/data/v3/telemetry')
+            .send(error_telemetry_v3)
+            .expect(400)
+            .end((err, res) => {
+                
+                if (res.statusCode >= 500) { logger.error(err); return done(); }
+                if (err && res.stausCode >= 400) { expect.fail(); return done(); };
+                expect(res.body.id).to.equal('api.telemetry').to.be.a('string');
+                expect(res.body.ver).to.equal('1.0').to.be.a('string');
+                done();
+
+            });
+    });
 });
 
 describe('Test Page assemble with and without referrer', () => {
@@ -423,7 +454,7 @@ describe('Test Page assemble with and without referrer', () => {
             .expect(200)
             .end((err, res) => {
                 if (res.statusCode >= 500) { logger.error(err); return done(); }
-                if (err && res.stausCode >= 400) { expect.fail(); return done(err); };
+                if (err && res.stausCode >= 400) { expect.fail(); return done(); };
                 expect(res.body.id).to.equal('api.page.assemble').to.be.a('string');
                 expect(res.body.ver).to.equal('1.0').to.be.a('string');
                 expect(res.body.result.response.id).to.be.a('string');
@@ -440,7 +471,7 @@ describe('Test Page assemble with and without referrer', () => {
             .expect(200)
             .end((err, res) => {
                 if (res.statusCode >= 500) { logger.error(err); return done(); }
-                if (err && res.stausCode >= 400) { expect.fail(); return done(err); };
+                if (err && res.stausCode >= 400) { expect.fail(); return done(); };
                 expect(res.body.responseCode).to.equal('OK');
                 expect(res.body.id).to.equal('api.page.assemble').to.be.a('string');
                 expect(res.body.ver).to.equal('v1').to.be.a('string');
@@ -458,7 +489,7 @@ describe('Test Page assemble with and without referrer', () => {
             .expect(400)
             .end((err, res) => {
                 if (res.statusCode >= 500) { logger.error(err); return done(); }
-                if (err && res.stausCode >= 400) { expect.fail(); return done(err); };
+                if (err && res.stausCode >= 400) { expect.fail(); return done(); };
                 expect(res.body.responseCode).to.equal('CLIENT_ERROR');
                 expect(res.body.id).to.equal('api.page.assemble').to.be.a('string');
                 expect(res.body.ver).to.equal('v1').to.be.a('string');
@@ -466,55 +497,33 @@ describe('Test Page assemble with and without referrer', () => {
             });
     }).timeout(20000);
 
-});
-
-describe('Test Content search with and without referrer', () => {
-
-    it('#Search Content', (done) => {
+    it('#Page assemble mode (ERROR)', (done) => {
         supertest(app)
-            .post('/api/content/v1/search')
-            .send({ "request": { "filters": { "channel": "505c7c48ac6dc1edc9b08f21db5a571d", "contentType": ["Collection", "TextBook", "LessonPlan", "Resource"] }, "limit": 20, "softConstraints": { "badgeAssertions": 98, "board": 99, "channel": 100 }, "mode": "soft", "facets": ["board", "medium", "gradeLevel", "subject", "contentType"], "offset": 0 } })
-            .expect(200)
+            .post('/api/data/v1/page/assemble')
+            .send({ "request": { "source": "web", "name": "Explore", "filters": { "channel": "505c7c48ac6dc1edc9b08f21db5a571d", "board": ["TEST_BOARD"] }, "softConstraints": { "badgeAssertions": 98, "board": 99, "channel": 100 } } })
+            .expect(404)
             .end((err, res) => {
+                
                 if (res.statusCode >= 500) { logger.error(err); return done(); }
-                if (err && res.stausCode >= 400) { expect.fail(); return done(err); };
-                expect(res.body.responseCode).to.equal('OK');
-                expect(res.body.id).to.equal('api.content.search').to.be.a('string');
+                if (err && res.stausCode >= 400) { expect.fail(); return done(); };
+                expect(res.body.id).to.equal('api.page.assemble').to.be.a('string');
                 expect(res.body.ver).to.equal('1.0').to.be.a('string');
-                expect(res.body.result).to.have.property('content');
-                expect(res.body.result).to.have.property('count');
-                done();
-            });
-    });
-    it('#Set Referrer for Search Content', (done) => {
-        supertest(app)
-            .post('/api/content/v1/search')
-            .set('Referer', 'http://localhost:9010/browse')
-            .send({ "request": { "filters": { "channel": "505c7c48ac6dc1edc9b08f21db5a571d", "contentType": ["Collection", "TextBook", "LessonPlan", "Resource"] }, "limit": 20, "softConstraints": { "badgeAssertions": 98, "board": 99, "channel": 100 }, "mode": "soft", "facets": ["board", "medium", "gradeLevel", "subject", "contentType"], "offset": 0 } })
-            .expect(200)
-            .end((err, res) => {
-                if (res.statusCode >= 500) { logger.error(err); return done(); }
-                if (err && res.stausCode >= 400) { expect.fail(); return done(err); };
-                expect(res.body.responseCode).to.equal('OK');
-                expect(res.body.id).to.equal('api.content.search').to.be.a('string');
-                expect(res.body.ver).to.equal('1.0').to.be.a('string');
-                expect(res.body.result).to.have.property('content');
-                expect(res.body.result).to.have.property('count');
+                expect(res.body.result.response.id).to.be.a('string');
+                expect(res.body.result.response.name).to.equal('Explore').to.be.a('string');
                 done();
             });
     });
 
-    it('#Set Referrer for Search Content (ERROR)', (done) => {
+    it('#Page assemble  Name (ERROR)', (done) => {
         supertest(app)
-            .post('/api/content/v1/search')
-            .set('Referer', 'http://localhost:9010/browse')
-            .send({})
-            .expect(400)
+            .post('/api/data/v1/page/assemble')
+            .send({"request": {"source":"web","name":"Explorees"}})
+            .expect(404)
             .end((err, res) => {
+                
                 if (res.statusCode >= 500) { logger.error(err); return done(); }
-                if (err && res.stausCode >= 400) { expect.fail(); return done(err); };
-                expect(res.body.responseCode).to.equal('CLIENT_ERROR');
-                expect(res.body.id).to.equal('api.content.search').to.be.a('string');
+                if (err && res.stausCode >= 400) { expect.fail(); return done(); };
+                expect(res.body.id).to.equal('api.page.assemble').to.be.a('string');
                 expect(res.body.ver).to.equal('1.0').to.be.a('string');
                 done();
             });
@@ -530,7 +539,7 @@ describe('Test Download Content', () => {
             .expect(200)
             .end((err, res) => {
                 if (res.statusCode >= 500) { logger.error(err); return done(); }
-                if (err && res.stausCode >= 400) { expect.fail(); return done(err); };
+                if (err && res.stausCode >= 400) { expect.fail(); return done(); };
                 expect(res.body.responseCode).to.equal('OK');
                 expect(res.body.id).to.equal('api.content.download').to.be.a('string');
                 expect(res.body.ver).to.equal('1.0').to.be.a('string');
@@ -545,7 +554,7 @@ describe('Test Download Content', () => {
             .expect(200)
             .end((err, res) => {
                 if (res.statusCode >= 500) { logger.error(err); return done(); }
-                if (err && res.stausCode >= 400) { expect.fail(); return done(err); };
+                if (err && res.stausCode >= 400) { expect.fail(); return done(); };
                 expect(res.body.responseCode).to.equal('OK');
                 expect(res.body.id).to.equal('api.content.download').to.be.a('string');
                 expect(res.body.ver).to.equal('1.0').to.be.a('string');
@@ -553,6 +562,7 @@ describe('Test Download Content', () => {
                 done();
             });
     }).timeout(100000);
+
     it('#Download Content List', (done) => {
         const interval = setInterval(() => {
             supertest(app)
@@ -561,7 +571,7 @@ describe('Test Download Content', () => {
                 .expect(200)
                 .end((err, res) => {
                     if (res.statusCode >= 500) { logger.error(err); return done(); }
-                    if (err && res.stausCode >= 400) { expect.fail(); return done(err); };
+                    if (err && res.stausCode >= 400) { expect.fail(); return done(); };
                     logger.info(`submitted: ${res.body.result.response.downloads.submitted.length}`)
                     logger.info(`inprogress: ${res.body.result.response.downloads.inprogress.length}`)
                     if (res.body.result.response.downloads.submitted.length === 0 &&
@@ -581,85 +591,102 @@ describe('Test Download Content', () => {
                     };
                 });
         }, 2000);
-    }).timeout(200000)
+    }).timeout(200000);
+
+    it('#Download Content (ERROR)', (done) => {
+        supertest(app)
+            .post('/api/content/v1/download/KP_FT_1564394134')
+            .send({})
+            .expect(500)
+            .end((err, res) => {
+                
+                if (res.statusCode >= 500) { logger.error(err); return done(); }
+                if (err && res.stausCode >= 400) { expect.fail(); return done(); };
+                expect(res.body.responseCode).to.equal('INTERNAL_SERVER_ERROR');
+                expect(res.body.id).to.equal('api.content.download').to.be.a('string');
+                expect(res.body.ver).to.equal('1.0').to.be.a('string');
+                done();
+            });
+    }).timeout(100000);
 });
 
-describe('Test Read Content/Collection with and without referrer', () => {
-    it('#Get Content', (done) => {
+describe('Test Content search with and without referrer', () => {
+
+    it('#Search Content', (done) => {
         supertest(app)
-            .get('/api/content/v1/read/KP_FT_1564394134764')
-            .set('Content-Type', 'application/json/')
+            .post('/api/content/v1/search')
+            .send({ "request": { "filters": { "channel": "505c7c48ac6dc1edc9b08f21db5a571d", "contentType": ["Collection", "TextBook", "LessonPlan", "Resource"] }, "limit": 20, "softConstraints": { "badgeAssertions": 98, "board": 99, "channel": 100 }, "mode": "soft", "facets": ["board", "medium", "gradeLevel", "subject", "contentType"], "offset": 0 } })
             .expect(200)
             .end((err, res) => {
                 if (res.statusCode >= 500) { logger.error(err); return done(); }
-                if (err && res.stausCode >= 400) { expect.fail(); return done(err); };
-                expect(res.body.responseCode).to.equal('OK');
-                expect(res.body.id).to.equal('api.content.read').to.be.a('string');
+                if (err && res.stausCode >= 400) { expect.fail(); return done(); };
+                expect(res.body.id).to.equal('api.content.search').to.be.a('string');
                 expect(res.body.ver).to.equal('1.0').to.be.a('string');
                 expect(res.body.result).to.have.property('content');
-                expect(res.body.result.content.identifier).to.equal('KP_FT_1564394134764').to.be.a('string');
+                expect(res.body.result).to.have.property('count');
                 done();
             });
     });
-    it('#set referrer for Get Content', (done) => {
+    it('#Set Referrer for Search Content', (done) => {
         supertest(app)
-            .get('/api/content/v1/read/KP_FT_1564394134764')
-            .set('Content-Type', 'application/json/')
+            .post('/api/content/v1/search')
             .set('Referer', 'http://localhost:9010/browse')
+            .send({ "request": { "filters": { "channel": "505c7c48ac6dc1edc9b08f21db5a571d", "contentType": ["Collection", "TextBook", "LessonPlan", "Resource"] }, "limit": 20, "softConstraints": { "badgeAssertions": 98, "board": 99, "channel": 100 }, "mode": "soft", "facets": ["board", "medium", "gradeLevel", "subject", "contentType"], "offset": 0 } })
             .expect(200)
             .end((err, res) => {
                 if (res.statusCode >= 500) { logger.error(err); return done(); }
-                if (err && res.stausCode >= 400) { expect.fail(); return done(err); };
-                expect(res.body.responseCode).to.equal('OK');
-                expect(res.body.id).to.equal('api.content.read').to.be.a('string');
+                if (err && res.stausCode >= 400) { expect.fail(); return done(); };
+                expect(res.body.id).to.equal('api.content.search').to.be.a('string');
                 expect(res.body.ver).to.equal('1.0').to.be.a('string');
                 expect(res.body.result).to.have.property('content');
-                expect(res.body.result.content.identifier).to.equal('KP_FT_1564394134764').to.be.a('string');
+                expect(res.body.result).to.have.property('count');
                 done();
             });
     });
-    it('#Content/plugins/preview', (done) => {
+
+    it('#Set Referrer for Search Content (ERROR)', (done) => {
         supertest(app)
-            .get('/contentPlayer/preview/*')
-            .set('Content-Type', 'application/javascript; charset=UTF-8')
-            .end((err, res) => {
-                if (res.statusCode >= 500) { logger.error(err); return done(); }
-                if (err && res.stausCode >= 400) { expect.fail(); return done(err); };
-                done();
-            });
-    });
-    it('#Get CourseHierarchy ', (done) => {
-        supertest(app)
-            .get('/api/course/v1/hierarchy/KP_FT_1563858046256')
-            .set('Content-Type', 'application/json/')
-            .expect(200)
-            .end((err, res) => {
-                if (res.statusCode >= 500) { logger.error(err); return done(); }
-                if (err && res.stausCode >= 400) { expect.fail(); return done(err); };
-                expect(res.body.responseCode).to.equal('OK');
-                expect(res.body.id).to.equal('api.content.read').to.be.a('string');
-                expect(res.body.ver).to.equal('1.0').to.be.a('string');
-                expect(res.body.result.content.identifier).to.equal('KP_FT_1563858046256').to.be.a('string');
-                done();
-            });
-    });
-    it('#Set referrer for Get CourseHierarchy ', (done) => {
-        supertest(app)
-            .get('/api/course/v1/hierarchy/KP_FT_1563858046256')
-            .set('Content-Type', 'application/json/')
+            .post('/api/content/v1/search')
             .set('Referer', 'http://localhost:9010/browse')
+            .send({})
+            .expect(400)
+            .end((err, res) => {
+                if (res.statusCode >= 500) { logger.error(err); return done(); }
+                if (err && res.stausCode >= 400) { expect.fail(); return done(); };
+                expect(res.body.id).to.equal('api.content.search').to.be.a('string');
+                expect(res.body.ver).to.equal('1.0').to.be.a('string');
+                done();
+            });
+    });
+
+    it('#Search Content query', (done) => {
+        supertest(app)
+            .post('/api/content/v1/search')
+            .send({ "request": { "filters": { "channel": "505c7c48ac6dc1edc9b08f21db5a571d", "contentType": ["Collection", "TextBook", "LessonPlan", "Resource"] }, "limit": 20, "softConstraints": { "badgeAssertions": 98, "board": 99, "channel": 100 }, "mode": "soft", "facets": ["board", "medium", "gradeLevel", "subject", "contentType"], "offset": 0, "query": "kp" } })
             .expect(200)
             .end((err, res) => {
                 if (res.statusCode >= 500) { logger.error(err); return done(); }
-                if (err && res.stausCode >= 400) { expect.fail(); return done(err); };
-                expect(res.body.responseCode).to.equal('OK');
-                expect(res.body.id).to.equal('api.course.hierarchy').to.be.a('string');
+                if (err && res.stausCode >= 400) { expect.fail(); return done(); };  
+                expect(res.body.id).to.equal('api.content.search').to.be.a('string');
                 expect(res.body.ver).to.equal('1.0').to.be.a('string');
-                expect(res.body.result.content.identifier).to.equal('KP_FT_1563858046256').to.be.a('string');
+                expect(res.body.result).to.have.property('content');
+                expect(res.body.result).to.have.property('count');
+                done();
+            });
+    });
+    it('#Search Content wrong url', (done) => {
+        supertest(app)
+            .post('/api/content/v1/search')
+            .send({ "request": { "filters": {} } })
+            .expect(200)
+            .end((err, res) => {
+                if (res.statusCode >= 500) { logger.error(err); return done(); }
+                if (err && res.stausCode >= 400) { expect.fail(); return done(); };
                 done();
             });
     });
 });
+
 
 describe('Test Import Content/Collection', () => {
     it('#Import Content', (done) => {
@@ -670,10 +697,28 @@ describe('Test Import Content/Collection', () => {
         req.expect(200)
         req.end((err, res) => {
             if (res.statusCode >= 500) { logger.error(err); return done(); }
-            if (err && res.stausCode >= 400) { expect.fail(); return done(err); };
+            if (err && res.stausCode >= 400) { expect.fail(); return done(); };
             expect(res.body.success).to.be.true;
             expect(res.body.content.name).to.be.a('string');
             expect(res.body.content.name).to.be.a('string').to.equal('The Squirrel');
+            expect(res.body.content.pkgVersion).to.be.a('number');
+            expect(res.body.content.identifier).to.be.a('string');
+            done();
+        });
+    }).timeout(100000);
+
+    it('#Import Content', (done) => {
+        let file_path = `${__dirname}/test_data/to_import_contents/TEST.ecar`, boundary = Math.random();
+        let req = supertest(app).post('/api/content/v1/import')
+        req.set('Content-Type', 'multipart/form-data; boundary=' + boundary)
+        req.attach('file', file_path)
+        req.expect(200)
+        req.end((err, res) => {
+            if (res.statusCode >= 500) { logger.error(err); return done(); }
+            if (err && res.stausCode >= 400) { expect.fail(); return done(); };
+            expect(res.body.success).to.be.true;
+            expect(res.body.content.name).to.be.a('string');
+            expect(res.body.content.name).to.be.a('string').to.equal('TEST');
             expect(res.body.content.pkgVersion).to.be.a('number');
             expect(res.body.content.identifier).to.be.a('string');
             done();
@@ -688,7 +733,7 @@ describe('Test Import Content/Collection', () => {
         req.expect(200)
         req.end((err, res) => {
             if (res.statusCode >= 500) { logger.error(err); return done(); }
-            if (err && res.stausCode >= 400) { expect.fail(); return done(err); };
+            if (err && res.stausCode >= 400) { expect.fail(); return done(); };
             expect(res.body.success).to.be.true;
             expect(res.body.content.name).to.be.a('string');
             expect(res.body.content.name).to.be.a('string').to.equal('TextBookTest');
@@ -700,6 +745,160 @@ describe('Test Import Content/Collection', () => {
 
 });
 
+describe('Test Read Content/Collection with and without referrer', () => {
+    it('#Get Content', (done) => {
+        supertest(app)
+            .get('/api/content/v1/read/KP_FT_1564394134764')
+            .set('Content-Type', 'application/json/')
+            .expect(200)
+            .end((err, res) => {
+                if (res.statusCode >= 500) { logger.error(err); return done(); }
+                if (err && res.stausCode >= 400) { expect.fail(); return done(); };
+                expect(res.body.responseCode).to.equal('OK');
+                expect(res.body.id).to.equal('api.content.read').to.be.a('string');
+                expect(res.body.ver).to.equal('1.0').to.be.a('string');
+                expect(res.body.result).to.have.property('content');
+                expect(res.body.result.content.identifier).to.equal('KP_FT_1564394134764').to.be.a('string');
+                done();
+            });
+    });
+    
+    it('#check for Content update', (done) => {
+        supertest(app)
+            .get('/api/content/v1/read/do_112832394979106816112')
+            .set('Content-Type', 'application/json/')
+            .expect(200)
+            .end((err, res) => {
+                if (res.statusCode >= 500) { logger.error(err); return done(); }
+                if (err && res.stausCode >= 400) { expect.fail(); return done(); };
+                expect(res.body.responseCode).to.equal('OK');
+                expect(res.body.id).to.equal('api.content.read').to.be.a('string');
+                expect(res.body.ver).to.equal('1.0').to.be.a('string');
+                expect(res.body.result).to.have.property('content');
+                expect(res.body.result.content.identifier).to.equal('do_112832394979106816112').to.be.a('string');
+                done();
+            });
+    });
+    it('#update available', (done) => {
+        supertest(app)
+            .get('/api/content/v1/read/do_112832394979106816112')
+            .set('Content-Type', 'application/json/')
+            .expect(200)
+            .end((err, res) => {
+                if (res.statusCode >= 500) { logger.error(err); return done(); }
+                if (err && res.stausCode >= 400) { expect.fail(); return done(); };
+                expect(res.body.responseCode).to.equal('OK');
+                expect(res.body.id).to.equal('api.content.read').to.be.a('string');
+                expect(res.body.ver).to.equal('1.0').to.be.a('string');
+                expect(res.body.result).to.have.property('content');
+                expect(res.body.result.content.identifier).to.equal('do_112832394979106816112').to.be.a('string');
+                done();
+            });
+    });
+
+    it('#set referrer for Get Content', (done) => {
+        supertest(app)
+            .get('/api/content/v1/read/KP_FT_1564394134764')
+            .set('Content-Type', 'application/json/')
+            .set('Referer', 'http://localhost:9010/browse')
+            .expect(200)
+            .end((err, res) => {
+                if (res.statusCode >= 500) { logger.error(err); return done(); }
+                if (err && res.stausCode >= 400) { expect.fail(); return done(); };
+                expect(res.body.responseCode).to.equal('OK');
+                expect(res.body.id).to.equal('api.content.read').to.be.a('string');
+                expect(res.body.ver).to.equal('1.0').to.be.a('string');
+                expect(res.body.result).to.have.property('content');
+                expect(res.body.result.content.identifier).to.equal('KP_FT_1564394134764').to.be.a('string');
+                done();
+            });
+    });
+    it('#Content/plugins/preview', (done) => {
+        supertest(app)
+            .get('/contentPlayer/preview/*')
+            .set('Content-Type', 'application/javascript; charset=UTF-8')
+            .end((err, res) => {
+                if (res.statusCode >= 500) { logger.error(err); return done(); }
+                if (err && res.stausCode >= 400) { expect.fail(); return done(); };
+                done();
+            });
+    });
+    it('#Get CourseHierarchy ', (done) => {
+        supertest(app)
+            .get('/api/course/v1/hierarchy/KP_FT_1563858046256')
+            .set('Content-Type', 'application/json/')
+            .expect(200)
+            .end((err, res) => {
+                if (res.statusCode >= 500) { logger.error(err); return done(); }
+                if (err && res.stausCode >= 400) { expect.fail(); return done(); };
+                expect(res.body.responseCode).to.equal('OK'); 
+                expect(res.body.id).to.equal('api.content.read').to.be.a('string');
+                expect(res.body.ver).to.equal('1.0').to.be.a('string');
+                expect(res.body.result.content.identifier).to.equal('KP_FT_1563858046256').to.be.a('string');
+                done();
+            });
+    });
+
+    it('#Set referrer for Get CourseHierarchy ', (done) => {
+        supertest(app)
+            .get('/api/course/v1/hierarchy/KP_FT_1563858046256')
+            .set('Content-Type', 'application/json/')
+            .set('Referer', 'http://localhost:9010/browse')
+            .expect(200)
+            .end((err, res) => {
+                if (res.statusCode >= 500) { logger.error(err); return done(); }
+                if (err && res.stausCode >= 400) { expect.fail(); return done(); };
+                expect(res.body.responseCode).to.equal('OK');
+                expect(res.body.id).to.equal('api.course.hierarchy').to.be.a('string');
+                expect(res.body.ver).to.equal('1.0').to.be.a('string');
+                expect(res.body.result.content.identifier).to.equal('KP_FT_1563858046256').to.be.a('string');
+                done();
+            });
+    });
+    it('#set referrer for Get Content (ERROR)', (done) => {
+        supertest(app)
+            .get('/api/content/v1/read/KP_FT_156439413')
+            .set('Content-Type', 'application/json/')
+            .set('Referer', 'http://localhost:9010/browse')
+            .expect(404)
+            .end((err, res) => {
+                if (res.statusCode >= 500) { logger.error(err); return done(); }
+                if (err && res.stausCode >= 400) { expect.fail(); return done(); };
+                expect(res.body.id).to.equal('api.content.read').to.be.a('string');
+                expect(res.body.ver).to.equal('1.0').to.be.a('string');
+                done();
+            });
+    });
+    it('#Set referrer for Get CourseHierarchy (ERROR)', (done) => {
+        supertest(app)
+            .get('/api/course/v1/hierarchy/KP_FT_156385804')
+            .set('Content-Type', 'application/json/')
+            .set('Referer', 'http://localhost:9010/browse')
+            .expect(404)
+            .end((err, res) => {
+                if (res.statusCode >= 500) { logger.error(err); return done(); }
+                if (err && res.stausCode >= 400) { expect.fail(); return done(); };
+                expect(res.body.id).to.equal('api.course.hierarchy').to.be.a('string');
+                expect(res.body.ver).to.equal('1.0').to.be.a('string');
+                done();
+            });
+    });
+
+    it('#Get Content (ERROR)', (done) => {
+        supertest(app)
+            .get('/api/content/v1/read/KP_FT_156439413')
+            .set('Content-Type', 'application/json/')
+            .expect(404)
+            .end((err, res) => {
+                if (res.statusCode >= 500) { logger.error(err); return done(); }
+                if (err && res.stausCode >= 400) { expect.fail(); return done(); };
+                expect(res.body.id).to.equal('api.content.read').to.be.a('string');
+                expect(res.body.ver).to.equal('1.0').to.be.a('string');
+                done();
+            });
+    });
+});
+
 describe('Test Export Content/Collection', () => {
     it('#Export Content', (done) => {
         supertest(app)
@@ -709,7 +908,7 @@ describe('Test Export Content/Collection', () => {
             .expect(200)
             .end((err, res) => {
                 if (res.statusCode >= 500) { logger.error(err); return done(); }
-                if (err && res.stausCode >= 400) { expect.fail(); return done(err); };
+                if (err && res.stausCode >= 400) { expect.fail(); return done(); };
                 expect(res.body.responseCode).to.equal('OK');
                 expect(res.body.id).to.equal('api.content.export').to.be.a('string');
                 expect(res.body.ver).to.equal('1.0').to.be.a('string');
@@ -726,11 +925,28 @@ describe('Test Export Content/Collection', () => {
             .expect(200)
             .end((err, res) => {
                 if (res.statusCode >= 500) { logger.error(err); return done(); }
-                if (err && res.stausCode >= 400) { expect.fail(); return done(err); };
+                if (err && res.stausCode >= 400) { expect.fail(); return done(); };
                 expect(res.body.responseCode).to.equal('OK');
                 expect(res.body.id).to.equal('api.content.export').to.be.a('string');
                 expect(res.body.ver).to.equal('1.0').to.be.a('string');
                 expect(res.body.result.response).to.have.property('url');
+                done();
+
+            });
+    }).timeout(100000);
+
+    it('#Export Content (ERROR)', (done) => {
+        supertest(app)
+            .get('/api/content/v1/export/KP_FT_156439413')
+            .set('Accept', 'json')
+            .expect('Content-Type', 'application/json; charset=utf-8')
+            .expect(500)
+            .end((err, res) => {
+                if (res.statusCode >= 500) { logger.error(err); return done(); }
+                if (err && res.stausCode >= 400) { expect.fail(); return done(); };
+                expect(res.body.responseCode).to.equal('INTERNAL_SERVER_ERROR');
+                expect(res.body.id).to.equal('api.content.export').to.be.a('string');
+                expect(res.body.ver).to.equal('1.0').to.be.a('string');
                 done();
 
             });
