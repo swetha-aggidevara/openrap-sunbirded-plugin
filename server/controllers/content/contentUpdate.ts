@@ -244,8 +244,6 @@ export default class ContentDownload {
         return _.map(contents, 'identifier');
     }
 
-
-
     resourceUpdate(liveContentData) {
         return new Promise(async (resolve, reject) => {
             try {
