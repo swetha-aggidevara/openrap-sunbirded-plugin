@@ -7,7 +7,6 @@ import { logger } from '@project-sunbird/ext-framework-server/logger';
 import { containerAPI } from "OpenRAP/dist/api";
 import { HTTPService } from "@project-sunbird/ext-framework-server/services";
 import { CONTENT_DOWNLOAD_STATUS } from './contentDownload';
-import { diff, addedDiff, deletedDiff, updatedDiff, detailedDiff } from 'deep-object-diff';
 
 let dbName = "content_download";
 export default class ContentDownload {
