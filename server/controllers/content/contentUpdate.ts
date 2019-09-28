@@ -120,6 +120,10 @@ export default class ContentDownload {
         return new Promise(async (resolve, reject) => {
             try {
                 let downloadManager = containerAPI.getDownloadManagerInstance(this.pluginId);
+
+                // Deleting collection folder as content is not getting updated after download and unzip
+                await this.contentManager.deleteContentFolder(path.join('content', String(_.get(liveContentData, "data.result.content.identifier"))));
+
                 let downloadFiles = [{
                     id: (_.get(liveContentData, "data.result.content.identifier") as string),
                     url: (_.get(liveContentData, "data.result.content.downloadUrl") as string),
@@ -179,7 +183,7 @@ export default class ContentDownload {
 
                             for (let content of liveChildcontents) {
                                 if (_.includes(addedAndUpdatedIds, _.get(content, "identifier"))) {
-                                    // Deleting content folder of resources which will be downloaded, are not getting updated after downloading and unzipping
+                                    // Deleting child content folder of resources which will be downloaded, are not getting updated after downloading and unzipping
 
                                     await this.contentManager.deleteContentFolder(path.join('content', String(_.get(content, "identifier"))));
 
