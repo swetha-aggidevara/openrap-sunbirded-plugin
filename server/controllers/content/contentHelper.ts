@@ -44,6 +44,10 @@ export const addContentListener = (pluginId) => {
                                     */
                     // extract each file 
                     let fileName = path.basename(file.file, path.extname(file.file))
+                    // Deleting collection/resource inside contents folder if exist
+                    if (fileName) {
+                        await fileSDK.remove((path.join('content', fileName)));
+                    }
                     await fileSDK.unzip(path.join('ecars', file.file), path.join('content', fileName), false)
                     let zipFilePath = glob.sync(path.join(fileSDK.getAbsPath('content'), fileName, '**', '*.zip'), {});
                     if (zipFilePath.length > 0) {
