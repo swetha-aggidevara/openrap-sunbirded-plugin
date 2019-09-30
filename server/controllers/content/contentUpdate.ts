@@ -51,7 +51,7 @@ export default class ContentDownload {
             else {
                 logger.error(`ReqId = "${req.headers['X-msgid']}": Received error while processing content update for content ${req.params.id}`);
                 res.status(400);
-                return res.send(Response.error("api.content.update", status, 'Update not available'));
+                return res.send(Response.error("api.content.update", 400, 'Update not available'));
             }
         } catch (error) {
             let status = error.status ? error.status : 500;
