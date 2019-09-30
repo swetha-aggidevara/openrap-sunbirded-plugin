@@ -44,9 +44,13 @@ export const addContentListener = (pluginId) => {
                                     */
                     // extract each file 
                     let fileName = path.basename(file.file, path.extname(file.file))
+                    const contentData = await dbSDK.get('content', file.id);
+                    
                     // Deleting collection/resource inside contents folder if exist
-                    if (fileName) {
-                        await fileSDK.remove((path.join('content', fileName)));
+                    if (_.get(contentData, 'desktopAppMetadata.ecarFile')) {
+                        const toBeDeletedFileName = path.basename(_.get(contentData, 'desktopAppMetadata.ecarFile'), '.ecar');
+                        await fileSDK.remove(path.join('ecars', _.get(contentData, 'desktopAppMetadata.ecarFile')));
+                        await fileSDK.remove((path.join('content', toBeDeletedFileName)));
                     }
                     await fileSDK.unzip(path.join('ecars', file.file), path.join('content', fileName), false)
                     let zipFilePath = glob.sync(path.join(fileSDK.getAbsPath('content'), fileName, '**', '*.zip'), {});
