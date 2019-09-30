@@ -7,33 +7,17 @@ import { logger } from '@project-sunbird/ext-framework-server/logger';
 import { containerAPI } from "OpenRAP/dist/api";
 import { HTTPService } from "@project-sunbird/ext-framework-server/services";
 import { CONTENT_DOWNLOAD_STATUS } from './contentDownload';
-import ContentManager from "../../manager/ContentManager";
-import * as path from 'path';
 
 let dbName = "content_download";
 export default class ContentDownload {
 
-    private contentsFilesPath: string = 'content';
-    private ecarsFolderPath: string = 'ecars';
-
     @Inject
     private databaseSdk: DatabaseSDK;
-
-    @Inject
-    private contentManager: ContentManager;
-
     private pluginId;
-    private fileSDK;
 
     constructor(manifest: Manifest) {
         this.databaseSdk.initialize(manifest.id);
         this.pluginId = manifest.id;
-        this.fileSDK = containerAPI.getFileSDKInstance(manifest.id);
-        this.contentManager.initialize(
-            manifest.id,
-            this.fileSDK.getAbsPath(this.contentsFilesPath),
-            this.fileSDK.getAbsPath(this.ecarsFolderPath)
-        );
     }
 
     async contentUpdate(req: any, res: any) {
@@ -80,11 +64,7 @@ export default class ContentDownload {
         return new Promise(async (resolve, reject) => {
             try {
                 let downloadManager = containerAPI.getDownloadManagerInstance(this.pluginId);
-
                 let parentContentData = await HTTPService.get(`${process.env.APP_BASE_URL}/api/content/v1/read/${parentId}`, {}).toPromise();
-
-                // Deleting content folder as resources are not getting updated after download and unzip
-                await this.contentManager.deleteContentFolder(path.join('content', String(_.get(liveContentData, "data.result.content.identifier"))));
 
                 let downloadFiles = [{
                     id: (_.get(liveContentData, "data.result.content.identifier") as string),
@@ -120,10 +100,6 @@ export default class ContentDownload {
         return new Promise(async (resolve, reject) => {
             try {
                 let downloadManager = containerAPI.getDownloadManagerInstance(this.pluginId);
-
-                // Deleting collection folder as content is not getting updated after download and unzip
-                await this.contentManager.deleteContentFolder(path.join('content', String(_.get(liveContentData, "data.result.content.identifier"))));
-
                 let downloadFiles = [{
                     id: (_.get(liveContentData, "data.result.content.identifier") as string),
                     url: (_.get(liveContentData, "data.result.content.downloadUrl") as string),
@@ -169,9 +145,9 @@ export default class ContentDownload {
                         }).toPromise();
 
                         if (_.get(liveChildrenContentsRes, 'data.result.count')) {
-                            let liveChildcontents = _.get(liveChildrenContentsRes, 'data.result.content');
-                            let deletedIds = this.getDeletedContents(localChildContents, liveChildcontents);
-                            let addedAndUpdatedIds = this.getAddedAndUpdatedContents(liveChildcontents, localChildContents);
+                            let liveChildContents = _.get(liveChildrenContentsRes, 'data.result.content');
+                            let deletedIds = this.getDeletedContents(localChildContents, liveChildContents);
+                            let addedAndUpdatedIds = this.getAddedAndUpdatedContents(liveChildContents, localChildContents);
 
                             // Updating visibilty to Default for deleted resources
                             _.forEach(localChildContents, (data) => {
@@ -180,13 +156,8 @@ export default class ContentDownload {
                                 }
                             });
                             await this.databaseSdk.bulk('content', localChildContents);
-
-                            for (let content of liveChildcontents) {
+                            for (let content of liveChildContents) {
                                 if (_.includes(addedAndUpdatedIds, _.get(content, "identifier"))) {
-                                    // Deleting child content folder of resources which will be downloaded, are not getting updated after downloading and unzipping
-
-                                    await this.contentManager.deleteContentFolder(path.join('content', String(_.get(content, "identifier"))));
-
                                     // Pushing downloadable childs to downloadfiles array
                                     downloadFiles.push({
                                         id: (_.get(content, "identifier") as string),
@@ -226,24 +197,15 @@ export default class ContentDownload {
     getAddedAndUpdatedContents(liveContents, localContents) {
         var contents = _.filter(liveContents, (data) => {
             var b = _.find(localContents, { _id: data.identifier, pkgVersion: data.pkgVersion })
-            if (!b) {
-                return true;
-            } else {
-                return false;
-            }
+            return b ? false : true;
         });
         return _.map(contents, 'identifier');
     }
 
     getDeletedContents(localContents, liveContents) {
-        var contents = _.filter(localContents, (data) => {
-            var b = _.find(liveContents, { identifier: data._id });
-            if (!b) {
-                return true;
-            }
-            else {
-                return false;
-            }
+        const contents = _.filter(localContents, (data) => {
+            let b = _.find(liveContents, { identifier: data._id });
+            return b ? false : true;
         });
         return _.map(contents, 'identifier');
     }
@@ -252,9 +214,6 @@ export default class ContentDownload {
         return new Promise(async (resolve, reject) => {
             try {
                 let downloadManager = containerAPI.getDownloadManagerInstance(this.pluginId);
-
-                // Deleting content folder as resources are not getting updated after download and unzip
-                await this.contentManager.deleteContentFolder(path.join('content', String(_.get(liveContentData, "data.result.content.identifier"))));
                 let downloadFiles = [{
                     id: (_.get(liveContentData, "data.result.content.identifier") as string),
                     url: (_.get(liveContentData, "data.result.content.downloadUrl") as string),
