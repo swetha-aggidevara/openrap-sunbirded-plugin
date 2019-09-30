@@ -146,26 +146,23 @@ export default class ContentDownload {
 
                         if (_.get(liveChildrenContentsRes, 'data.result.count')) {
                             let liveChildContents = _.get(liveChildrenContentsRes, 'data.result.content');
-                            let deletedIds = this.getDeletedContents(localChildContents, liveChildContents);
-                            let addedAndUpdatedIds = this.getAddedAndUpdatedContents(liveChildContents, localChildContents);
+                            let deletedObj = this.getDeletedContents(localChildContents, liveChildContents);
+                            let addedAndUpdatedObj = this.getAddedAndUpdatedContents(liveChildContents, localChildContents);
 
                             // Updating visibilty to Default for deleted resources
-                            _.forEach(localChildContents, (data) => {
-                                if (_.includes(deletedIds, _.get(data, "_id"))) {
-                                    data.visibility = "Default"
-                                }
+                            _.forEach(deletedObj, (content) => {
+                                content.visibility = "Default";
                             });
                             await this.databaseSdk.bulk('content', localChildContents);
-                            for (let content of liveChildContents) {
-                                if (_.includes(addedAndUpdatedIds, _.get(content, "identifier"))) {
-                                    // Pushing downloadable childs to downloadfiles array
-                                    downloadFiles.push({
-                                        id: (_.get(content, "identifier") as string),
-                                        url: (_.get(content, "downloadUrl") as string),
-                                        size: (_.get(content, "size") as number)
-                                    })
-                                }
-                            }
+
+                            // Pushing downloadable childs to downloadfiles array
+                            _.forEach(addedAndUpdatedObj, (content) => {
+                                downloadFiles.push({
+                                    id: _.get(content, "identifier"),
+                                    url: _.get(content, "downloadUrl"),
+                                    size: _.get(content, "size")
+                                });
+                            });
                         }
                     }
                 }
@@ -195,19 +192,19 @@ export default class ContentDownload {
     }
 
     getAddedAndUpdatedContents(liveContents, localContents) {
-        var contents = _.filter(liveContents, (data) => {
-            var b = _.find(localContents, { _id: data.identifier, pkgVersion: data.pkgVersion })
+        const contents = _.filter(liveContents, (data) => {
+            const b = _.find(localContents, { _id: data.identifier, pkgVersion: data.pkgVersion });
             return b ? false : true;
         });
-        return _.map(contents, 'identifier');
+        return contents;
     }
 
     getDeletedContents(localContents, liveContents) {
         const contents = _.filter(localContents, (data) => {
-            let b = _.find(liveContents, { identifier: data._id });
+            const b = _.find(liveContents, { identifier: data._id });
             return b ? false : true;
         });
-        return _.map(contents, 'identifier');
+        return contents;
     }
 
     resourceUpdate(liveContentData) {
