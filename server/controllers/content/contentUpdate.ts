@@ -7,6 +7,7 @@ import { logger } from '@project-sunbird/ext-framework-server/logger';
 import { containerAPI } from "OpenRAP/dist/api";
 import { HTTPService } from "@project-sunbird/ext-framework-server/services";
 import { CONTENT_DOWNLOAD_STATUS } from './contentDownload';
+import * as path from 'path';
 
 let dbName = "content_download";
 export default class ContentDownload {
@@ -153,6 +154,9 @@ export default class ContentDownload {
                             // Updating visibilty to Default for deleted resources
                             _.forEach(deletedObj, (content) => {
                                 content.visibility = "Default";
+                                const imageName = path.basename(content.appIcon);
+                                content.appIcon = (path.join('content', content.identifier, content.identifier, imageName));
+                                content.updatedOn = Date.now()
                             });
                             await this.databaseSdk.bulk('content', localChildContents);
 
