@@ -46,7 +46,7 @@ export const addContentListener = (pluginId) => {
                     let fileName = path.basename(file.file, path.extname(file.file))
 
                     // Deleting content folder if exist. This is done as content folder is not getting updated after unzipping content with updates
-                    await deleteFolder(file, fileSDK).catch(error => {
+                    await deleteContentFolder(file, fileSDK).catch(error => {
                         logger.error(`Received Error while getting content data from db where error = ${error}`);
                     });                    
                     
@@ -128,7 +128,7 @@ export const addContentListener = (pluginId) => {
     })
 }
 
-export const deleteFolder = async (file, fileSDK) => {
+export const deleteContentFolder = async (file, fileSDK) => {
     const contentData = await dbSDK.get('content', file.id);
     if (_.get(contentData, 'desktopAppMetadata.ecarFile')) {
         const toBeDeletedFileName = path.basename(_.get(contentData, 'desktopAppMetadata.ecarFile'), '.ecar');
