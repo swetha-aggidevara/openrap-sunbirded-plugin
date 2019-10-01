@@ -8,4 +8,6 @@ export interface IDesktopAppMetadata {
     'addedUsing': IAddedUsingType;
     'createdOn': number;
     'updatedOn': number;
+    'updateAvailable'?: boolean;
+    'lastUpdateCheckedOn'?: number;
 }

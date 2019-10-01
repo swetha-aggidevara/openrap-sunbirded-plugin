@@ -13,6 +13,7 @@ import * as uuid from "uuid";
 import Hashids from "hashids";
 import { containerAPI } from "OpenRAP/dist/api";
 import * as TreeModel from "tree-model";
+import { HTTPService } from "@project-sunbird/ext-framework-server/services";
 
 export enum DOWNLOAD_STATUS {
     SUBMITTED = "DOWNLOADING",
@@ -21,6 +22,7 @@ export enum DOWNLOAD_STATUS {
     INDEXED = "DOWNLOADED",
     FAILED = "FAILED"
 }
+const INTERVAL_TO_CHECKUPDATE = 1
 export default class Content {
     private contentsFilesPath: string = 'content';
     private ecarsFolderPath: string = 'ecars';
@@ -70,39 +72,46 @@ export default class Content {
         }
         logger.debug(`ReqId = "${reqId}": Find the contents in ContentDb with the given filters`)
         return this.databaseSdk.find('content', dbFilters);
-    } 
-   
-    get(req: any, res: any): any {
-        logger.debug(`ReqId = "${req.headers['X-msgid']}": Called Content get method to get Content: ${req.params.id} `);
-        let id = req.params.id;
-       logger.debug(`ReqId = "${req.headers['X-msgid']}": Get Content: ${id} from ContentDB`);
-        this.databaseSdk
-          .get('content', id)
-          .then(data => {
-            data = _.omit(data, ['_id', '_rev']);
-            let resObj = {
-              content: data
-            };
-            logger.info(`ReqId = "${req.headers['X-msgid']}": Found the content:${resObj.content.identifier} in ContentDB`);
-            return res.send(Response.success('api.content.read', resObj));
-          })
-          .catch(err => {
-            logger.error(
-              `ReqId = "${req.headers['X-msgid']}": Received error while getting the data from content database with id: ${id} and err.message: ${err}`
-            );
-            if (err.status === 404) {
-              res.status(404);
-              return res.send(Response.error('api.content.read', 404));
-            } else {
-              let status = err.status || 500;
-              res.status(status);
-              return res.send(Response.error('api.content.read', status));
-            }
-          });
-      }
+    }
 
-      search(req: any, res: any): any {
-          logger.debug(`ReqId = "${req.headers['X-msgid']}": Called content search method`);
+    get(req: any, res: any): any {
+        (async () => {
+            try {
+                logger.debug(`ReqId = "${req.headers['X-msgid']}": Called Content get method to get Content: ${req.params.id} `);
+                let id = req.params.id;
+                logger.debug(`ReqId = "${req.headers['X-msgid']}": Get Content: ${id} from ContentDB`);
+                let content = await this.databaseSdk.get('content', id);
+                content = _.omit(content, ['_id', '_rev']);
+                let resObj = {};
+                logger.debug(`ReqId = "${req.headers['X-msgid']}": Call isUpdateRequired()`)
+                if (this.isUpdateRequired(content, req)) {
+                    logger.debug(`ReqId = "${req.headers['X-msgid']}": Call checkForUpdate() to check whether update is required for content: `, _.get(content, 'identifier'));
+                    content =   await this.checkForUpdates(content, req)
+                    resObj['content'] = content;
+                    return res.send(Response.success('api.content.read', resObj));
+                } else {
+                    resObj['content'] = content;
+                    return res.send(Response.success('api.content.read', resObj));
+                }
+            } catch (error) {
+                logger.error(
+                    `ReqId = "${req.headers['X-msgid']}": Received error while getting the data from content database and err.message: ${error}`
+                );
+                if (error.status === 404) {
+                    res.status(404);
+                    return res.send(Response.error('api.content.read', 404));
+                } else {
+                    let status = error.status || 500;
+                    res.status(status);
+                    return res.send(Response.error('api.content.read', status));
+                }
+            }
+        })()
+
+    }
+
+    search(req: any, res: any): any {
+        logger.debug(`ReqId = "${req.headers['X-msgid']}": Called content search method`);
         let reqBody = req.body;
         let pageReqFilter = _.get(reqBody, 'request.filters');
         let contentSearchFields = config.get('CONTENT_SEARCH_FIELDS').split(',');
@@ -475,13 +484,53 @@ export default class Content {
     searchDownloadingContent(contents, reqId) {
         logger.debug(`ReqId = "${reqId}": searchDownloadingContent method is called`);
         let dbFilters =  {
-          "selector": {
-              "contentId": {
-                  "$in": contents
-              }
-              }
-          }
-          logger.info(`ReqId = "${reqId}": finding downloading, downloaded or failed contents in database`)
+            "selector": {
+                "contentId": {
+                    "$in": contents
+                }
+            }
+        }
+        logger.info(`ReqId = "${reqId}": finding downloading, downloaded or failed contents in database`)
         return this.databaseSdk.find('content_download', dbFilters)
-      }
+    }
+
+    isUpdateRequired(content, req) {
+        logger.debug(`ReqId = "${req.headers['X-msgid']}": Called isUpdateRequired()`);
+
+        if (_.get(content, 'desktopAppMetadata.updateAvailable')) {
+            logger.info(`ReqId = "${req.headers['X-msgid']}": updateAvailble for content and Don't call API`);
+            return false;
+        } else if (_.get(content, 'desktopAppMetadata.lastUpdateCheckedOn')) {
+            logger.info(`ReqId = "${req.headers['X-msgid']}": checking when is the last updatechecked on`, _.get(content, 'desktopAppMetadata.lastUpdateCheckedOn') );
+            return ((Date.now() - _.get(content, 'desktopAppMetadata.lastUpdateCheckedOn')) / 3600000) > INTERVAL_TO_CHECKUPDATE ? true : false;
+        }
+        logger.info(`ReqId = "${req.headers['X-msgid']}": update is not available for content and call API`);
+        return true;
+    }
+
+
+    checkForUpdates(offlineContent, req) {
+        logger.debug(`ReqId = "${req.headers['X-msgid']}": calling api to check whether content: ${_.get(offlineContent, 'idenitifier')} is updated`);
+        return new Promise(async (resolve, reject) => {
+            try {
+                let onlineContent = await HTTPService.get(`${process.env.APP_BASE_URL}/api/content/v1/read/${offlineContent.identifier}?field=pkgVersion`, {}).toPromise();
+                if (_.get(offlineContent, 'pkgVersion') < _.get(onlineContent, 'data.result.content.pkgVersion')) {
+                    offlineContent.desktopAppMetadata.updateAvailable = true;
+                    offlineContent.desktopAppMetadata.lastUpdateCheckedOn = Date.now();
+                    offlineContent.desktopAppMetadata.updatedOn = Date.now();
+                    await this.databaseSdk.update('content', offlineContent.identifier, offlineContent);
+                    resolve(offlineContent);
+                } else {
+                    offlineContent.desktopAppMetadata.lastUpdateCheckedOn = Date.now();
+                    offlineContent.desktopAppMetadata.updatedOn = Date.now();
+                    await this.databaseSdk.update('content', offlineContent.identifier, offlineContent);
+                    resolve(offlineContent);
+                }
+            } catch (err) {
+                logger.error(`ReqId = "${req.headers['X-msgid']}": Error occured while checking content update : ${err}`);
+                resolve(offlineContent);
+            }
+        })
+    }
+
 }
