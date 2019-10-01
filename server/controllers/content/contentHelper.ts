@@ -44,14 +44,11 @@ export const addContentListener = (pluginId) => {
                                     */
                     // extract each file 
                     let fileName = path.basename(file.file, path.extname(file.file))
-                    const contentData = await dbSDK.get('content', file.id);
+
+                    await deleteFolder(file, fileSDK).catch(error => {
+                        logger.error(`Received Error while getting content data from db where error = ${error}`);
+                    });                    
                     
-                    // Deleting collection/resource inside contents folder if exist
-                    if (_.get(contentData, 'desktopAppMetadata.ecarFile')) {
-                        const toBeDeletedFileName = path.basename(_.get(contentData, 'desktopAppMetadata.ecarFile'), '.ecar');
-                        await fileSDK.remove(path.join('ecars', _.get(contentData, 'desktopAppMetadata.ecarFile')));
-                        await fileSDK.remove((path.join('content', toBeDeletedFileName)));
-                    }
                     await fileSDK.unzip(path.join('ecars', file.file), path.join('content', fileName), false)
                     let zipFilePath = glob.sync(path.join(fileSDK.getAbsPath('content'), fileName, '**', '*.zip'), {});
                     if (zipFilePath.length > 0) {
@@ -128,6 +125,21 @@ export const addContentListener = (pluginId) => {
             logger.error(`Received error while updating the failed status in content download DB and err.message: ${error.message}`);
         }
     })
+}
+
+export const deleteFolder = async (file, fileSDK) => {
+    const contentData = await dbSDK.get('content', file.id);
+    if (_.get(contentData, 'desktopAppMetadata.ecarFile')) {
+        const toBeDeletedFileName = path.basename(_.get(contentData, 'desktopAppMetadata.ecarFile'), '.ecar');
+
+        // Todo: Should be removed when importing logic changes and the data gets saved with the identifier
+        if (file.id !== toBeDeletedFileName) {
+            await fileSDK.remove(path.join('ecars', _.get(contentData, 'desktopAppMetadata.ecarFile')));
+        }
+
+        await fileSDK.remove((path.join('content', toBeDeletedFileName)));
+    }
+    return true;
 }
 
 export const createHierarchy = (items: any[], parent: any, tree?: any[]): any => {
