@@ -45,6 +45,7 @@ export const addContentListener = (pluginId) => {
                     // extract each file 
                     let fileName = path.basename(file.file, path.extname(file.file))
 
+                    // Deleting content folder if exist. This is done as content folder is not getting updated after unzipping content with updates
                     await deleteFolder(file, fileSDK).catch(error => {
                         logger.error(`Received Error while getting content data from db where error = ${error}`);
                     });                    
