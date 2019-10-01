@@ -22,12 +22,7 @@ export enum DOWNLOAD_STATUS {
     INDEXED = "DOWNLOADED",
     FAILED = "FAILED"
 }
-export enum CONTENT_UPDATE {
-    NO_Of_HOURS = 1,
-    InHrs = 3600000,
-    InMin = 60000,
-    NO_OF_MINUTES = 10
-}
+const NO_OF_HOURS = 1
 export default class Content {
     private contentsFilesPath: string = 'content';
     private ecarsFolderPath: string = 'ecars';
@@ -88,8 +83,10 @@ export default class Content {
              .then(data => {
                  data = _.omit(data, ['_id', '_rev']);
                  let resObj = {};
-                 if (this.isUpdateRequired(data)) {
-                     this.checkForUpdates(data).then(content => {
+                 logger.debug(`ReqId = "${req.headers['X-msgid']}": Call isUpdateRequired()`)
+                 if (this.isUpdateRequired(data, req)) {
+                    logger.debug(`ReqId = "${req.headers['X-msgid']}": Call API to check whether update is required`);
+                     this.checkForUpdates(data, req).then(content => {
                          resObj['content'] = content;
                          return res.send(Response.success('api.content.read', resObj));
                     });
@@ -497,17 +494,22 @@ export default class Content {
         return this.databaseSdk.find('content_download', dbFilters)
       }
 
-    isUpdateRequired(content) {
+    isUpdateRequired(content, req) {
+        logger.debug(`ReqId = "${req.headers['X-msgid']}": Called isUpdateRequired()`);
+       
         if (_.get(content, 'desktopAppMetadata.updateAvailable')) {
+            logger.info(`ReqId = "${req.headers['X-msgid']}": updateAvailble for content`);
             return false;
         } else if (_.get(content, 'desktopAppMetadata.lastUpdateCheckedOn')) {
-            return ((Date.now() - _.get(content, 'desktopAppMetadata.lastUpdateCheckedOn')) / CONTENT_UPDATE.InHrs) > CONTENT_UPDATE.NO_Of_HOURS ? true: false;
+            logger.info(`ReqId = "${req.headers['X-msgid']}": checking when is the last updatechecked on`);
+            return ((Date.now() - _.get(content, 'desktopAppMetadata.lastUpdateCheckedOn')) / 3600000) > NO_OF_HOURS ? true: false;
         }
         return true;
     }
 
     
-      checkForUpdates(offlineContent) {
+      checkForUpdates(offlineContent, req) {
+        logger.debug(`ReqId = "${req.headers['X-msgid']}": calling api to check whether is content is updated`);
         return new Promise(async (resolve, reject) =>  {
             try {
                 let onlineContent = await HTTPService.get(`${process.env.APP_BASE_URL}/api/content/v1/read/${offlineContent.identifier}?field=pkgVersion`, {}).toPromise();
@@ -524,6 +526,7 @@ export default class Content {
                         resolve(offlineContent);
                     }
                 } catch(err) {
+                    logger.error(`ReqId = "${req.headers['X-msgid']}": Error occured while getting content from API to check update : ${err}`);
                     resolve(offlineContent);
                 }
         })
