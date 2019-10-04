@@ -65,6 +65,7 @@ export default class ContentDownload {
                             items: downloadFiles,
                             pkgVersion: _.get(content, 'data.result.content.pkgVersion'),
                             contentType: _.get(content, 'data.result.content.contentType'),
+                            resourceId: _.get(content, "data.result.content.identifier")
                         }
                         logger.debug(`ReqId = "${req.headers['X-msgid']}": insert to the content_download_queue`);
                         await this.databaseSdk.insert(dbName, {
@@ -124,6 +125,7 @@ export default class ContentDownload {
                             items: downloadFiles,
                             pkgVersion: _.get(content, 'data.result.content.pkgVersion'),
                             contentType: _.get(content, 'data.result.content.contentType'),
+                            resourceId: _.get(content, "data.result.content.identifier")
                         }
                         logger.debug(`ReqId = "${req.headers['X-msgid']}": insert collection in Database`);
                         await this.databaseSdk.insert(dbName, {
@@ -180,6 +182,7 @@ export default class ContentDownload {
                             return {
                                 "id": doc.downloadId,
                                 "contentId": doc.contentId,
+                                "resourceId": _.get(doc, 'queueMetaData.resourceId'),
                                 "mimeType": doc.queueMetaData.mimeType,
                                 "name": doc.name,
                                 "status": CONTENT_DOWNLOAD_STATUS.Submitted,
@@ -214,6 +217,7 @@ export default class ContentDownload {
                             return {
                                 "id": doc.downloadId,
                                 "contentId": doc.contentId,
+                                "resourceId": _.get(doc, 'queueMetaData.resourceId'),
                                 "mimeType": doc.queueMetaData.mimeType,
                                 "name": doc.name,
                                 "status": API_DOWNLOAD_STATUS.completed,
@@ -255,6 +259,7 @@ export default class ContentDownload {
                             inprogress.push({
                                 contentId: _.get(contentItem, 'contentId'),
                                 id: item.id,
+                                resourceId: _.get(contentItem, 'queueMetaData.resourceId'),
                                 name: _.get(contentItem, 'name') || 'Unnamed download',
                                 totalSize: item.stats.totalSize,
                                 downloadedSize: item.stats.downloadedSize,
@@ -291,6 +296,7 @@ export default class ContentDownload {
                             return {
                                 "id": doc.downloadId,
                                 "contentId": doc.contentId,
+                                "resourceId": _.get(doc, 'queueMetaData.resourceId'),
                                 "mimeType": doc.queueMetaData.mimeType,
                                 "name": doc.name,
                                 "status": API_DOWNLOAD_STATUS.failed,
