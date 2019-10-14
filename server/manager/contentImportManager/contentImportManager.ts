@@ -3,8 +3,7 @@ import * as uuid from 'uuid';
 import * as childProcess from 'child_process';
 import * as os from 'os';
 console.info('System is running on', os.cpus().length, 'cpus');
-const maxRunningImportJobs = 1 || os.cpus().length;
-const runningImportJobs: Array<IRunningImportJobs> = [];
+const maxRunningImportJobs = 1 || os.cpus().length; 
 let contentImportDB: Array<IContentImport> = [];
 
 enum ImportSteps {
@@ -47,6 +46,8 @@ interface IImportMetaData {
 
 export class ContentImportManager {
 
+  private runningImportJobs: Array<IRunningImportJobs> = [];
+
   public async registerImportJob(ecarPaths: Array<string>): Promise<Array<string>> {
     console.log('import register job started for ', ecarPaths);
     ecarPaths = await this.getUnregisteredEcars(ecarPaths)
@@ -69,8 +70,7 @@ export class ContentImportManager {
 
   private async checkImportQueue(status: Array<ImportStatus> = [ImportStatus.inQueue, ImportStatus.resume]) {
     console.log('checkImportQueue method called', contentImportDB);
-    // arguments.callee.toString(),
-    if(runningImportJobs.length >= maxRunningImportJobs){
+    if(this.runningImportJobs.length >= maxRunningImportJobs){
       console.log('no slot available to import, returning');
       return;
     }
@@ -82,24 +82,28 @@ export class ContentImportManager {
       console.log('no queued jobs in db');
       return;
     }
-    console.log('entering while loop', maxRunningImportJobs, runningImportJobs.length);
+    console.log('entering while loop', maxRunningImportJobs, this.runningImportJobs.length);
     let queuedJobIndex = 0;
-    while(maxRunningImportJobs > runningImportJobs.length && queuedJobs[queuedJobIndex]){
-      console.log('in while loop', queuedJobs[queuedJobIndex], runningImportJobs.length);
-      runningImportJobs.push({
+    while(maxRunningImportJobs > this.runningImportJobs.length && queuedJobs[queuedJobIndex]){
+      console.log('in while loop', queuedJobs[queuedJobIndex], this.runningImportJobs.length);
+      this.runningImportJobs.push({
         id: queuedJobs[queuedJobIndex].id,
         jobReference: new ImportEcar(queuedJobs[queuedJobIndex], this.importJobCompletionCb.bind(this))
       })
       queuedJobIndex++
     }
-    console.log('exited while loop', queuedJobIndex, runningImportJobs.length);
+    console.log('exited while loop', queuedJobIndex, this.runningImportJobs.length);
   }
-  private importJobCompletionCb(err, data){
+  private importJobCompletionCb(err: any, data: IContentImport){
     if(err){
       console.log('error will importing content');
       return
     }
-    console.log('completed import job');
+    console.log('completed import job',this.runningImportJobs.length, data);
+    _.remove(this.runningImportJobs, job => job.id === data.id) // update meta data in db 
+    console.log(this.runningImportJobs.length);
+    const importDbResults: IContentImport = _.find(contentImportDB, { id: data.id}); // find import job in db
+    importDbResults.importStatus = ImportStatus.completed // update status to completed in db
     this.checkImportQueue()
   }
   public async pauseImport(importId: string) {
@@ -108,12 +112,12 @@ export class ContentImportManager {
       throw "INVALID_OPERATION"
     }
     if(importDbResults.importStatus === ImportStatus.inProgress){
-      const inProgressJob: IRunningImportJobs = _.find(runningImportJobs, { id: importId}); // running/in-progress job
+      const inProgressJob: IRunningImportJobs = _.find(this.runningImportJobs, { id: importId}); // running/in-progress job
       if(!inProgressJob){
         throw "INVALID_OPERATION"
       }
       const data = await inProgressJob.jobReference.pause();
-      _.remove(runningImportJobs, job => job.id = inProgressJob.id) // update meta data in db 
+      _.remove(this.runningImportJobs, job => job.id === inProgressJob.id) // update meta data in db 
     }
     importDbResults.importStatus = ImportStatus.paused; // update db with new status
   }
@@ -131,12 +135,12 @@ export class ContentImportManager {
       throw "INVALID_OPERATION"
     }
     if(importDbResults.importStatus === ImportStatus.inProgress){
-      const inProgressJob: IRunningImportJobs = _.find(runningImportJobs, { id: importId}); // running/in-progress job
+      const inProgressJob: IRunningImportJobs = _.find(this.runningImportJobs, { id: importId}); // running/in-progress job
       if(!inProgressJob){
         throw "INVALID_OPERATION"
       }
       await inProgressJob.jobReference.cancel();
-      _.remove(runningImportJobs, job => job.id = inProgressJob.id) 
+      _.remove(this.runningImportJobs, job => job.id === inProgressJob.id) 
     }
     importDbResults.importStatus = ImportStatus.canceled; // update db with new status
   }
@@ -200,7 +204,7 @@ class ImportEcar {
         this.contentImportData.importMetaData.ecarContentEntries = data.ecarEntries
         this.workerProcessRef.kill();
       } else if(data.message === 'IMPORT_COMPLETE'){
-        this.cb(null, 'SUCC');
+        this.cb(null, this.contentImportData);
       }
     });
   }
