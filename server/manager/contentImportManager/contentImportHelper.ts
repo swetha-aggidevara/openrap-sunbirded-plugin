@@ -16,8 +16,8 @@ const extractEcar = async (data) => {
   let zipHandler;
   let contentBasePath = contentFolder + ecarFileName.substr(0, ecarFileName.length - 5)
   let ecarBasePath = ecarFolder + ecarFileName;
-  console.log('--------contentBasePath and ecarBasePath-----------', contentBasePath, ecarBasePath);
-  console.log('-------------ecarEntries-----------------', ecarEntries);
+  console.log('contentBasePath and ecarBasePath in extractEcar', contentBasePath, ecarBasePath);
+  console.log('ecarEntries in extractEcar', ecarEntries);
   try {
     zipHandler = await loadZip(ecarBasePath);
     createDirectory(contentBasePath)

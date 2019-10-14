@@ -31,17 +31,13 @@ interface IRunningImportJobs {
 interface IContentImport {
   id: string;
   importStatus: ImportStatus;
-  createdOn: string;
+  createdOn: string | number;
   ecarSourcePath: string;
   contentId?: string;
   importStep?: ImportSteps;
-  importMetaData?: IImportMetaData;
-}
-
-interface IImportMetaData {
-  ecarContentEntries: Object;
-  contentToBeAdded: Object;
-  contentToBeUpdated: Object;
+  ecarContentEntries?: Object;
+  contentToBeAdded?: Object;
+  contentToBeUpdated?: Object;
 }
 
 export class ContentImportManager {
@@ -49,19 +45,18 @@ export class ContentImportManager {
   private runningImportJobs: Array<IRunningImportJobs> = [];
 
   public async registerImportJob(ecarPaths: Array<string>): Promise<Array<string>> {
-    console.log('import register job started for ', ecarPaths);
+    console.info('registerImportJob started for ', ecarPaths);
     ecarPaths = await this.getUnregisteredEcars(ecarPaths)
-    console.log('after unique check', ecarPaths);
+    console.info('after unique check', ecarPaths);
     if(!ecarPaths || !ecarPaths.length){
-      console.log('no unique ecar found returning', ecarPaths);
+      console.debug('no unique ecar found, exiting registerImportJob');
       return [];
     }
-    const dbData = _.map(ecarPaths, ecarPath => ({
+    const dbData: Array<IContentImport> = _.map(ecarPaths, (ecarPath: string): IContentImport => ({
       id: uuid(),
       importStatus: ImportStatus.inQueue,
       createdOn: Date.now(),
-      ecarSourcePath: ecarPath,
-      importMetaData: {}
+      ecarSourcePath: ecarPath
     }))
     contentImportDB.push(...dbData); // insert to contentImport DB
     this.checkImportQueue();
@@ -69,37 +64,35 @@ export class ContentImportManager {
   }
 
   private async checkImportQueue(status: Array<ImportStatus> = [ImportStatus.inQueue, ImportStatus.resume]) {
-    console.log('checkImportQueue method called', contentImportDB);
+    console.info('checkImportQueue method called', contentImportDB);
     if(this.runningImportJobs.length >= maxRunningImportJobs){
-      console.log('no slot available to import, returning');
+      console.debug('no slot available to import, exiting');
       return;
     }
-    const queuedJobs = _.filter(contentImportDB, job => {
-      return _.includes(status, job.importStatus)
-    }) // get IN_QUEUE jobs from db
-    console.log('list of queued jobs', queuedJobs);
+    const queuedJobs = _.filter(contentImportDB, job => _.includes(status, job.importStatus)) // get IN_QUEUE jobs from db
+    console.info('list of queued jobs', queuedJobs);
     if(!queuedJobs.length){
-      console.log('no queued jobs in db');
+      console.debug('no queued jobs in db, exiting');
       return;
     }
-    console.log('entering while loop', maxRunningImportJobs, this.runningImportJobs.length);
+    console.info('entering while loop', maxRunningImportJobs, this.runningImportJobs.length);
     let queuedJobIndex = 0;
     while(maxRunningImportJobs > this.runningImportJobs.length && queuedJobs[queuedJobIndex]){
-      console.log('in while loop', queuedJobs[queuedJobIndex], this.runningImportJobs.length);
+      console.info('in while loop', queuedJobs[queuedJobIndex], this.runningImportJobs.length);
       this.runningImportJobs.push({
         id: queuedJobs[queuedJobIndex].id,
         jobReference: new ImportEcar(queuedJobs[queuedJobIndex], this.importJobCompletionCb.bind(this))
       })
       queuedJobIndex++
     }
-    console.log('exited while loop', queuedJobIndex, this.runningImportJobs.length);
+    console.info('exited while loop', queuedJobIndex, this.runningImportJobs.length);
   }
   private importJobCompletionCb(err: any, data: IContentImport){
     if(err){
-      console.log('error will importing content');
+      console.error('error will importing content with id', data.id, 'err', err);
       return
     }
-    console.log('completed import job',this.runningImportJobs.length, data);
+    console.log('completed import job for ',this.runningImportJobs.length, data);
     _.remove(this.runningImportJobs, job => job.id === data.id) // update meta data in db 
     console.log(this.runningImportJobs.length);
     const importDbResults: IContentImport = _.find(contentImportDB, { id: data.id}); // find import job in db
@@ -190,7 +183,7 @@ class ImportEcar {
     this.workerProcessRef.send({
       message: 'IMPORT',
       ecarFileName: this.contentImportData.ecarSourcePath,
-      ecarEntries: this.contentImportData.importMetaData.ecarContentEntries || {}
+      ecarEntries: this.contentImportData.ecarContentEntries || {}
     });
   }
   copyEcar(ecarFilePath) {
@@ -201,7 +194,7 @@ class ImportEcar {
     this.workerProcessRef.on('message', (data) => {
       console.log('got message from child', data.message);
       if(data.message === "DATA_SYNC_KILL"){
-        this.contentImportData.importMetaData.ecarContentEntries = data.ecarEntries
+        this.contentImportData.ecarContentEntries = data.ecarEntries
         this.workerProcessRef.kill();
       } else if(data.message === 'IMPORT_COMPLETE'){
         this.cb(null, this.contentImportData);
