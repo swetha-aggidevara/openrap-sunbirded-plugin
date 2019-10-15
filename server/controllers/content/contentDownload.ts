@@ -307,7 +307,9 @@ export default class ContentDownload {
                         })
                     }
                 }
-
+                if (completed.length > 10) {
+                    completed.splice(9, completed.length-1);
+                }
                 logger.info(`ReqId = "${req.headers['X-msgid']}": Received all downloaded Contents`);
                 return res.send(Response.success("api.content.download.list", {
                     response: {
