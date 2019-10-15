@@ -79,6 +79,7 @@ export default class ContentDownload {
                     items: downloadFiles,
                     pkgVersion: _.get(parentContentData, 'data.result.content.pkgVersion'),
                     contentType: _.get(parentContentData, 'data.result.content.contentType'),
+                    resourceId: _.get(liveContentData, "data.result.content.identifier")
                 }
                 logger.debug(`Resource inside collection insert to the content_download for content update`);
                 await this.databaseSdk.insert(dbName, {
@@ -178,6 +179,7 @@ export default class ContentDownload {
                     items: downloadFiles,
                     pkgVersion: _.get(liveContentData, 'data.result.content.pkgVersion'),
                     contentType: _.get(liveContentData, 'data.result.content.contentType'),
+                    resourceId: _.get(liveContentData, "data.result.content.identifier")
                 }
                 await this.databaseSdk.insert(dbName, {
                     downloadId: downloadId,
@@ -227,6 +229,7 @@ export default class ContentDownload {
                     items: downloadFiles,
                     pkgVersion: _.get(liveContentData, 'data.result.content.pkgVersion'),
                     contentType: _.get(liveContentData, 'data.result.content.contentType'),
+                    resourceId: _.get(liveContentData, "data.result.content.identifier")
                 }
                 logger.debug(`Resource insert to the content_download for content update`);
                 await this.databaseSdk.insert(dbName, {
