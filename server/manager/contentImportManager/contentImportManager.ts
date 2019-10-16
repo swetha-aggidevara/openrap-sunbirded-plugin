@@ -3,51 +3,12 @@ import * as uuid from 'uuid';
 import * as childProcess from 'child_process';
 import * as os from 'os';
 import * as  fs from 'fs';
+import {IContentImport, ImportStatus, ImportSteps, IContentManifest} from './IContentImport'
 const contentFolder = "./content/";
 const ecarFolder = "./ecar/";
 console.info('System is running on', os.cpus().length, 'cpus');
 const maxRunningImportJobs = 1 || os.cpus().length;
 let contentImportDB: Array<IContentImport> = [];
-
-enum ImportSteps {
-  copyEcar = "COPY_ECAR",
-  parseEcar = "PARSE_ECAR",
-  processManifest = "PROCESS_MANIFEST",
-  extractEcar = "EXTRACT_ECAR",
-  processContent = "PROCESS_CONTENT",
-  saveContent = "SAVE_CONTENT"
-}
-
-enum ImportStatus {
-  inQueue = "IN_QUEUE",
-  resume = "RESUME",
-  inProgress = "IN_PROGRESS",
-  paused = "PAUSED",
-  completed = "COMPLETED",
-  failed = "FAILED",
-  canceled = "CANCELED",
-  reconcile = "RECONCILE"
-}
-
-interface IRunningImportJobs {
-  id: string;
-  jobReference: ImportEcar
-}
-
-interface IContentImport {
-  id: string;
-  importStatus: ImportStatus;
-  createdOn: string | number;
-  ecarSourcePath: string;
-  contentId?: string;
-  contentType?: string;
-  importStep?: ImportSteps;
-  ecarContentEntries?: Object;
-  extractedEntries?: Object;
-  contentToBeAdded?: Object;
-  contentToBeUpdated?: Object;
-  failedReason?: string;
-}
 
 export class ContentImportManager {
 
@@ -186,17 +147,16 @@ export class ContentImportManager {
   }
 }
 
-interface contentManifest {
-  archive: {
-    items: Array<any>;
-  };
-}
 
+interface IRunningImportJobs {
+  id: string;
+  jobReference: ImportEcar
+}
 class ImportEcar {
 
   workerProcessRef: childProcess.ChildProcess;
   contentManifest: any;
-  manifest: contentManifest;
+  manifest: IContentManifest;
 
   constructor(private contentImportData: IContentImport, private cb) { 
     this.workerProcessRef = childProcess.fork('./contentImportHelper');
@@ -221,10 +181,12 @@ class ImportEcar {
       if (data.message === ImportSteps.copyEcar) {
         this.copyEcar()
       } else if (data.message === ImportSteps.parseEcar) {
-        this.processManifest(data.contentImportData)
+        this.extractEcar(data.contentImportData)
       } else if (data.message === ImportSteps.extractEcar) {
         this.processContents(data.contentImportData)
-      } else if (data.message === "DATA_SYNC_KILL") {
+      } else if(data.message === 'DB_CONTENTS') {
+        this.fetchContentsFromDb()
+      }else if (data.message === "DATA_SYNC_KILL") {
         this.contentImportData = data.contentImportData;
         this.workerProcessRef.kill();
         await this.updateStatusInDB();
@@ -237,12 +199,37 @@ class ImportEcar {
       }
     });
   }
-  private async copyEcar(){
-    this.contentImportData.importStep = ImportSteps.parseEcar
-    await this.updateStatusInDB();
+  private async extractEcar(contentImportData?) {
+    try {
+      if (contentImportData) {
+        this.contentImportData = contentImportData;
+        this.contentImportData.importStep = ImportSteps.extractEcar;
+        await this.updateStatusInDB();
+      }
+      const contentIds = [this.contentImportData.id];
+      if(this.contentImportData.childNodes){
+        contentIds.push(...this.contentImportData.childNodes)
+      }
+      const dbContents = await this.getContentsFromDB(contentIds).catch(err => []);
+      this.workerProcessRef.send({
+        message: this.contentImportData.importStep,
+        contentImportData: this.contentImportData,
+        dbContents
+      });
+    } catch (err) {
+      this.cb('ERROR', this.contentImportData);
+    }
+  }
+  async fetchContentsFromDb(){
+    const contentIds = [this.contentImportData.id];
+    if(this.contentImportData.childNodes){
+      contentIds.push(...this.contentImportData.childNodes)
+    }
+    const dbContents = await this.getContentsFromDB(contentIds).catch(err => []);
     this.workerProcessRef.send({
-      message: this.contentImportData.importStep || ImportSteps.parseEcar,
-      contentImportData: this.contentImportData
+      message: 'DB_CONTENTS',
+      contentImportData: this.contentImportData,
+      dbContents
     });
   }
   async startImport(step = this.contentImportData.importStep) {
@@ -256,13 +243,13 @@ class ImportEcar {
       }
       case ImportSteps.parseEcar: {
         this.workerProcessRef.send({
-          message: this.contentImportData.importStep || ImportSteps.parseEcar,
+          message: this.contentImportData.importStep,
           contentImportData: this.contentImportData
         });
         break;
       }
-      case ImportSteps.processManifest: {
-        this.processManifest()
+      case ImportSteps.extractEcar: {
+        this.extractEcar()
         break;
       }
       default: {
@@ -271,75 +258,20 @@ class ImportEcar {
       }
     }
   }
+  processManifest(){
 
+  }
+  private async copyEcar(){
+    this.contentImportData.importStep = ImportSteps.parseEcar
+    await this.updateStatusInDB();
+    this.workerProcessRef.send({
+      message: this.contentImportData.importStep,
+      contentImportData: this.contentImportData
+    });
+  }
   async updateStatusInDB() {
     let importDbResults: IContentImport = _.find(contentImportDB, { id: this.contentImportData.id });
     importDbResults = { ...importDbResults, ...this.contentImportData };
-  }
-
-
-  private async processManifest(contentImportData?) {
-    try {
-      if (contentImportData) {
-        this.contentImportData = contentImportData;
-        this.contentImportData.importStep = ImportSteps.processManifest
-        await this.updateStatusInDB();
-      }
-      this.manifest = JSON.parse(fs.readFileSync(contentFolder + '/' + this.contentImportData.id + '/manifest.json', 'utf8'));
-      let parent = _.get(this.manifest, 'archive.items[0]');
-      let resources = [];
-      if (_.get(parent, 'visibility') !== 'Default') {
-        throw 'INVALID_MANIFEST'
-      }
-      if (parent.compatibilityLevel > 1) { // config.get("CONTENT_COMPATIBILITY_LEVEL")
-        throw `UNSUPPORTED_COMPATIBILITY_LEVEL`;
-      }
-
-      const dbContents = await this.getContentsFromDB([parent.identifier]).catch(err => []);
-      if (dbContents && dbContents.length) {
-        // TODO: if content already exist in app 
-        // 1.check compatibility level 
-        // 2.compatibility level of childNodes of collection if update available update content
-        // 3.collection ecar has more content ecar that in app, add those missing content to app
-        this.cb(null, this.contentImportData);
-        return;
-      }
-      this.contentImportData.contentId = parent.identifier;
-      this.contentImportData.contentType = parent.mimeType;
-      if (this.contentImportData.contentType === 'application/vnd.ekstep.content-collection') {
-        let itemsClone = _.cloneDeep(_.get(this.manifest, 'archive.items'));
-        parent.children = this.createHierarchy(itemsClone, parent);
-        parent.baseDir = `content/${parent.identifier}`;
-        parent.desktopAppMetadata = {
-          // "ecarFile": resource.identifier + '.ecar',  // relative to ecar folder
-          "addedUsing": 'IMPORT',// IAddedUsingType.import,
-          "createdOn": Date.now(),
-          "updatedOn": Date.now(),
-        }
-        resources = _.filter(_.get(this.manifest, 'archive.items'), item => (item.mimeType !== 'application/vnd.ekstep.content-collection'))
-          .map(resource => {
-            resource.baseDir = `content/${resource.identifier}`;
-            resource.desktopAppMetadata = {
-              // "ecarFile": resource.identifier + '.ecar',  // relative to ecar folder
-              "addedUsing": 'IMPORT',// IAddedUsingType.import,
-              "createdOn": Date.now(),
-              "updatedOn": Date.now(),
-            }
-            resource.appIcon = resource.appIcon ? `content/${resource.appIcon}` : resource.appIcon;
-            return resource;
-          });
-      }
-      this.contentImportData.importStep = ImportSteps.extractEcar;
-      this.contentImportData.extractedEntries = { 'manifest.json': true }
-      await this.updateStatusInDB();
-      this.workerProcessRef.send({
-        message: this.contentImportData.importStep,
-        contentImportData: this.contentImportData
-      });
-      this.cb(null, this.contentImportData);
-    } catch (err) {
-      this.cb(null, this.contentImportData);
-    }
   }
   private async getContentsFromDB(contentIds: Array<string>) {
     return Promise.resolve([]);
