@@ -47,7 +47,6 @@ export default class ContentDownload {
                 let content = await HTTPService.get(`${process.env.APP_BASE_URL}/api/content/v1/read/${req.params.id}`, {}).toPromise()
                 logger.info(`ReqId = "${req.headers['X-msgid']}": Content: ${_.get(content, 'data.result.content.identifier')} found from content read api`);
                 if (_.get(content, 'data.result.content.mimeType')) {
-                    let downloadManager = containerAPI.getDownloadManagerInstance(this.pluginId)
                     // check if the content is type collection
                     logger.debug(`ReqId = "${req.headers['X-msgid']}": check if the content is of type collection`)
                     if (_.get(content, 'data.result.content.mimeType') !== "application/vnd.ekstep.content-collection") {
@@ -59,7 +58,7 @@ export default class ContentDownload {
                             url: (_.get(content, "data.result.content.downloadUrl") as string),
                             size: (_.get(content, "data.result.content.size") as number)
                         }]
-                        let downloadId = await downloadManager.download(downloadFiles, 'ecars')
+                        let downloadId = await this.downloadManager.download(downloadFiles, 'ecars')
                         let queueMetaData = {
                             mimeType: _.get(content, 'data.result.content.mimeType'),
                             items: downloadFiles,
@@ -78,7 +77,7 @@ export default class ContentDownload {
                             updatedOn: Date.now()
                         })
                         logger.info(`ReqId = "${req.headers['X-msgid']}": Content Inserted in Database Successfully`);
-                        return res.send(Response.success("api.content.download", { downloadId }));
+                        return res.send(Response.success("api.content.download", { downloadId },req));
                         // return response the downloadId
                     } else {
                         logger.info(`ReqId = "${req.headers['X-msgid']}": Found content:${_.get(content, 'data.result.content.mimeType')} is of type collection`)
@@ -119,7 +118,7 @@ export default class ContentDownload {
                             }
 
                         }
-                        let downloadId = await downloadManager.download(downloadFiles, 'ecars')
+                        let downloadId = await this.downloadManager.download(downloadFiles, 'ecars')
                         let queueMetaData = {
                             mimeType: _.get(content, 'data.result.content.mimeType'),
                             items: downloadFiles,
@@ -138,7 +137,7 @@ export default class ContentDownload {
                             updatedOn: Date.now()
                         })
                         logger.info(`ReqId = "${req.headers['X-msgid']}": Collection inserted successfully`);
-                        return res.send(Response.success("api.content.download", {downloadId}));
+                        return res.send(Response.success("api.content.download", {downloadId},req));
                     }
                 } else {
                     logger.error(`ReqId = "${req.headers['X-msgid']}": Received error while processing download request ${content}, for content ${req.params.id}`);
@@ -319,7 +318,7 @@ export default class ContentDownload {
                             completed: _.take(completed, 10)
                         }
                     }
-                }));
+                },req));
 
             } catch (error) {
                 logger.error(`ReqId = "${req.headers['X-msgid']}": Error while processing the list request and err.message: ${error.message}`)

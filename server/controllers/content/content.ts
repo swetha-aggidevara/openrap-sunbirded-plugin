@@ -88,10 +88,10 @@ export default class Content {
                     logger.debug(`ReqId = "${req.headers['X-msgid']}": Call checkForUpdate() to check whether update is required for content: `, _.get(content, 'identifier'));
                     content =   await this.checkForUpdates(content, req)
                     resObj['content'] = content;
-                    return res.send(Response.success('api.content.read', resObj));
+                    return res.send(Response.success('api.content.read', resObj,req));
                 } else {
                     resObj['content'] = content;
-                    return res.send(Response.success('api.content.read', resObj));
+                    return res.send(Response.success('api.content.read', resObj,req));
                 }
             } catch (error) {
                 logger.error(
@@ -144,7 +144,7 @@ export default class Content {
                     };
                 }
 
-                return res.send(Response.success('api.content.search', resObj));
+                return res.send(Response.success('api.content.search', resObj,req));
             })
             .catch(err => {
                 console.log(err);
@@ -244,7 +244,7 @@ export default class Content {
                                             content.name
                                             }.ecar`
                                     }
-                                })
+                                },req)
                             );
                             logger.info(`ReqId = "${req.headers['X-msgid']}": Content:${id} Exported successfully`);
                         }
@@ -349,7 +349,7 @@ export default class Content {
                                     '/temp/' +
                                     `${parent.name}.ecar`
                             }
-                        })
+                        },req)
                     );
                     logger.info(`ReqId = "${req.headers['X-msgid']}": Collection:${id} Exported successfully`)
                 }
