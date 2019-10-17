@@ -3,20 +3,20 @@ export enum ImportSteps {
   parseEcar = "PARSE_ECAR",
   processManifest = "PROCESS_ECAR",
   extractEcar = "EXTRACT_ECAR",
-  processContent = "PROCESS_CONTENT",
+  processContents = "PROCESS_CONTENTS",
   saveContent = "SAVE_CONTENT",
   complete = "COMPLETE"
 }
 
 export enum ImportStatus {
+  reconcile = "RECONCILE",
   inQueue = "IN_QUEUE",
   resume = "RESUME",
   inProgress = "IN_PROGRESS",
   paused = "PAUSED",
   completed = "COMPLETED",
   failed = "FAILED",
-  canceled = "CANCELED",
-  reconcile = "RECONCILE"
+  canceled = "CANCELED"
 }
 
 export interface IContentImport {

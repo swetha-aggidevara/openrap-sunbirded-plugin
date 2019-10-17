@@ -8,7 +8,13 @@ const contentFolder = "./content/";
 const ecarFolder = "./ecar/";
 console.info('System is running on', os.cpus().length, 'cpus');
 const maxRunningImportJobs = 1 || os.cpus().length;
-let contentImportDB: Array<IContentImport> = [];
+let contentImportDB: Array<IContentImport> = [{
+  id: uuid(),
+  importStatus: ImportStatus.reconcile,
+  createdOn: Date.now(),
+  ecarSourcePath: './src/10 ಗಣಿತ ಭಾಗ 1.ecar',
+  importStep: ImportSteps.copyEcar
+}];
 
 export class ContentImportManager {
 
@@ -172,8 +178,62 @@ class ImportEcar {
       console.log('worker exited:', code, signal);
     });
   }
-  processContents(contentImportData){
-    this.cb(null, this.contentImportData);
+  async processContents(contentImportData?){
+    try {
+      if (contentImportData) {
+        this.contentImportData = contentImportData;
+        this.contentImportData.importStep = ImportSteps.processContents;
+        await this.syncStatusToDb();
+      }
+      const contentIds = [this.contentImportData.id];
+      if(this.contentImportData.childNodes){
+        contentIds.push(...this.contentImportData.childNodes)
+      }
+      const dbContents = await this.getContentsFromDB(contentIds).catch(err => []);
+      await this.saveContentsToDb(dbContents)
+      this.cb(null, this.contentImportData);
+    } catch (err) {
+      this.cb('ERROR', this.contentImportData);
+    }
+  }
+  async saveContentsToDb(dbContents){
+    let parent = _.get(this.contentImportData.manifest, 'archive.items[0]');
+    let resources = [];
+    parent.baseDir = `content/${parent.identifier}`;
+    parent.desktopAppMetadata = {
+      "addedUsing": 'IMPORT',// IAddedUsingType.import,
+      "createdOn": Date.now(),
+      "updatedOn": Date.now(),
+    }
+    if (this.contentImportData.contentType === 'application/vnd.ekstep.content-collection') {
+    let itemsClone = _.cloneDeep(_.get(this.manifest, 'archive.items'));
+    parent.children = this.createHierarchy(itemsClone, parent);
+    resources = _.filter(_.get(this.manifest, 'archive.items'), item => (item.mimeType !== 'application/vnd.ekstep.content-collection'))
+      .map(resource => {
+        resource.baseDir = `content/${resource.identifier}`;
+        resource.desktopAppMetadata = {
+          "addedUsing": 'IMPORT',// IAddedUsingType.import,
+          "createdOn": Date.now(),
+          "updatedOn": Date.now(),
+        }
+        resource.appIcon = resource.appIcon ? `content/${resource.appIcon}` : resource.appIcon;
+        return resource;
+      });
+    }
+    // do bulk update of contents
+  }
+  async importComplete(contentImportData){
+    try {
+      if (contentImportData) {
+        this.contentImportData = contentImportData;
+        this.contentImportData.importStep = ImportSteps.complete;
+        await this.syncStatusToDb();
+      }
+      // rename base content folder
+      this.cb(null, this.contentImportData);
+    } catch (err) {
+      this.cb('ERROR', this.contentImportData);
+    }
   }
   async handleChildProcessMessage() {
     this.workerProcessRef.on('message', async (data) => {
@@ -184,12 +244,12 @@ class ImportEcar {
         this.extractEcar(data.contentImportData)
       } else if (data.message === ImportSteps.extractEcar) {
         this.processContents(data.contentImportData)
-      } else if(data.message === 'DB_CONTENTS') {
-        this.fetchContentsFromDb()
-      }else if (data.message === "DATA_SYNC_KILL") {
+      } else if(data.message === ImportSteps.complete) {
+        this.importComplete(data.contentImportData)
+      } else if (data.message === "DATA_SYNC_KILL") {
         this.contentImportData = data.contentImportData;
         this.workerProcessRef.kill();
-        await this.updateStatusInDB();
+        await this.syncStatusToDb();
       } else if (data.message === 'IMPORT_ERROR') {
         this.cb(data.message, this.contentImportData);
         console.log('handle error');
@@ -204,7 +264,7 @@ class ImportEcar {
       if (contentImportData) {
         this.contentImportData = contentImportData;
         this.contentImportData.importStep = ImportSteps.extractEcar;
-        await this.updateStatusInDB();
+        await this.syncStatusToDb();
       }
       const contentIds = [this.contentImportData.id];
       if(this.contentImportData.childNodes){
@@ -219,18 +279,6 @@ class ImportEcar {
     } catch (err) {
       this.cb('ERROR', this.contentImportData);
     }
-  }
-  async fetchContentsFromDb(){
-    const contentIds = [this.contentImportData.id];
-    if(this.contentImportData.childNodes){
-      contentIds.push(...this.contentImportData.childNodes)
-    }
-    const dbContents = await this.getContentsFromDB(contentIds).catch(err => []);
-    this.workerProcessRef.send({
-      message: 'DB_CONTENTS',
-      contentImportData: this.contentImportData,
-      dbContents
-    });
   }
   async startImport(step = this.contentImportData.importStep) {
     switch (step) {
@@ -252,6 +300,10 @@ class ImportEcar {
         this.extractEcar()
         break;
       }
+      case ImportSteps.processContents: {
+        this.processContents()
+        break;
+      }
       default: {
         this.cb('UNHANDLED_ERROR', this.contentImportData);
         break;
@@ -263,13 +315,13 @@ class ImportEcar {
   }
   private async copyEcar(){
     this.contentImportData.importStep = ImportSteps.parseEcar
-    await this.updateStatusInDB();
+    await this.syncStatusToDb();
     this.workerProcessRef.send({
       message: this.contentImportData.importStep,
       contentImportData: this.contentImportData
     });
   }
-  async updateStatusInDB() {
+  async syncStatusToDb() {
     let importDbResults: IContentImport = _.find(contentImportDB, { id: this.contentImportData.id });
     importDbResults = { ...importDbResults, ...this.contentImportData };
   }
