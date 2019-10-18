@@ -130,6 +130,20 @@
                     "name": "search"
                 }
             ]
+        },
+        {
+            "name": "content_import",
+            "indexes": [
+                {
+                    "index": {
+                        "fields": [
+                            "createdOn"
+                        ]
+                    },
+                    "type": "json",
+                    "name": "created_on_sort_index"
+                }
+            ]
         }
     ]
 }

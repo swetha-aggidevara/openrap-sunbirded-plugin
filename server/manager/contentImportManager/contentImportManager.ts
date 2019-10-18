@@ -2,10 +2,22 @@ import * as  _ from 'lodash';
 import * as uuid from 'uuid';
 import * as childProcess from 'child_process';
 import * as os from 'os';
-import * as  fs from 'fs';
+import * as fs from 'fs';
 import {IContentImport, ImportStatus, ImportSteps, IContentManifest} from './IContentImport'
+import { Inject } from 'typescript-ioc';
+import * as path from 'path';
+import * as glob from 'glob';
+import DatabaseSDK from './../../sdk/database';
+import { logger } from '@project-sunbird/ext-framework-server/logger';
+import * as fse from 'fs-extra';
+import { containerAPI } from 'OpenRAP/dist/api';
+import { manifest } from '../../manifest';
+import config from '../../config';
+import { IDesktopAppMetadata, IAddedUsingType } from '../../controllers/content/IContent';
+import { fork } from 'child_process';
 const contentFolder = "./content/";
 const ecarFolder = "./ecar/";
+
 console.info('System is running on', os.cpus().length, 'cpus');
 const maxRunningImportJobs = 1 || os.cpus().length;
 let contentImportDB: Array<IContentImport> = [
@@ -13,13 +25,31 @@ let contentImportDB: Array<IContentImport> = [
 //   id: '123',
 //   importStatus: ImportStatus.reconcile,
 //   createdOn: Date.now(),
-//   ecarSourcePath: './src/10 ಗಣಿತ ಭಾಗ 1.ecar',
+//   ecarSourcePath: '/Users/anoop/Documents/JS:TS Basics/src/Science - Part 2.ecar',
 //   importStep: ImportSteps.copyEcar
 // }
 ];
 
 export class ContentImportManager {
 
+  private pluginId: string;
+  private contentFilesPath: string;
+  private downloadsFolderPath: string;
+
+
+  private fileSDK;
+
+  @Inject dbSDK: DatabaseSDK;
+
+  private watcher: any;
+
+  initialize(pluginId, contentFilesPath, downloadsFolderPath) {
+      this.pluginId = pluginId;
+      this.downloadsFolderPath = downloadsFolderPath;
+      this.contentFilesPath = contentFilesPath;
+      this.dbSDK.initialize(pluginId);
+      this.fileSDK = containerAPI.getFileSDKInstance(manifest.id);
+  }
   private runningImportJobs: Array<IRunningImportJobs> = [];
   /*
   this method will be called when app initializes, all task related to import should be called after this method completes

@@ -9,6 +9,7 @@ import * as fs from "fs";
 import { logger } from "@project-sunbird/ext-framework-server/logger";
 import * as path from "path";
 import ContentManager from "../../manager/ContentManager";
+import {ContentImportManager} from "../../manager/contentImportManager"
 import * as uuid from "uuid";
 import Hashids from "hashids";
 import { containerAPI } from "OpenRAP/dist/api";
@@ -32,12 +33,20 @@ export default class Content {
     @Inject
     private contentManager: ContentManager;
 
+    @Inject
+    private contentImportManager: ContentImportManager;
+
     private fileSDK;
 
     constructor(manifest: Manifest) {
         this.databaseSdk.initialize(manifest.id);
         this.fileSDK = containerAPI.getFileSDKInstance(manifest.id);
         this.contentManager.initialize(
+            manifest.id,
+            this.fileSDK.getAbsPath(this.contentsFilesPath),
+            this.fileSDK.getAbsPath(this.ecarsFolderPath)
+        );
+        this.contentImportManager.initialize(
             manifest.id,
             this.fileSDK.getAbsPath(this.contentsFilesPath),
             this.fileSDK.getAbsPath(this.ecarsFolderPath)
