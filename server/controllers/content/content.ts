@@ -516,16 +516,10 @@ export default class Content {
                 let onlineContent = await HTTPService.get(`${process.env.APP_BASE_URL}/api/content/v1/read/${offlineContent.identifier}?field=pkgVersion`, {}).toPromise();
                 if (_.get(offlineContent, 'pkgVersion') < _.get(onlineContent, 'data.result.content.pkgVersion')) {
                     offlineContent.desktopAppMetadata.updateAvailable = true;
-                    offlineContent.desktopAppMetadata.lastUpdateCheckedOn = Date.now();
-                    offlineContent.desktopAppMetadata.updatedOn = Date.now();
-                    await this.databaseSdk.update('content', offlineContent.identifier, offlineContent);
-                    resolve(offlineContent);
-                } else {
-                    offlineContent.desktopAppMetadata.lastUpdateCheckedOn = Date.now();
-                    offlineContent.desktopAppMetadata.updatedOn = Date.now();
-                    await this.databaseSdk.update('content', offlineContent.identifier, offlineContent);
-                    resolve(offlineContent);
                 }
+                offlineContent.desktopAppMetadata.lastUpdateCheckedOn = Date.now();
+                await this.databaseSdk.update('content', offlineContent.identifier, offlineContent);
+                resolve(offlineContent);
             } catch (err) {
                 logger.error(`ReqId = "${req.headers['X-msgid']}": Error occured while checking content update : ${err}`);
                 resolve(offlineContent);
