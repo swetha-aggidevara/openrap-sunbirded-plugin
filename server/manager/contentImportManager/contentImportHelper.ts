@@ -3,7 +3,6 @@
 import { IContentImport, ImportStatus, ImportSteps, IContentManifest } from './IContentImport'
 const contentFolder = "./content/";
 const ecarFolder = "./ecar/";
-import * as uuid from 'uuid';
 import * as  StreamZip from 'node-stream-zip';
 import * as  fs from 'fs';
 import * as  _ from 'lodash';
@@ -31,11 +30,11 @@ const parseEcar = async () => {
     let contentBasePath = contentFolder + contentImportData.id
     zipHandler = await loadZipHandler(ecarBasePath);
     createDirectory(contentBasePath)
-    contentImportData.ecarContentEntries = zipHandler.entries();
-    if (!contentImportData.ecarContentEntries['manifest.json']) {
+    const ecarContentEntries = zipHandler.entries();
+    if (!ecarContentEntries['manifest.json']) {
       throw "MANIFEST_MISSING";
     }
-    const manifestPath = getDestFilePath(contentImportData.ecarContentEntries['manifest.json']);
+    const manifestPath = getDestFilePath(ecarContentEntries['manifest.json']);
     await extractFile(zipHandler, manifestPath)
     contentImportData.manifest = JSON.parse(fs.readFileSync(contentBasePath + '/manifest.json', 'utf8'));
     let parent = _.get(contentImportData.manifest, 'archive.items[0]');
@@ -52,7 +51,7 @@ const parseEcar = async () => {
         item => (item.mimeType !== 'application/vnd.ekstep.content-collection'))
         .map(item => item.identifier)
     }
-    contentImportData.extractedEntries = { 'manifest.json': true }
+    contentImportData.extractedContentEntries = { 'manifest.json': true }
     process.send({ message: ImportSteps.parseEcar, contentImportData })
   } catch (err) {
     console.log('error while importing ecar', err);
@@ -74,7 +73,7 @@ const extractEcar = async () => {
     let ecarBasePath = ecarFolder + contentImportData.id + '.ecar';
     let contentBasePath = contentFolder + contentImportData.id
     console.log('contentBasePath and ecarBasePath in extractEcar', contentBasePath, ecarBasePath);
-    console.log('ecarEntries extracted already', contentImportData.extractedEntries);
+    console.log('ecarEntries extracted already', contentImportData.extractedContentEntries);
     if (!zipHandler) {
       zipHandler = await loadZipHandler(ecarBasePath);
     }
@@ -82,10 +81,10 @@ const extractEcar = async () => {
     _.get(contentImportData.manifest, 'archive.items')
       .forEach(item => contentMap[item.identifier] = item);
     for (const entry of _.values(zipHandler.entries()) as any) {
-      if (!contentImportData.extractedEntries[entry.name]) {
+      if (!contentImportData.extractedContentEntries[entry.name]) {
         const pathObj = getDestFilePath(entry, contentMap);
         await extractFile(zipHandler, pathObj)
-        contentImportData.extractedEntries[entry.name] = true;
+        contentImportData.extractedContentEntries[entry.name] = true;
       } else {
         console.log('entry extracted already', entry);
       }

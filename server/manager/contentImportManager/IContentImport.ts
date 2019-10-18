@@ -4,7 +4,6 @@ export enum ImportSteps {
   processManifest = "PROCESS_ECAR",
   extractEcar = "EXTRACT_ECAR",
   processContents = "PROCESS_CONTENTS",
-  saveContent = "SAVE_CONTENT",
   complete = "COMPLETE"
 }
 
@@ -27,10 +26,8 @@ export interface IContentImport {
   contentId?: string;
   contentType?: string;
   importStep?: ImportSteps;
-  ecarContentEntries?: Object;
-  extractedEntries?: Object;
-  contentToBeAdded?: Object;
-  contentToBeUpdated?: Object;
+  extractedContentEntries?: Object;
+  artifactUnzipped?: Object;
   failedReason?: string;
   manifest?: object;
   childNodes?: Array<string>;

@@ -8,13 +8,7 @@ const contentFolder = "./content/";
 const ecarFolder = "./ecar/";
 console.info('System is running on', os.cpus().length, 'cpus');
 const maxRunningImportJobs = 1 || os.cpus().length;
-let contentImportDB: Array<IContentImport> = [{
-  id: uuid(),
-  importStatus: ImportStatus.reconcile,
-  createdOn: Date.now(),
-  ecarSourcePath: './src/10 ಗಣಿತ ಭಾಗ 1.ecar',
-  importStep: ImportSteps.copyEcar
-}];
+let contentImportDB: Array<IContentImport> = [];
 
 export class ContentImportManager {
 
@@ -108,10 +102,11 @@ export class ContentImportManager {
       if (!inProgressJob) {
         throw "INVALID_OPERATION"
       }
-      const data = await inProgressJob.jobReference.pause();
+      await inProgressJob.jobReference.pause();
       _.remove(this.runningImportJobs, job => job.id === inProgressJob.id) // update meta data in db 
     }
     importDbResults.importStatus = ImportStatus.paused; // update db with new status
+    this.checkImportQueue();
   }
 
   public async resumeImport(importId: string) {
@@ -137,6 +132,7 @@ export class ContentImportManager {
       _.remove(this.runningImportJobs, job => job.id === inProgressJob.id)
     }
     importDbResults.importStatus = ImportStatus.canceled; // update db with new status
+    this.checkImportQueue();
   }
 
   private async getUnregisteredEcars(ecarPaths: Array<string>): Promise<Array<string>> {
@@ -169,13 +165,18 @@ class ImportEcar {
     this.handleChildProcessMessage();
     this.handleWorkerCloseEvents();
   }
-
   handleWorkerCloseEvents() {
     this.workerProcessRef.on('close', (data) => {
-      console.log('worker close signal', data);
+      console.log('------------------CHILD_PROCESS_CLOSE--------------------', data);
+      if([ImportStatus.canceled, ImportStatus.paused].includes(this.contentImportData.importStatus)){
+        this.handleError("CHILD_PROCESS_CLOSE");
+      }
     });
     this.workerProcessRef.on('exit', (code, signal) => {
-      console.log('worker exited:', code, signal);
+      console.log('------------------CHILD_PROCESS_EXIT-------------------', code, signal);
+      if([ImportStatus.canceled, ImportStatus.paused].includes(this.contentImportData.importStatus)){
+        this.handleError("CHILD_PROCESS_EXIT");
+      }
     });
   }
   async processContents(contentImportData?){
@@ -196,7 +197,7 @@ class ImportEcar {
       this.cb('ERROR', this.contentImportData);
     }
   }
-  async saveContentsToDb(dbContents){
+  private async saveContentsToDb(dbContents){
     let parent = _.get(this.contentImportData.manifest, 'archive.items[0]');
     let resources = [];
     parent.baseDir = `content/${parent.identifier}`;
@@ -237,7 +238,6 @@ class ImportEcar {
   }
   async handleChildProcessMessage() {
     this.workerProcessRef.on('message', async (data) => {
-      console.log('got message from child', data.message);
       if (data.message === ImportSteps.copyEcar) {
         this.copyEcar()
       } else if (data.message === ImportSteps.parseEcar) {
@@ -247,17 +247,22 @@ class ImportEcar {
       } else if(data.message === ImportSteps.complete) {
         this.importComplete(data.contentImportData)
       } else if (data.message === "DATA_SYNC_KILL") {
-        this.contentImportData = data.contentImportData;
-        this.workerProcessRef.kill();
-        await this.syncStatusToDb();
+        this.handleKillSignal(data.contentImportData);
       } else if (data.message === 'IMPORT_ERROR') {
-        this.cb(data.message, this.contentImportData);
-        console.log('handle error');
+        this.handleError(data.message, data.contentImportData);
       } else {
-        console.log('handle error');
-        this.cb('UNHANDLED_ERROR', this.contentImportData);
+        this.handleError('UNHANDLED_ERROR', data.contentImportData);
       }
     });
+  }
+  private async handleError(message, contentImportData?){
+    console.error('Got error while importing ecar with download id:', this.contentImportData.id);
+    if (contentImportData) {
+      this.contentImportData = contentImportData;
+      this.contentImportData.importStep = ImportSteps.extractEcar;
+      await this.syncStatusToDb();
+    }
+    this.cb(message, this.contentImportData);
   }
   private async extractEcar(contentImportData?) {
     try {
@@ -306,12 +311,10 @@ class ImportEcar {
       }
       default: {
         this.cb('UNHANDLED_ERROR', this.contentImportData);
+        this.handleError('UNHANDLED_ERROR');
         break;
       }
     }
-  }
-  processManifest(){
-
   }
   private async copyEcar(){
     this.contentImportData.importStep = ImportSteps.parseEcar
@@ -321,32 +324,34 @@ class ImportEcar {
       contentImportData: this.contentImportData
     });
   }
-  async syncStatusToDb() {
+  private async syncStatusToDb() {
     let importDbResults: IContentImport = _.find(contentImportDB, { id: this.contentImportData.id });
     importDbResults = { ...importDbResults, ...this.contentImportData };
   }
   private async getContentsFromDB(contentIds: Array<string>) {
     return Promise.resolve([]);
   }
-
-  async resume() {
-    console.log('resume content import');
-    this.startImport()
-  }
-
   async cancel() {
-    console.log('killing child process inOrder to cancel import');
-    // this.workerProcessRef.send({ message: 'KILL' });
-    this.workerProcessRef.kill();
-  }
-
-  async pause() {
-    console.log('pause import');
+    console.log('cancel request');
+    this.contentImportData.importStatus = ImportStatus.canceled
     this.workerProcessRef.send({ message: 'KILL' });
   }
-  createHierarchy(items: any[], parent: any, reqID?: any, tree?: any[]): any {
-    console.debug(`ReqId = "${reqID}": creating Hierarchy for the Collection`);
-    console.info(` ReqId = "${reqID}": Getting child contents for Parent: ${_.get(parent, 'identifier')}`);
+  async pause() {
+    console.log('pause import');
+    this.contentImportData.importStatus = ImportStatus.paused
+    this.workerProcessRef.send({ message: 'KILL' });
+  }
+  async handleKillSignal(contentImportData){
+    this.workerProcessRef.kill();
+    if(this.contentImportData.importStatus === ImportStatus.paused){
+      this.contentImportData = contentImportData;
+      this.contentImportData.importStatus = ImportStatus.paused
+      await this.syncStatusToDb();
+    } else {
+      // clear all content and ecar folders
+    }
+  }
+  private createHierarchy(items: any[], parent: any, tree?: any[]): any {
     tree = typeof tree !== 'undefined' ? tree : [];
     parent = typeof parent !== 'undefined' ? parent : { visibility: 'Default' };
     if (parent.children && parent.children.length) {
@@ -365,10 +370,9 @@ class ImportEcar {
         } else {
           parent['children'] = children;
         }
-        _.each(children, (child) => { this.createHierarchy(items, child, reqID) });
+        _.each(children, (child) => { this.createHierarchy(items, child) });
       }
     }
-    console.info(` ReqId = "${reqID}": Child contents are found for Parent: ${_.get(parent, 'identifier')}`);
     return tree;
   }
 }
