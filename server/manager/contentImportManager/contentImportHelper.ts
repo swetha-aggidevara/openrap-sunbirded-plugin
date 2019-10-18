@@ -78,17 +78,22 @@ const extractEcar = async () => {
       zipHandler = await loadZipHandler(ecarBasePath);
     }
     let contentMap = {};
+    let artifactToBeUnzipped = [];
     _.get(contentImportData.manifest, 'archive.items')
       .forEach(item => contentMap[item.identifier] = item);
     for (const entry of _.values(zipHandler.entries()) as any) {
       if (!contentImportData.extractedContentEntries[entry.name]) {
         const pathObj = getDestFilePath(entry, contentMap);
+        if(entry.name.endsWith('.zip')){
+          artifactToBeUnzipped.push(pathObj.dest);
+        }
         await extractFile(zipHandler, pathObj)
         contentImportData.extractedContentEntries[entry.name] = true;
       } else {
         console.log('entry extracted already', entry);
       }
     }
+    await unzipArtifacts(artifactToBeUnzipped);
     process.send({message: ImportSteps.extractEcar, contentImportData})
   } catch (err) {
     console.log('error while importing ecar', err);
@@ -99,6 +104,14 @@ const extractEcar = async () => {
       zipHandler.close();
     }
   }
+}
+const unzipArtifacts = async (artifactToBeUnzipped = []) => {
+  artifactToBeUnzipped.forEach(artifact => {
+    if(contentImportData.artifactUnzipped[artifact]){
+      contentImportData.artifactUnzipped[artifact] = true;
+      // unzip artifact
+    }
+  })
 }
 const getDestFilePath = (entry, contentMap = {}) => {
   let patObj = {

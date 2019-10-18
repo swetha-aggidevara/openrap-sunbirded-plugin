@@ -1,7 +1,6 @@
 export enum ImportSteps {
   copyEcar = "COPY_ECAR",
   parseEcar = "PARSE_ECAR",
-  processManifest = "PROCESS_ECAR",
   extractEcar = "EXTRACT_ECAR",
   processContents = "PROCESS_CONTENTS",
   complete = "COMPLETE"
