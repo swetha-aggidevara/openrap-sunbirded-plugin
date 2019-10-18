@@ -52,6 +52,7 @@ const parseEcar = async () => {
         .map(item => item.identifier)
     }
     contentImportData.extractedContentEntries = { 'manifest.json': true }
+    contentImportData.artifactUnzipped = {};
     process.send({ message: ImportSteps.parseEcar, contentImportData })
   } catch (err) {
     console.log('error while importing ecar', err);
@@ -93,7 +94,9 @@ const extractEcar = async () => {
         console.log('entry extracted already', entry);
       }
     }
+    console.info('content extracted for importId', contentImportData.id)
     await unzipArtifacts(artifactToBeUnzipped);
+    console.info('artifacts unzipped for importId', contentImportData.id)
     process.send({message: ImportSteps.extractEcar, contentImportData})
   } catch (err) {
     console.log('error while importing ecar', err);
@@ -131,7 +134,6 @@ const getDestFilePath = (entry, contentMap = {}) => {
       }
     }
   });
-  console.log('-------------', patObj)
   return patObj;
 }
 const extractZipFiles = async () => {
@@ -164,7 +166,9 @@ const createDirectory = async (path) => {
 }
 
 process.on('message', (data) => {
-  contentImportData = data.contentImportData;
+  if(_.includes([ImportSteps.copyEcar, ImportSteps.parseEcar, ImportSteps.extractEcar], data.message)){
+    contentImportData = data.contentImportData;
+  }
   if (data.message === ImportSteps.copyEcar) {
     copyEcar()
   } else if (data.message === ImportSteps.parseEcar) {

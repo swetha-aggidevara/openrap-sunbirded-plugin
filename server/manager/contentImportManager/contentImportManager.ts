@@ -8,7 +8,15 @@ const contentFolder = "./content/";
 const ecarFolder = "./ecar/";
 console.info('System is running on', os.cpus().length, 'cpus');
 const maxRunningImportJobs = 1 || os.cpus().length;
-let contentImportDB: Array<IContentImport> = [];
+let contentImportDB: Array<IContentImport> = [
+//   {
+//   id: '123',
+//   importStatus: ImportStatus.reconcile,
+//   createdOn: Date.now(),
+//   ecarSourcePath: './src/10 ಗಣಿತ ಭಾಗ 1.ecar',
+//   importStep: ImportSteps.copyEcar
+// }
+];
 
 export class ContentImportManager {
 
@@ -94,7 +102,7 @@ export class ContentImportManager {
 
   public async pauseImport(importId: string) {
     const importDbResults: IContentImport = _.find(contentImportDB, { id: importId }); // find import job in db
-    if (_.includes([ImportStatus.canceled, ImportStatus.completed, ImportStatus.failed], importDbResults.importStatus)) {
+    if (!importDbResults || _.includes([ImportStatus.canceled, ImportStatus.completed, ImportStatus.failed], importDbResults.importStatus)) {
       throw "INVALID_OPERATION"
     }
     if (importDbResults.importStatus === ImportStatus.inProgress) {
@@ -111,7 +119,7 @@ export class ContentImportManager {
 
   public async resumeImport(importId: string) {
     const importDbResults: IContentImport = _.find(contentImportDB, { id: importId }); // find import job in db
-    if (!_.includes([ImportStatus.paused], importDbResults.importStatus)) {
+    if (!importDbResults || !_.includes([ImportStatus.paused], importDbResults.importStatus)) {
       throw "INVALID_OPERATION"
     }
     importDbResults.importStatus = ImportStatus.resume; // update db with new status
@@ -120,7 +128,7 @@ export class ContentImportManager {
 
   public async cancelImport(importId: string) {
     const importDbResults: IContentImport = _.find(contentImportDB, { id: importId }); // find import job in db
-    if (_.includes([ImportStatus.canceled, ImportStatus.completed, ImportStatus.failed], importDbResults.importStatus)) {
+    if (!importDbResults || _.includes([ImportStatus.canceled, ImportStatus.completed, ImportStatus.failed], importDbResults.importStatus)) {
       throw "INVALID_OPERATION"
     }
     if (importDbResults.importStatus === ImportStatus.inProgress) {
@@ -136,7 +144,7 @@ export class ContentImportManager {
   }
 
   private async getUnregisteredEcars(ecarPaths: Array<string>): Promise<Array<string>> {
-    const registeredEcars = contentImportDB; // get IN_QUEUE, IN_PROGRESS jobs from db
+    const registeredEcars = contentImportDB; // get all status of jobs from db except completed or failed
     ecarPaths = _.filter(ecarPaths, ecarPath => {
       if (_.find(registeredEcars, { ecarSourcePath: ecarPath })) {
         console.log('skipping import for ', ecarPath, ' as its already registered');
@@ -168,13 +176,13 @@ class ImportEcar {
   handleWorkerCloseEvents() {
     this.workerProcessRef.on('close', (data) => {
       console.log('------------------CHILD_PROCESS_CLOSE--------------------', data);
-      if([ImportStatus.canceled, ImportStatus.paused].includes(this.contentImportData.importStatus)){
+      if(!_.includes([ImportStatus.canceled, ImportStatus.paused], this.contentImportData.importStatus)){
         this.handleError("CHILD_PROCESS_CLOSE");
       }
     });
     this.workerProcessRef.on('exit', (code, signal) => {
-      console.log('------------------CHILD_PROCESS_EXIT-------------------', code, signal);
-      if([ImportStatus.canceled, ImportStatus.paused].includes(this.contentImportData.importStatus)){
+      console.log('------------------CHILD_PROCESS_EXIT-------------------', code);
+      if(!_.includes([ImportStatus.canceled, ImportStatus.paused], this.contentImportData.importStatus)){
         this.handleError("CHILD_PROCESS_EXIT");
       }
     });
@@ -238,6 +246,7 @@ class ImportEcar {
   }
   async handleChildProcessMessage() {
     this.workerProcessRef.on('message', async (data) => {
+      console.log('Message from child process for importId:' + data.contentImportData.id, data.message);
       if (data.message === ImportSteps.copyEcar) {
         this.copyEcar()
       } else if (data.message === ImportSteps.parseEcar) {
@@ -325,8 +334,9 @@ class ImportEcar {
     });
   }
   private async syncStatusToDb() {
-    let importDbResults: IContentImport = _.find(contentImportDB, { id: this.contentImportData.id });
-    importDbResults = { ...importDbResults, ...this.contentImportData };
+    _.remove(contentImportDB, job => job.id === this.contentImportData.id) // update meta data in db 
+    contentImportDB.push(this.contentImportData);
+
   }
   private async getContentsFromDB(contentIds: Array<string>) {
     return Promise.resolve([]);
@@ -343,6 +353,7 @@ class ImportEcar {
   }
   async handleKillSignal(contentImportData){
     this.workerProcessRef.kill();
+    console.log('kill signal from child', this.contentImportData.importStatus, this.contentImportData.importStep);
     if(this.contentImportData.importStatus === ImportStatus.paused){
       this.contentImportData = contentImportData;
       this.contentImportData.importStatus = ImportStatus.paused
