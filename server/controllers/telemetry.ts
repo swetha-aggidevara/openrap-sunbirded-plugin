@@ -10,15 +10,8 @@ export default class Telemetry {
   @Inject
   private databaseSdk: DatabaseSDK;
 
-  private systemSDK;
-  public deviceId;
-  private telemetryInstance;
-
   constructor(manifest: Manifest) {
     this.databaseSdk.initialize(manifest.id);
-    this.systemSDK = containerAPI.getSystemSDKInstance(manifest.id);
-    this.deviceId = this.systemSDK.deviceId;
-    this.telemetryInstance = containerAPI.getTelemetrySDKInstance();
   }
 
   addEvents(req, res) {
@@ -33,13 +26,14 @@ export default class Telemetry {
       logger.debug(
         `ReqId = "${req.headers["X-msgid"]}": telemetry service is called to add telemetryEvents`
       );
-      this.telemetryInstance
+      const telemetrySDK = containerAPI.getTelemetrySDKInstance();
+      telemetrySDK
         .send(events)
         .then(data => {
           logger.info(
             `ReqId = "${req.headers["X-msgid"]}": Telemetry events added successfully`
           );
-          return res.send(Response.success("api.telemetry", {}));
+          return res.send(Response.success("api.telemetry", {}, req));
         })
         .catch(err => {
           logger.error(
@@ -73,7 +67,7 @@ export default class Telemetry {
           logger.info(
             `ReqId = "${req.headers["X-msgid"]}": registered deviceInfo successfully`
           );
-          return res.send(Response.success("api.device.registry", {}));
+          return res.send(Response.success("api.device.registry", {}, req));
         })
         .catch(async error => {
           logger.error(
