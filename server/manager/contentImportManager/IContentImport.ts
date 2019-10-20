@@ -19,6 +19,8 @@ export enum ImportStatus {
 
 export interface IContentImport {
   id: string;
+  _id: string;
+  _rev?: string;
   importStatus: ImportStatus;
   createdOn: string | number;
   ecarSourcePath: string;
