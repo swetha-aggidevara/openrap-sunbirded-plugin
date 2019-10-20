@@ -2,21 +2,14 @@ import * as  _ from 'lodash';
 import * as uuid from 'uuid';
 import * as childProcess from 'child_process';
 import * as os from 'os';
-import * as fs from 'fs';
 import {IContentImport, ImportStatus, ImportSteps, IContentManifest} from './IContentImport'
 import { Inject } from 'typescript-ioc';
 import * as path from 'path';
-import * as glob from 'glob';
 import DatabaseSDK from './../../sdk/database';
 import { logger } from '@project-sunbird/ext-framework-server/logger';
-import * as fse from 'fs-extra';
 import { containerAPI } from 'OpenRAP/dist/api';
 import { manifest } from '../../manifest';
-import config from '../../config';
 import { IDesktopAppMetadata, IAddedUsingType } from '../../controllers/content/IContent';
-import { fork } from 'child_process';
-const contentFolder = "./content/";
-const ecarFolder = "./ecar/";
 
 console.info('System is running on', os.cpus().length, 'cpus');
 const maxRunningImportJobs = 1 || os.cpus().length;
@@ -118,6 +111,7 @@ export class ContentImportManager {
   private importJobCompletionCb(err: any, data: IContentImport) {
     if (err) {
       console.error('error will importing content with id', data.id, 'err', err);
+      _.remove(this.runningImportJobs, job => job.id === data.id) // update meta data in db 
       const importDbResults: IContentImport = _.find(contentImportDB, { id: data.id }); // find import job in db
       importDbResults.importStatus = ImportStatus.failed // update status to failed in db
     } else {
@@ -197,9 +191,14 @@ class ImportEcar {
   workerProcessRef: childProcess.ChildProcess;
   contentManifest: any;
   manifest: IContentManifest;
-
+  fileSDK: any;
+  contentFolder: string;
+  ecarFolder: string;
   constructor(private contentImportData: IContentImport, private cb) { 
-    this.workerProcessRef = childProcess.fork('./contentImportHelper');
+    this.fileSDK = containerAPI.getFileSDKInstance(manifest.id);
+    this.contentFolder = this.fileSDK.getAbsPath('content');
+    this.ecarFolder = this.fileSDK.getAbsPath('ecars');
+    this.workerProcessRef = childProcess.fork(path.join(__dirname, 'contentImportHelper'));
     this.handleChildProcessMessage();
     this.handleWorkerCloseEvents();
   }
@@ -276,7 +275,7 @@ class ImportEcar {
   }
   async handleChildProcessMessage() {
     this.workerProcessRef.on('message', async (data) => {
-      console.log('Message from child process for importId:' + data.contentImportData.id, data.message);
+      console.log('Message from child process for importId:' + _.get(data, 'contentImportData.id'), data.message);
       if (data.message === ImportSteps.copyEcar) {
         this.copyEcar()
       } else if (data.message === ImportSteps.parseEcar) {
