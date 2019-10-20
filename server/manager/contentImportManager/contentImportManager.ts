@@ -14,13 +14,13 @@ import { IDesktopAppMetadata, IAddedUsingType } from '../../controllers/content/
 console.info('System is running on', os.cpus().length, 'cpus');
 const maxRunningImportJobs = 1 || os.cpus().length;
 let contentImportDB: Array<IContentImport> = [
-//   {
-//   id: '123',
-//   importStatus: ImportStatus.reconcile,
-//   createdOn: Date.now(),
-//   ecarSourcePath: '/Users/anoop/Documents/JS:TS Basics/src/Science - Part 2.ecar',
-//   importStep: ImportSteps.copyEcar
-// }
+  {
+  id: '123',
+  importStatus: ImportStatus.reconcile,
+  createdOn: Date.now(),
+  ecarSourcePath: '/Users/anoop/Documents/JS:TS Basics/src/Science - Part 2.ecar',
+  importStep: ImportSteps.copyEcar
+}
 ];
 
 export class ContentImportManager {
@@ -28,12 +28,8 @@ export class ContentImportManager {
   private pluginId: string;
   private contentFilesPath: string;
   private downloadsFolderPath: string;
-
-
   private fileSDK;
-
   @Inject dbSDK: DatabaseSDK;
-
   private watcher: any;
 
   initialize(pluginId, contentFilesPath, downloadsFolderPath) {
@@ -239,7 +235,7 @@ class ImportEcar {
     let resources = [];
     parent.baseDir = `content/${parent.identifier}`;
     parent.desktopAppMetadata = {
-      "addedUsing": 'IMPORT',// IAddedUsingType.import,
+      "addedUsing": IAddedUsingType.import,
       "createdOn": Date.now(),
       "updatedOn": Date.now(),
     }
@@ -250,7 +246,7 @@ class ImportEcar {
       .map(resource => {
         resource.baseDir = `content/${resource.identifier}`;
         resource.desktopAppMetadata = {
-          "addedUsing": 'IMPORT',// IAddedUsingType.import,
+          "addedUsing": IAddedUsingType.import,
           "createdOn": Date.now(),
           "updatedOn": Date.now(),
         }

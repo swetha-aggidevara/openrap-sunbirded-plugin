@@ -5,6 +5,7 @@ import * as  _ from 'lodash';
 import * as path from 'path';
 import { manifest } from '../../manifest';
 import { containerAPI } from 'OpenRAP/dist/api';
+import config from '../../config';
 
 let zipHandler;
 let contentImportData: IContentImport;
@@ -55,7 +56,6 @@ const parseEcar = async () => {
     contentImportData.artifactUnzipped = {};
     process.send({ message: ImportSteps.parseEcar, contentImportData })
   } catch (err) {
-    console.log('error while importing ecar', err);
     process.send({ message: "IMPORT_ERROR", err })
   }
 }
@@ -72,7 +72,6 @@ const extractEcar = async () => {
       return;
     }
     let ecarBasePath = path.join(ecarFolder, contentImportData.id + '.ecar');
-    let contentBasePath = path.join(contentFolder, contentImportData.id)
     if (!zipHandler) {
       zipHandler = await loadZipHandler(ecarBasePath);
     }
@@ -88,8 +87,6 @@ const extractEcar = async () => {
         }
         await extractFile(zipHandler, pathObj)
         contentImportData.extractedContentEntries[entry.name] = true;
-      } else {
-        console.log('entry extracted already', entry);
       }
     }
     console.info('ecar extracted for importId', contentImportData.id)
@@ -99,10 +96,8 @@ const extractEcar = async () => {
     console.info('artifacts unzipped for importId', contentImportData.id)
     process.send({ message: ImportSteps.extractEcar, contentImportData })
   } catch (err) {
-    console.log('error while importing ecar', err);
     process.send({ message: "IMPORT_ERROR", err })
   } finally {
-    console.log('extracted all contents');
     if (zipHandler.close) {
       zipHandler.close();
     }
@@ -118,7 +113,6 @@ const unzipArtifacts = async (artifactToBeUnzipped = []) => {
       contentImportData.artifactUnzipped[artifact] = true;
     }
   }
-
 }
 const getDestFilePath = (entry, contentMap = {}) => {
   let patObj = {
