@@ -173,7 +173,15 @@ export default class Content {
             });
     }
 
-
+    async importV2(req: any, res: any){
+        const ecarFilePath = req.body
+        console.log('import request came for', ecarFilePath);
+        if (!ecarFilePath) {
+            return res.status(400).send({ errCode: 'MISSING_ECAR_PATH' });
+        }
+        const jobIds = await this.contentImportManager.registerImportJob(ecarFilePath);
+        res.send({ message: 'Import content started', jobIds });
+    }
     import(req: any, res: any): any {
         logger.debug(`ReqId = "${req.headers['X-msgid']}": Import method is called to import content`);
         let downloadsPath = this.fileSDK.getAbsPath(this.ecarsFolderPath);

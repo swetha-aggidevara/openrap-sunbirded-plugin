@@ -515,6 +515,9 @@ export class Router {
         }
       })
     );
+    app.post("/api/content/v2/import", (req, res) => { 
+      content.importV2(req, res)
+    });
 
     app.post(
       "/api/content/v1/import",

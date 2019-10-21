@@ -197,9 +197,6 @@ export class ContentImportManager {
       "selector": {
         importStatus: {
           "$in": [ImportStatus.inProgress, ImportStatus.inQueue, ImportStatus.reconcile, ImportStatus.resume]
-        },
-        ecarSourcePath: {
-          "$in": ecarPaths
         }
       }
     });
