@@ -138,7 +138,7 @@ const getDestFilePath = (entry, id, contentMap = {}) => {
     dest: path.join(contentFolder, id),
     destRelativePath: path.join('content', id)
   }
-  const splitPath = _.union(_.compact(entry.name.split('/')))
+  const splitPath = _.union(_.compact(entry.name.split('/')));
   splitPath.forEach((content: string) => {
     let contentMapped = contentMap[content];
     if (contentMapped) {
@@ -147,8 +147,13 @@ const getDestFilePath = (entry, id, contentMap = {}) => {
         patObj.destRelativePath = path.join('content', content);
         return patObj;
       } else {
-        patObj.dest = path.join(contentFolder, id, content);
-        patObj.destRelativePath = path.join('content', id, content);
+        if(content === id){ // extract parent content to root dir
+          patObj.dest = path.join(contentFolder, content);
+          patObj.destRelativePath = path.join('content', content);
+        } else {
+          patObj.dest = path.join(contentFolder, id, content);
+          patObj.destRelativePath = path.join('content', id, content);
+        }
       }
     }
   });

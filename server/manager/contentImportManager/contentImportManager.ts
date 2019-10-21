@@ -211,7 +211,6 @@ class ImportEcar {
 
   workerProcessRef: childProcess.ChildProcess;
   contentManifest: any;
-  manifest: IContentManifest;
   fileSDK: any;
   contentFolder: string;
   ecarFolder: string;
@@ -258,10 +257,13 @@ class ImportEcar {
     }
   }
   private async saveContentsToDb(dbContents) {
+    console.log('saving contents to db');
+    console.log(dbContents)
     let parent = _.get(this.contentImportData.manifest, 'archive.items[0]');
-    const dbParent = _.find(dbContents, {identifier: parent.identifier});
+    parent._id = parent.identifier;
+    const dbParent: any = _.find(dbContents, {identifier: parent.identifier});
     if(dbParent){
-      // parent
+      parent._rev = dbParent._rev;
     }
     parent.baseDir = `content/${parent.identifier}`;
     parent.desktopAppMetadata = {
@@ -271,10 +273,11 @@ class ImportEcar {
     }
     let resources = [];
     if (this.contentImportData.contentType === 'application/vnd.ekstep.content-collection') {
-      let itemsClone = _.cloneDeep(_.get(this.manifest, 'archive.items'));
+      let itemsClone = _.cloneDeep(_.get(this.contentImportData.manifest, 'archive.items'));
       parent.children = this.createHierarchy(itemsClone, parent);
-      resources = _.filter(_.get(this.manifest, 'archive.items'), item => (item.mimeType !== 'application/vnd.ekstep.content-collection'))
+      resources = _.filter(_.get(this.contentImportData.manifest, 'archive.items'), item => (item.mimeType !== 'application/vnd.ekstep.content-collection'))
         .map(resource => {
+          resource._id = resource.identifier;
           resource.baseDir = `content/${resource.identifier}`;
           resource.desktopAppMetadata = {
             "addedUsing": IAddedUsingType.import,
@@ -282,10 +285,15 @@ class ImportEcar {
             "updatedOn": Date.now(),
           }
           resource.appIcon = resource.appIcon ? `content/${resource.appIcon}` : resource.appIcon;
+          const dbResource: any = _.find(dbContents, {identifier: parent.identifier});
+          if(dbResource){
+            resource._rev = dbResource._rev;
+            resource.visibility = dbResource.visibility;
+          }
           return resource;
         });
     }
-    // do bulk update of contents
+    await this.dbSDK.bulk('content', [parent, ...resources]);
   }
   async importComplete(contentImportData) {
     try {
