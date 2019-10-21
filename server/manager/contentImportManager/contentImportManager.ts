@@ -50,7 +50,6 @@ export class ContentImportManager {
       await this.dbSDK.bulk('content_import', updateQuery);
     }
     this.checkImportQueue()
-    this.registerImportJob(['/Users/anoop/Documents/JS:TS Basics/src/Science - Part 2.ecar']);
   }
 
   public async registerImportJob(ecarPaths: Array<string>): Promise<Array<string>> {
@@ -148,14 +147,14 @@ export class ContentImportManager {
       if (!inProgressJob) {
         throw "INVALID_OPERATION"
       }
-      await inProgressJob.jobReference.pause();
+      inProgressJob.jobReference.pause();
       _.remove(this.runningImportJobs, job => job._id === inProgressJob._id) // update meta data in db 
-      //TODO: update status as PAUSING and stop any further operation from ui and progress of content import
+      importDbResults.importStatus = ImportStatus.pausing;
     } else {
       importDbResults.importStatus = ImportStatus.paused; // update db with new status
-      await this.dbSDK.update('content_import', importId, importDbResults)
-        .catch(err => console.error('pauseImport error while updating job details for ', importId));
     }
+    await this.dbSDK.update('content_import', importId, importDbResults)
+      .catch(err => console.error('pauseImport error while updating job details for ', importId));
     this.checkImportQueue();
   }
 
@@ -182,14 +181,14 @@ export class ContentImportManager {
       if (!inProgressJob) {
         throw "INVALID_OPERATION"
       }
-      await inProgressJob.jobReference.cancel();
+      inProgressJob.jobReference.cancel();
       _.remove(this.runningImportJobs, job => job._id === inProgressJob._id);
-      //TODO: update status as CANCELING and stop any further operation from ui and progress of content import
+      importDbResults.importStatus = ImportStatus.canceling;
     } else {
       importDbResults.importStatus = ImportStatus.canceled;
-      await this.dbSDK.update('content_import', importId, importDbResults)
-        .catch(err => console.error('cancelImport error while updating job details for ', importId));
     }
+    await this.dbSDK.update('content_import', importId, importDbResults)
+      .catch(err => console.error('cancelImport error while updating job details for ', importId));
     this.checkImportQueue();
   }
 

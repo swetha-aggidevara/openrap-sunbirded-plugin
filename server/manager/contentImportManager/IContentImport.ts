@@ -14,7 +14,9 @@ export enum ImportStatus {
   paused = "PAUSED",
   completed = "COMPLETED",
   failed = "FAILED",
-  canceled = "CANCELED"
+  canceled = "CANCELED",
+  canceling = "CANCELING",
+  pausing = "PAUSING"
 }
 
 export interface IContentImport {
