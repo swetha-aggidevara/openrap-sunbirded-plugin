@@ -229,13 +229,13 @@ class ImportEcar {
     this.workerProcessRef.on('close', (data) => {
       console.log('------------------CHILD_PROCESS_CLOSE--------------------', data);
       if (!_.includes([ImportStatus.canceled, ImportStatus.paused], this.contentImportData.importStatus)) {
-        this.handleError("CHILD_PROCESS_CLOSE");
+        this.handleError("CHILD_PROCESS_CLOSE", {}, this.contentImportData);
       }
     });
     this.workerProcessRef.on('exit', (code, signal) => {
       console.log('------------------CHILD_PROCESS_EXIT-------------------', code);
       if (!_.includes([ImportStatus.canceled, ImportStatus.paused], this.contentImportData.importStatus)) {
-        this.handleError("CHILD_PROCESS_EXIT");
+        this.handleError("CHILD_PROCESS_EXIT", {}, this.contentImportData);
       }
     });
   }
