@@ -77,7 +77,7 @@ const parseEcar = async () => {
 
 const extractEcar = async () => {
   try {
-    const dbRootContent = _.find(dbContents, { id: contentImportData.contentId })
+    const dbRootContent = _.find(dbContents, { identifier: contentImportData.contentId })
     if (dbRootContent) {
       // TODO: if content already exist in app 
       // 1.check compatibility level and content version, if ecar has higher level then update 
