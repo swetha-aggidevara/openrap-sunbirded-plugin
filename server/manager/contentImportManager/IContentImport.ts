@@ -18,7 +18,6 @@ export enum ImportStatus {
 }
 
 export interface IContentImport {
-  id: string;
   _id: string;
   _rev?: string;
   importStatus: ImportStatus;
