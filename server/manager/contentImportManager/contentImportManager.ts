@@ -447,18 +447,16 @@ class ImportEcar {
     if(this.contentImportData.importStep === ImportSteps.extractEcar && this.contentImportData.ecarEntriesCount){
       let extractedEntries = _.values(this.contentImportData.extractedEcarEntriesCount).length;
       extractedEntries = extractedEntries ? extractedEntries : 1;
-      console.log('extractedEntries', extractedEntries, 'ecarEntriesCount', this.contentImportData.ecarEntriesCount);
       let newProgress = (extractedEntries/this.contentImportData.ecarEntriesCount) * 60
       progress = progress + newProgress;
     } else if(this.contentImportData.importStep === ImportSteps.extractArtifact && this.contentImportData.artifactCount) {
       let extractedArtifacts = _.values(this.contentImportData.artifactUnzipped).length;
       extractedArtifacts = extractedArtifacts ? extractedArtifacts : 1;
-      console.log('extractedArtifacts', extractedArtifacts, 'artifactCount', this.contentImportData.artifactCount);
       let newProgress = (extractedArtifacts/this.contentImportData.artifactCount) * 20
       progress = progress + newProgress;
-    } else if(this.contentImportData.importStep === ImportSteps.copyEcar && this.contentImportData.ecarFileCopied){
-      console.log('ecarFileCopied', this.contentImportData.ecarFileCopied);
-      progress = progress + this.contentImportData.ecarFileCopied * 15;
+    } else if(this.contentImportData.importStep === ImportSteps.copyEcar){
+      progress = progress + this.contentImportData.ecarFileCopied;
+      this.contentImportData.ecarFileCopied = 0;
     }
     return progress;
   }
@@ -466,9 +464,7 @@ class ImportEcar {
     if(contentImportData){
       this.contentImportData = contentImportData;
     }
-    console.log('-----------------------progress---------------------------------') 
     this.contentImportData.importProgress = this.getProgress()
-    console.log(ImportProgress[this.contentImportData.importStep], this.contentImportData.importProgress);
     let dbResponse = await this.dbSDK.update('content_import', this.contentImportData._id, this.contentImportData)
     .catch(async err => {
       console.error('syncStatusToDb error for', this.contentImportData._id, 'with status and code', err.status, err.name)

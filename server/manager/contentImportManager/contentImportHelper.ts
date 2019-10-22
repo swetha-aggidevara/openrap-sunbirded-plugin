@@ -1,4 +1,4 @@
-import { IContentImport, ImportStatus, ImportSteps, IContentManifest } from './IContentImport'
+import { IContentImport, ImportStatus, ImportSteps, ImportProgress } from './IContentImport'
 import * as  StreamZip from 'node-stream-zip';
 import * as  fs from 'fs';
 import * as  _ from 'lodash';
@@ -6,7 +6,6 @@ import * as path from 'path';
 import { manifest } from '../../manifest';
 import { containerAPI } from 'OpenRAP/dist/api';
 import config from '../../config';
-const { PassThrough, Writable } = require('stream');
 
 let zipHandler;
 let contentImportData: IContentImport;
@@ -16,20 +15,23 @@ const contentFolder = fileSDK.getAbsPath('content');
 const ecarFolder = fileSDK.getAbsPath('ecars');
 
 const copyEcar = () => {
+  contentImportData.ecarFileCopied = 0;
   try {
     console.info(contentImportData._id, 'copping ecar from src location to ecar folder', contentImportData.ecarSourcePath, ecarFolder);
     const fileStat = fs.statSync(contentImportData.ecarSourcePath);
+    let bytesCopied = 1;
+    let messageSize = 2;
     contentImportData.ecarFileSize = fileStat.size;
-    let bytesCopied = 0;
-    contentImportData.ecarFileCopied = 0;
-    const pass = new PassThrough();
-    const toStream = fs.createWriteStream(path.join(ecarFolder, contentImportData._id + '.ecar'))
-    const fromStream = fs.createReadStream(contentImportData.ecarSourcePath).pipe(toStream);
+    const toStream = fs.createWriteStream(path.join(ecarFolder, contentImportData._id + '.ecar'));
+    const fromStream = fs.createReadStream(contentImportData.ecarSourcePath);
+    fromStream.pipe(toStream);
     fromStream.on('data', (buffer) => {
-      bytesCopied+= buffer.length
-      contentImportData.ecarFileCopied = (bytesCopied/fileStat.size);
-      process.send({ message: 'DATA_SYNC', contentImportData })
-      console.log(contentImportData.ecarFileCopied+'%');
+      bytesCopied+= buffer.length;
+      contentImportData.ecarFileCopied = (bytesCopied / fileStat.size) * ImportProgress.COPY_ECAR;
+      if(contentImportData.ecarFileCopied > messageSize){
+        messageSize = messageSize + 2;
+        process.send({ message: 'DATA_SYNC', contentImportData })
+      }
     })
     toStream.on('finish', () => {
       console.info(contentImportData._id, 'copied ecar from src location to ecar folder', contentImportData.ecarSourcePath, ecarFolder);
@@ -152,7 +154,7 @@ const unzipArtifacts = async (artifactToBeUnzipped = []) => {
         .catch(err => console.log('error while deleting zip file', artifact))
       contentImportData.artifactUnzipped[artifact] = true;
       extractedCount++;
-      if(!(extractedCount % 20)){
+      if(!(extractedCount % 2)){
         process.send({ message: 'DATA_SYNC', contentImportData })
       }
     }

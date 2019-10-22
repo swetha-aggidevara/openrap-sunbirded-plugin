@@ -7,7 +7,7 @@ export enum ImportSteps {
   complete = "COMPLETE"
 }
 export enum ImportProgress {
-  "COPY_ECAR" = 0,
+  "COPY_ECAR" = 1,
   "PARSE_ECAR" = 20,
   "EXTRACT_ECAR" = 23,
   "EXTRACT_ARTIFACT" = 83,
