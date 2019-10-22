@@ -447,7 +447,7 @@ class ImportEcar {
     if(this.contentImportData.importStep === ImportSteps.extractEcar && this.contentImportData.ecarEntriesCount){
       let extractedEntries = _.values(this.contentImportData.extractedEcarEntriesCount).length;
       extractedEntries = extractedEntries ? extractedEntries : 1;
-      let newProgress = (extractedEntries/this.contentImportData.ecarEntriesCount) * 60
+      let newProgress = (extractedEntries / this.contentImportData.ecarEntriesCount) * 60
       progress = progress + newProgress;
     } else if(this.contentImportData.importStep === ImportSteps.extractArtifact && this.contentImportData.artifactCount) {
       let extractedArtifacts = _.values(this.contentImportData.artifactUnzipped).length;

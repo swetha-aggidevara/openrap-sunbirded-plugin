@@ -27,9 +27,9 @@ const copyEcar = () => {
     fromStream.pipe(toStream);
     fromStream.on('data', (buffer) => {
       bytesCopied+= buffer.length;
-      contentImportData.ecarFileCopied = (bytesCopied / fileStat.size) * ImportProgress.COPY_ECAR;
+      contentImportData.ecarFileCopied = (bytesCopied / fileStat.size) * ImportProgress.PARSE_ECAR;
       if(contentImportData.ecarFileCopied > messageSize){
-        messageSize = messageSize + 2;
+        messageSize = messageSize + 1;
         process.send({ message: 'DATA_SYNC', contentImportData })
       }
     })
