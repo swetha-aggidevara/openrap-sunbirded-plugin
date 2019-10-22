@@ -6,6 +6,7 @@ import * as path from 'path';
 import { manifest } from '../../manifest';
 import { containerAPI } from 'OpenRAP/dist/api';
 import config from '../../config';
+const { PassThrough, Writable } = require('stream');
 
 let zipHandler;
 let contentImportData: IContentImport;
@@ -17,8 +18,19 @@ const ecarFolder = fileSDK.getAbsPath('ecars');
 const copyEcar = () => {
   try {
     console.info(contentImportData._id, 'copping ecar from src location to ecar folder', contentImportData.ecarSourcePath, ecarFolder);
+    const fileStat = fs.statSync(contentImportData.ecarSourcePath);
+    contentImportData.ecarFileSize = fileStat.size;
+    let bytesCopied = 0;
+    contentImportData.ecarFileCopied = 0;
+    const pass = new PassThrough();
     const toStream = fs.createWriteStream(path.join(ecarFolder, contentImportData._id + '.ecar'))
     const fromStream = fs.createReadStream(contentImportData.ecarSourcePath).pipe(toStream);
+    fromStream.on('data', (buffer) => {
+      bytesCopied+= buffer.length
+      contentImportData.ecarFileCopied = (bytesCopied/fileStat.size);
+      process.send({ message: 'DATA_SYNC', contentImportData })
+      console.log(contentImportData.ecarFileCopied+'%');
+    })
     toStream.on('finish', () => {
       console.info(contentImportData._id, 'copied ecar from src location to ecar folder', contentImportData.ecarSourcePath, ecarFolder);
       process.send({ message: ImportSteps.copyEcar, contentImportData })
@@ -57,6 +69,8 @@ const parseEcar = async () => {
     if (parent.compatibilityLevel > config.get("CONTENT_COMPATIBILITY_LEVEL")) {
       throw `UNSUPPORTED_COMPATIBILITY_LEVEL`;
     }
+    contentImportData.ecarEntriesCount = _.values(zipHandler.entries()).length;
+    console.log('----------contentImportData.ecarEntriesCount----------', contentImportData.ecarEntriesCount);
     contentImportData.contentId = parent.identifier;
     contentImportData.contentType = parent.mimeType;
     if (contentImportData.contentType === 'application/vnd.ekstep.content-collection') {
@@ -64,7 +78,7 @@ const parseEcar = async () => {
         item => (item.mimeType !== 'application/vnd.ekstep.content-collection'))
         .map(item => item.identifier)
     }
-    contentImportData.extractedContentEntries = {};
+    contentImportData.extractedEcarEntriesCount = {};
     contentImportData.artifactUnzipped = {};
     fileSDK.remove(path.join('content', contentImportData._id))
       .then(data => console.log(contentImportData._id, 'deleting ecar content temp folder', path.join('content', contentImportData._id)))
@@ -95,18 +109,26 @@ const extractEcar = async () => {
     let contentMap = {};
     let artifactToBeUnzipped = [];
     _.get(contentImportData.manifest, 'archive.items')
-    .forEach(item => contentMap[item.identifier] = item);
+    .forEach(item => contentMap[item.identifier] = item); // line maps all content to object
+    let extractedCount = 0;
     for (const entry of _.values(zipHandler.entries()) as any) {
-      if (!contentImportData.extractedContentEntries[entry.name]) {
+      if (!contentImportData.extractedEcarEntriesCount[entry.name]) {
         const pathObj = getDestFilePath(entry, contentImportData.contentId, contentMap);
         if (entry.name.endsWith('.zip')) {
           artifactToBeUnzipped.push(path.join(pathObj.destRelativePath, path.basename(entry.name)));
         }
         await extractFile(zipHandler, pathObj)
-        contentImportData.extractedContentEntries[entry.name] = true;
+        contentImportData.extractedEcarEntriesCount[entry.name] = true;
+        extractedCount++;
+        if(!(extractedCount % 20)){
+          process.send({ message: 'DATA_SYNC', contentImportData })
+        }
       }
     }
     console.info(contentImportData._id, 'ecar extracted')
+    contentImportData.importStep = ImportSteps.extractArtifact;
+    contentImportData.artifactCount = artifactToBeUnzipped.length;
+    process.send({ message: 'DATA_SYNC', contentImportData })
     await unzipArtifacts(artifactToBeUnzipped);
     await fileSDK.remove(path.join('ecars', contentImportData._id + '.ecar'))
       .catch(err => console.log('error while deleting ecar folder'))
@@ -121,6 +143,7 @@ const extractEcar = async () => {
   }
 }
 const unzipArtifacts = async (artifactToBeUnzipped = []) => {
+  let extractedCount = 0;
   for (const artifact of artifactToBeUnzipped) {
     if (!contentImportData.artifactUnzipped[artifact]) {
       await fileSDK.unzip(artifact, path.dirname(artifact), false)
@@ -128,6 +151,10 @@ const unzipArtifacts = async (artifactToBeUnzipped = []) => {
       await fileSDK.remove(artifact)
         .catch(err => console.log('error while deleting zip file', artifact))
       contentImportData.artifactUnzipped[artifact] = true;
+      extractedCount++;
+      if(!(extractedCount % 20)){
+        process.send({ message: 'DATA_SYNC', contentImportData })
+      }
     }
   }
 }
@@ -193,7 +220,7 @@ process.on('message', (data) => {
     copyEcar()
   } else if (data.message === ImportSteps.parseEcar) {
     parseEcar()
-  } else if (data.message === ImportSteps.extractEcar) {
+  } else if (data.message === ImportSteps.extractEcar || data.message === ImportSteps.extractArtifact) {
     dbContents = data.dbContents;
     extractEcar();
   } else if (data.message === "KILL") {
