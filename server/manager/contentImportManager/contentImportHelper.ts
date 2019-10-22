@@ -20,7 +20,7 @@ const copyEcar = () => {
     console.info(contentImportData._id, 'copping ecar from src location to ecar folder', contentImportData.ecarSourcePath, ecarFolder);
     const fileStat = fs.statSync(contentImportData.ecarSourcePath);
     let bytesCopied = 1;
-    let messageSize = 2;
+    let minProgress = fileStat.size > 52428800 ? 2 : 10; // to avoid too many message in quick interval
     contentImportData.ecarFileSize = fileStat.size;
     const toStream = fs.createWriteStream(path.join(ecarFolder, contentImportData._id + '.ecar'));
     const fromStream = fs.createReadStream(contentImportData.ecarSourcePath);
@@ -28,8 +28,8 @@ const copyEcar = () => {
     fromStream.on('data', (buffer) => {
       bytesCopied+= buffer.length;
       contentImportData.ecarFileCopied = (bytesCopied / fileStat.size) * ImportProgress.PARSE_ECAR;
-      if(contentImportData.ecarFileCopied > messageSize){
-        messageSize = messageSize + 1;
+      if(contentImportData.ecarFileCopied > minProgress){
+        minProgress = minProgress + (fileStat.size > 52428800 ? 1 : 10);
         process.send({ message: 'DATA_SYNC', contentImportData })
       }
     })
@@ -121,7 +121,9 @@ const extractEcar = async () => {
         }
         await extractFile(zipHandler, pathObj)
         contentImportData.extractedEcarEntriesCount[entry.name] = true;
-        extractedCount++;
+        if(!entry.isDirectory){
+          extractedCount++;
+        }
         if(!(extractedCount % 20)){
           process.send({ message: 'DATA_SYNC', contentImportData })
         }
@@ -154,7 +156,7 @@ const unzipArtifacts = async (artifactToBeUnzipped = []) => {
         .catch(err => console.log('error while deleting zip file', artifact))
       contentImportData.artifactUnzipped[artifact] = true;
       extractedCount++;
-      if(!(extractedCount % 2)){
+      if(!(extractedCount % 3)){
         process.send({ message: 'DATA_SYNC', contentImportData })
       }
     }

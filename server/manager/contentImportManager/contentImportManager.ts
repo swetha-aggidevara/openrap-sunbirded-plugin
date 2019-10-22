@@ -275,6 +275,7 @@ class ImportEcar {
     } catch (err) {
       console.error('Error while processContents for ', this.contentImportData._id);
       this.contentImportData.importStatus = ImportStatus.failed;
+      this.contentImportData.manifest = {};
       await this.syncStatusToDb();
       this.cb('ERROR', this.contentImportData);
       this.cleanUpFolders();
@@ -296,11 +297,13 @@ class ImportEcar {
       await this.saveContentsToDb(dbContents)
       this.contentImportData.importStep = ImportSteps.complete;
       this.contentImportData.importStatus = ImportStatus.completed;
+      this.contentImportData.manifest = {};
       await this.syncStatusToDb();
       this.cb(null, this.contentImportData);
     } catch (err) {
       console.error('Error while processContents for ', this.contentImportData._id);
       this.contentImportData.importStatus = ImportStatus.failed;
+      this.contentImportData.manifest = {};
       await this.syncStatusToDb();
       this.cb('ERROR', this.contentImportData);
       this.cleanUpFolders();
@@ -352,6 +355,7 @@ class ImportEcar {
     try {
       if (contentImportData) {
         this.contentImportData = contentImportData;
+        this.contentImportData.manifest = {};
         this.contentImportData.importStep = ImportSteps.complete;
         await this.syncStatusToDb();
       }
@@ -359,6 +363,7 @@ class ImportEcar {
     } catch (err) {
       console.error('Error while processContents for ', this.contentImportData._id);
       this.contentImportData.importStatus = ImportStatus.failed;
+      this.contentImportData.manifest = {};
       await this.syncStatusToDb();
       this.cb('ERROR', this.contentImportData);
       this.cleanUpFolders();
@@ -417,6 +422,7 @@ class ImportEcar {
   async handleUnexpectedChildProcessExit(code, signal){
     console.error('Unexpected exit of child process for importId', this.contentImportData._id, 'with signal and code', code, signal);
     this.contentImportData.importStatus = ImportStatus.failed; // this line should not be removed
+    this.contentImportData.manifest = {};
     await this.syncStatusToDb();
     this.cleanUpFolders();
   }
@@ -428,6 +434,7 @@ class ImportEcar {
         this.contentImportData = contentImportData;
       }
       this.contentImportData.importStatus = ImportStatus.failed;
+      this.contentImportData.manifest = {};
       await this.syncStatusToDb();
     } catch(err) {
       console.error('Error while handling error for ', this.contentImportData._id)
@@ -452,7 +459,7 @@ class ImportEcar {
     } else if(this.contentImportData.importStep === ImportSteps.extractArtifact && this.contentImportData.artifactCount) {
       let extractedArtifacts = _.values(this.contentImportData.artifactUnzipped).length;
       extractedArtifacts = extractedArtifacts ? extractedArtifacts : 1;
-      let newProgress = (extractedArtifacts/this.contentImportData.artifactCount) * 20
+      let newProgress = (extractedArtifacts/this.contentImportData.artifactCount) * 13
       progress = progress + newProgress;
     } else if(this.contentImportData.importStep === ImportSteps.copyEcar){
       progress = progress + this.contentImportData.ecarFileCopied;
