@@ -10,6 +10,7 @@ import { logger } from '@project-sunbird/ext-framework-server/logger';
 import { containerAPI } from 'OpenRAP/dist/api';
 import { manifest } from '../../manifest';
 import { IDesktopAppMetadata, IAddedUsingType } from '../../controllers/content/IContent';
+import * as  fs from 'fs';
 
 let pluginId: string;
 console.info('System is running on', os.cpus().length, 'cpus');
@@ -207,6 +208,7 @@ class ImportEcar {
   contentFolder: string;
   ecarFolder: string;
   @Inject dbSDK: DatabaseSDK;
+  manifestJson: any;
 
   constructor(private contentImportData: IContentImport, private cb) {
     this.dbSDK.initialize(pluginId);
@@ -273,9 +275,8 @@ class ImportEcar {
         dbContents
       });
     } catch (err) {
-      console.error('Error while processContents for ', this.contentImportData._id);
+      console.error(this.contentImportData._id, 'Error while processContents ', err);
       this.contentImportData.importStatus = ImportStatus.failed;
-      this.contentImportData.manifest = {};
       await this.syncStatusToDb();
       this.cb('ERROR', this.contentImportData);
       this.cleanUpFolders();
@@ -297,13 +298,11 @@ class ImportEcar {
       await this.saveContentsToDb(dbContents)
       this.contentImportData.importStep = ImportSteps.complete;
       this.contentImportData.importStatus = ImportStatus.completed;
-      this.contentImportData.manifest = {};
       await this.syncStatusToDb();
       this.cb(null, this.contentImportData);
     } catch (err) {
-      console.error('Error while processContents for ', this.contentImportData._id);
+      console.error('Error while processContents for ', this.contentImportData._id, err);
       this.contentImportData.importStatus = ImportStatus.failed;
-      this.contentImportData.manifest = {};
       await this.syncStatusToDb();
       this.cb('ERROR', this.contentImportData);
       this.cleanUpFolders();
@@ -314,7 +313,10 @@ class ImportEcar {
 
   private async saveContentsToDb(dbContents) {
     console.log('saving contents to db');
-    let parent = _.get(this.contentImportData.manifest, 'archive.items[0]');
+    if(!this.manifestJson){
+      this.manifestJson = JSON.parse(fs.readFileSync(path.join(path.join(this.fileSDK.getAbsPath('content'), this.contentImportData.contentId), 'manifest.json'), 'utf8'));
+    }
+    let parent = _.get(this.manifestJson, 'archive.items[0]');
     parent._id = parent.identifier;
     const dbParent: any = _.find(dbContents, {identifier: parent.identifier});
     if(dbParent){
@@ -328,9 +330,9 @@ class ImportEcar {
     }
     let resources = [];
     if (this.contentImportData.contentType === 'application/vnd.ekstep.content-collection') {
-      let itemsClone = _.cloneDeep(_.get(this.contentImportData.manifest, 'archive.items'));
+      let itemsClone = _.cloneDeep(_.get(this.manifestJson, 'archive.items'));
       parent.children = this.createHierarchy(itemsClone, parent);
-      resources = _.filter(_.get(this.contentImportData.manifest, 'archive.items'), item => (item.mimeType !== 'application/vnd.ekstep.content-collection'))
+      resources = _.filter(_.get(this.manifestJson, 'archive.items'), item => (item.mimeType !== 'application/vnd.ekstep.content-collection'))
         .map(resource => {
           resource._id = resource.identifier;
           resource.baseDir = `content/${resource.identifier}`;
@@ -355,15 +357,13 @@ class ImportEcar {
     try {
       if (contentImportData) {
         this.contentImportData = contentImportData;
-        this.contentImportData.manifest = {};
         this.contentImportData.importStep = ImportSteps.complete;
         await this.syncStatusToDb();
       }
       this.cb(null, this.contentImportData);
     } catch (err) {
-      console.error('Error while processContents for ', this.contentImportData._id);
+      console.error('Error while processContents for ', this.contentImportData._id, err);
       this.contentImportData.importStatus = ImportStatus.failed;
-      this.contentImportData.manifest = {};
       await this.syncStatusToDb();
       this.cb('ERROR', this.contentImportData);
       this.cleanUpFolders();
@@ -422,7 +422,6 @@ class ImportEcar {
   async handleUnexpectedChildProcessExit(code, signal){
     console.error('Unexpected exit of child process for importId', this.contentImportData._id, 'with signal and code', code, signal);
     this.contentImportData.importStatus = ImportStatus.failed; // this line should not be removed
-    this.contentImportData.manifest = {};
     await this.syncStatusToDb();
     this.cleanUpFolders();
   }
@@ -434,7 +433,6 @@ class ImportEcar {
         this.contentImportData = contentImportData;
       }
       this.contentImportData.importStatus = ImportStatus.failed;
-      this.contentImportData.manifest = {};
       await this.syncStatusToDb();
     } catch(err) {
       console.error('Error while handling error for ', this.contentImportData._id)
@@ -465,6 +463,7 @@ class ImportEcar {
       progress = progress + this.contentImportData.ecarFileCopied;
       this.contentImportData.ecarFileCopied = 0;
     }
+    console.info(`Import progress for job id ${this.contentImportData}: ${progress}` )
     return progress;
   }
   private async syncStatusToDb(contentImportData?) {

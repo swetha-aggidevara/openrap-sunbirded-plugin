@@ -13,6 +13,7 @@ let dbContents;
 let fileSDK = containerAPI.getFileSDKInstance(manifest.id);
 const contentFolder = fileSDK.getAbsPath('content');
 const ecarFolder = fileSDK.getAbsPath('ecars');
+let manifestJson;
 
 const copyEcar = () => {
   contentImportData.ecarFileCopied = 0;
@@ -63,8 +64,8 @@ const parseEcar = async () => {
     }
     const manifestPath = getDestFilePath(ecarContentEntries['manifest.json'], contentImportData._id);
     await extractFile(zipHandler, manifestPath)
-    contentImportData.manifest = JSON.parse(fs.readFileSync(path.join(contentBasePath, 'manifest.json'), 'utf8'));
-    let parent = _.get(contentImportData.manifest, 'archive.items[0]');
+    manifestJson = JSON.parse(fs.readFileSync(path.join(contentBasePath, 'manifest.json'), 'utf8'));
+    let parent = _.get(manifestJson, 'archive.items[0]');
     if (_.get(parent, 'visibility') !== 'Default') {
       throw 'INVALID_MANIFEST'
     }
@@ -72,19 +73,15 @@ const parseEcar = async () => {
       throw `UNSUPPORTED_COMPATIBILITY_LEVEL`;
     }
     contentImportData.ecarEntriesCount = _.values(zipHandler.entries()).length;
-    console.log('----------contentImportData.ecarEntriesCount----------', contentImportData.ecarEntriesCount);
     contentImportData.contentId = parent.identifier;
     contentImportData.contentType = parent.mimeType;
     if (contentImportData.contentType === 'application/vnd.ekstep.content-collection') {
-      contentImportData.childNodes = _.filter(_.get(contentImportData.manifest, 'archive.items'),
+      contentImportData.childNodes = _.filter(_.get(manifestJson, 'archive.items'),
         item => (item.mimeType !== 'application/vnd.ekstep.content-collection'))
         .map(item => item.identifier)
     }
     contentImportData.extractedEcarEntriesCount = {};
     contentImportData.artifactUnzipped = {};
-    fileSDK.remove(path.join('content', contentImportData._id))
-      .then(data => console.log(contentImportData._id, 'deleting ecar content temp folder', path.join('content', contentImportData._id)))
-      .catch(err => console.log(contentImportData._id, 'error while deleting ecar folder'))
     process.send({ message: ImportSteps.parseEcar, contentImportData })
   } catch (err) {
     process.send({ message: "IMPORT_ERROR", err })
@@ -110,7 +107,10 @@ const extractEcar = async () => {
     }
     let contentMap = {};
     let artifactToBeUnzipped = [];
-    _.get(contentImportData.manifest, 'archive.items')
+    if(!manifestJson){
+      manifestJson = JSON.parse(fs.readFileSync(path.join(path.join(contentFolder, contentImportData._id), 'manifest.json'), 'utf8'));
+    }
+    _.get(manifestJson, 'archive.items')
     .forEach(item => contentMap[item.identifier] = item); // line maps all content to object
     let extractedCount = 0;
     for (const entry of _.values(zipHandler.entries()) as any) {
@@ -136,6 +136,9 @@ const extractEcar = async () => {
     await unzipArtifacts(artifactToBeUnzipped);
     await fileSDK.remove(path.join('ecars', contentImportData._id + '.ecar'))
       .catch(err => console.log('error while deleting ecar folder'))
+    await fileSDK.remove(path.join('content', contentImportData._id))
+      .then(data => console.log(contentImportData._id, 'deleting ecar content temp folder', path.join('content', contentImportData._id)))
+      .catch(err => console.log(contentImportData._id, 'error while deleting ecar folder'))
     console.info(contentImportData._id, 'artifacts unzipped')
     process.send({ message: ImportSteps.extractEcar, contentImportData })
   } catch (err) {

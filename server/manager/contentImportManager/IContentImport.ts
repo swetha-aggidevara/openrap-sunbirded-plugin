@@ -41,7 +41,6 @@ export interface IContentImport {
   artifactCount?: number;
   artifactUnzipped?: Object;
   failedReason?: string;
-  manifest?: object;
   childNodes?: Array<string>;
   importProgress?: number;
   ecarFileSize?: number;
