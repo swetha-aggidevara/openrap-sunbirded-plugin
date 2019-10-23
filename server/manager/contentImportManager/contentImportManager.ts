@@ -223,6 +223,7 @@ class ImportEcar {
 
   async startImport(step = this.contentImportData.importStep) {
     this.contentImportData.importStatus = ImportStatus.inProgress;
+    this.contentImportData.importProgress = 0;
     await this.syncStatusToDb();
     switch (step) {
       case ImportSteps.copyEcar: {
@@ -310,9 +311,7 @@ class ImportEcar {
 
   private async saveContentsToDb(dbContents) {
     console.log('saving contents to db');
-    if(!this.manifestJson){
-      this.manifestJson = JSON.parse(fs.readFileSync(path.join(path.join(this.fileSDK.getAbsPath('content'), this.contentImportData.contentId), 'manifest.json'), 'utf8'));
-    }
+    this.manifestJson = await this.fileSDK.readJSON(path.join(path.join(this.fileSDK.getAbsPath('content'), this.contentImportData.contentId), 'manifest.json'));
     let parent = _.get(this.manifestJson, 'archive.items[0]');
     parent._id = parent.identifier;
     const dbParent: any = _.find(dbContents, {identifier: parent.identifier});

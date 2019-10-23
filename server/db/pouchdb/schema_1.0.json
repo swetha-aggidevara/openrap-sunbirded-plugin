@@ -142,6 +142,15 @@
                     },
                     "type": "json",
                     "name": "created_on_sort_index"
+                },
+                {
+                    "index": {
+                        "fields": [
+                            "importStatus"
+                        ]
+                    },
+                    "type": "json",
+                    "name": "importStatus"
                 }
             ]
         }

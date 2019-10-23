@@ -1,4 +1,4 @@
-import { IContentImport, ImportStatus, ImportSteps, ImportProgress } from './IContentImport'
+import { IContentImport, ImportSteps, ImportProgress } from './IContentImport'
 import * as  StreamZip from 'node-stream-zip';
 import * as  fs from 'fs';
 import * as  _ from 'lodash';
@@ -6,7 +6,7 @@ import * as path from 'path';
 import { manifest } from '../../manifest';
 import { containerAPI } from 'OpenRAP/dist/api';
 import config from '../../config';
-
+import { } from 'rxjs';
 let zipHandler;
 let contentImportData: IContentImport;
 let dbContents;
@@ -52,13 +52,13 @@ const parseEcar = async () => {
     let ecarBasePath = path.join(ecarFolder, contentImportData._id + '.ecar');
     let contentBasePath = path.join(contentFolder, contentImportData._id); // temp path
     zipHandler = await loadZipHandler(ecarBasePath);
-    createDirectory(contentBasePath)
+    await fileSDK.mkdir(path.join('content', contentImportData._id));
     const ecarContentEntries = zipHandler.entries();
     if (!ecarContentEntries['manifest.json']) {
       throw "MANIFEST_MISSING";
     }
     await extractFile(zipHandler, getDestFilePath(ecarContentEntries['manifest.json'], contentImportData._id))
-    manifestJson = JSON.parse(fs.readFileSync(path.join(contentBasePath, 'manifest.json'), 'utf8'));
+    manifestJson = await fileSDK.readJSON(path.join(contentBasePath, 'manifest.json'))
     let parent = _.get(manifestJson, 'archive.items[0]');
     if (_.get(parent, 'visibility') !== 'Default') {
       throw 'INVALID_MANIFEST'
@@ -91,8 +91,7 @@ const extractEcar = async () => {
       return;
     }
     let ecarBasePath = path.join(ecarFolder, contentImportData._id + '.ecar');
-    let contentBasePath = path.join(contentFolder, contentImportData.contentId) // ecar content base path
-    createDirectory(contentBasePath)
+    await fileSDK.mkdir(path.join('content', contentImportData.contentId));
     if (!zipHandler) {
       zipHandler = await loadZipHandler(ecarBasePath);
     }
@@ -100,7 +99,7 @@ const extractEcar = async () => {
     let artifactToBeUnzipped = [];
     let artifactToBeUnzippedSize = 0;
     if(!manifestJson){
-      manifestJson = JSON.parse(fs.readFileSync(path.join(path.join(contentFolder, contentImportData._id), 'manifest.json'), 'utf8'));
+      manifestJson = await fileSDK.readJSON(path.join(path.join(contentFolder, contentImportData._id), 'manifest.json'))
     }
     _.get(manifestJson, 'archive.items').forEach(item => contentMap[item.identifier] = item); // maps all content to object
     const syncFunc = syncCloser(ImportProgress.EXTRACT_ECAR ,65);
@@ -179,9 +178,9 @@ const getDestFilePath = (entry, id, contentMap = {}) => {
   return patObj;
 }
 const extractFile = (zipHandler, pathDetails) => {
-  return new Promise((resolve, reject) => {
+  return new Promise(async (resolve, reject) => {
     if (pathDetails.isDirectory) {
-      return resolve(createDirectory(pathDetails.dest))
+      return await fileSDK.mkdir(pathDetails.destRelativePath).then(() => resolve()).catch(reject)
     }
     zipHandler.extract(pathDetails.src, pathDetails.dest, (err, count) => {
       if (err) {
@@ -197,11 +196,6 @@ const loadZipHandler = async (path) => {
     zip.on('ready', () => resolve(zip));
     zip.on('error', reject);
   })
-}
-const createDirectory = async (path) => {
-  if (!fs.existsSync(path)) {
-    fs.mkdirSync(path);
-  }
 }
 
 process.on('message', (data) => {

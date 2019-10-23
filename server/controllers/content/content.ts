@@ -174,24 +174,48 @@ export default class Content {
     }
 
     async importV2(req: any, res: any) {
-        const ecarFilePath = req.body
-        if (!ecarFilePath) {
-            return res.status(400).send({ errCode: 'MISSING_ECAR_PATH' });
+        const ecarFilePaths = req.body
+        if (!ecarFilePaths) {
+            return res.status(400).send(Response.error(`api.content.import`, 400, "MISSING_ECAR_PATH"));
         }
-        const jobIds = await this.contentImportManager.registerImportJob(ecarFilePath);
-        res.send({ message: 'Import content started', jobIds });
+        this.contentImportManager.registerImportJob(ecarFilePaths).then(jobIds => {
+            res.send(Response.success('api.content.import', {
+                importedJobIds: jobIds
+            }, req))
+        }).catch(err => {
+            res.status(400);
+            res.send(Response.error(`api.content.import`, 400, err.message))
+        });
     }
     async pauseImport(req: any, res: any) {
-        const pauseResponse = await this.contentImportManager.pauseImport(req.params.importId);
-        res.send({ message: 'Paused content import for ' + req.params.importId });
+        this.contentImportManager.pauseImport(req.params.importId).then(jobIds => {
+            res.send(Response.success('api.content.import', {
+                jobIds
+            }, req))
+        }).catch(err => {
+            res.status(400);
+            res.send(Response.error(`api.content.import`, 400, err.message))
+        });
     }
     async resumeImport(req: any, res: any) {
-        const resumeResponse = await this.contentImportManager.resumeImport(req.params.importId);
-        res.send({ message: 'Resumed content import for ' + req.params.importId });
+        this.contentImportManager.resumeImport(req.params.importId).then(jobIds => {
+            res.send(Response.success('api.content.import', {
+                jobIds
+            }, req))
+        }).catch(err => {
+            res.status(400);
+            res.send(Response.error(`api.content.import`, 400, err.message))
+        });;
     }
     async cancelImport(req: any, res: any) {
-        const cancelResponse = await this.contentImportManager.cancelImport(req.params.importId);
-        res.send({ message: 'Canceled content import for ' + req.params.importId });
+        await this.contentImportManager.cancelImport(req.params.importId).then(jobIds => {
+            res.send(Response.success('api.content.import', {
+                jobIds
+            }, req))
+        }).catch(err => {
+            res.status(400);
+            res.send(Response.error(`api.content.import`, 400, err.message))
+        });;
     }
 
     import(req: any, res: any): any {
