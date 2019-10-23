@@ -68,7 +68,8 @@ export class ContentImportManager {
         ecarSourcePath: ecarPath,
         importStep: ImportSteps.copyEcar,
         importProgress: 0,
-        ecarFileCopied: 0
+        extractedEcarEntries: {},
+        artifactUnzipped: {}
       }));
     await this.dbSDK.bulk('content_import', dbData);
     this.checkImportQueue();
@@ -242,10 +243,6 @@ class ImportEcar {
         this.extractEcar()
         break;
       }
-      case ImportSteps.extractArtifact: {
-        this.extractEcar()
-        break;
-      }
       case ImportSteps.processContents: {
         this.processContents()
         break;
@@ -372,7 +369,12 @@ class ImportEcar {
     }
   }
 
-  private async copyEcar() {
+  private async copyEcar(contentImportData) {
+    if (contentImportData) {
+      this.contentImportData = contentImportData;
+      this.contentImportData.importStep = ImportSteps.processContents;
+      await this.syncStatusToDb();
+    }
     this.contentImportData.importStep = ImportSteps.parseEcar
     await this.syncStatusToDb();
     this.workerProcessRef.send({
@@ -389,15 +391,14 @@ class ImportEcar {
         data.contentImportData.importStatus = this.contentImportData.importStatus; // this line preserves importStatus
       }
       if (data.message === ImportSteps.copyEcar) {
-        this.copyEcar()
+        this.copyEcar(data.contentImportData)
       } else if (data.message === ImportSteps.parseEcar) {
         this.extractEcar(data.contentImportData)
-      } else if (data.message === ImportSteps.extractEcar || data.message === ImportSteps.extractArtifact ) {
+      } else if (data.message === ImportSteps.extractEcar) {
         this.processContents(data.contentImportData)
       } else if (data.message === ImportSteps.complete) {
         this.importComplete(data.contentImportData)
       } else if (data.message === "DATA_SYNC") {
-        console.log('-------------------DATA_SYNC----------------------------');
         this.syncStatusToDb(data.contentImportData)
       } else if (data.message === "DATA_SYNC_KILL") {
         this.handleKillSignal(data.contentImportData);
@@ -444,33 +445,13 @@ class ImportEcar {
   cleanUpFolders(){
     // delete ecar folder and extracted content folders
   }
-  getProgress(){
-    if(!ImportProgress[this.contentImportData.importStep]){
-      return this.contentImportData.importProgress;
-    }
-    let progress = ImportProgress[this.contentImportData.importStep];
-    if(this.contentImportData.importStep === ImportSteps.extractEcar && this.contentImportData.ecarEntriesCount){
-      let extractedEntries = _.values(this.contentImportData.extractedEcarEntriesCount).length;
-      extractedEntries = extractedEntries ? extractedEntries : 1;
-      let newProgress = (extractedEntries / this.contentImportData.ecarEntriesCount) * 60
-      progress = progress + newProgress;
-    } else if(this.contentImportData.importStep === ImportSteps.extractArtifact && this.contentImportData.artifactCount) {
-      let extractedArtifacts = _.values(this.contentImportData.artifactUnzipped).length;
-      extractedArtifacts = extractedArtifacts ? extractedArtifacts : 1;
-      let newProgress = (extractedArtifacts/this.contentImportData.artifactCount) * 13
-      progress = progress + newProgress;
-    } else if(this.contentImportData.importStep === ImportSteps.copyEcar){
-      progress = progress + this.contentImportData.ecarFileCopied;
-      this.contentImportData.ecarFileCopied = 0;
-    }
-    console.info(`Import progress for job id ${this.contentImportData}: ${progress}` )
-    return progress;
-  }
+
   private async syncStatusToDb(contentImportData?) {
     if(contentImportData){
       this.contentImportData = contentImportData;
     }
-    this.contentImportData.importProgress = this.getProgress()
+    console.log('----------progress---------------', this.contentImportData.importProgress, this.contentImportData.importStep);
+    this.contentImportData.importProgress > 100 ? 99: this.contentImportData.importProgress;
     let dbResponse = await this.dbSDK.update('content_import', this.contentImportData._id, this.contentImportData)
     .catch(async err => {
       console.error('syncStatusToDb error for', this.contentImportData._id, 'with status and code', err.status, err.name)

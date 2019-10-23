@@ -15,39 +15,34 @@ const contentFolder = fileSDK.getAbsPath('content');
 const ecarFolder = fileSDK.getAbsPath('ecars');
 let manifestJson;
 
+const syncCloser = (initialProgress, percentage, totalSize = contentImportData.ecarFileSize) => {
+  let lastSyncProgress = (contentImportData && contentImportData.ecarFileSize > 52428800 ? 2 : 15);
+  initialProgress = initialProgress ? initialProgress : contentImportData.importProgress;
+  let completed = 1;
+  return (chunk) => {
+      completed += chunk;
+      let newProgress = ((completed / totalSize) * percentage);
+      contentImportData.importProgress = initialProgress + newProgress;
+      console.log('sync function progress', newProgress, lastSyncProgress, contentImportData.importProgress);
+      if(contentImportData.importProgress > lastSyncProgress){
+        lastSyncProgress += (contentImportData && contentImportData.ecarFileSize > 52428800 ? 2 : 15);
+        process.send({ message: 'DATA_SYNC', contentImportData })
+      }
+  }
+}
 const copyEcar = () => {
-  contentImportData.ecarFileCopied = 0;
   try {
     console.info(contentImportData._id, 'copping ecar from src location to ecar folder', contentImportData.ecarSourcePath, ecarFolder);
-    const fileStat = fs.statSync(contentImportData.ecarSourcePath);
-    let bytesCopied = 1;
-    let minProgress = fileStat.size > 52428800 ? 2 : 10; // to avoid too many message in quick interval
-    contentImportData.ecarFileSize = fileStat.size;
+    contentImportData.ecarFileSize = fs.statSync(contentImportData.ecarSourcePath).size;
     const toStream = fs.createWriteStream(path.join(ecarFolder, contentImportData._id + '.ecar'));
     const fromStream = fs.createReadStream(contentImportData.ecarSourcePath);
     fromStream.pipe(toStream);
-    fromStream.on('data', (buffer) => {
-      bytesCopied+= buffer.length;
-      contentImportData.ecarFileCopied = (bytesCopied / fileStat.size) * ImportProgress.PARSE_ECAR;
-      if(contentImportData.ecarFileCopied > minProgress){
-        minProgress = minProgress + (fileStat.size > 52428800 ? 1 : 10);
-        process.send({ message: 'DATA_SYNC', contentImportData })
-      }
-    })
-    toStream.on('finish', () => {
-      console.info(contentImportData._id, 'copied ecar from src location to ecar folder', contentImportData.ecarSourcePath, ecarFolder);
-      process.send({ message: ImportSteps.copyEcar, contentImportData })
-    });
-    toStream.on('error', (err) => {
-      console.error(contentImportData._id, 'error while copping ecar from src location to ecar folder', contentImportData.ecarSourcePath, ecarFolder);
-      process.send({ message: "IMPORT_ERROR", contentImportData, err })
-    });
-    fromStream.on('error', (err) => {
-      console.error(contentImportData._id, 'error while copping ecar from src location to ecar folder', contentImportData.ecarSourcePath, ecarFolder);
-      process.send({ message: "IMPORT_ERROR", contentImportData, err })
-    })
+    const syncFunc = syncCloser(ImportProgress.COPY_ECAR, 23);
+    fromStream.on('data', buffer => syncFunc(buffer.length))
+    toStream.on('finish', data => process.send({ message: ImportSteps.copyEcar, contentImportData }));
+    toStream.on('error', err => process.send({ message: "IMPORT_ERROR", contentImportData, err }));
+    fromStream.on('error', err => process.send({ message: "IMPORT_ERROR", contentImportData, err }))
   } catch (err) {
-    console.error(contentImportData._id, 'error while copping ecar from src location to ecar folder', contentImportData.ecarSourcePath, ecarFolder);
     process.send({ message: "IMPORT_ERROR", contentImportData, err })
   }
 }
@@ -62,8 +57,7 @@ const parseEcar = async () => {
     if (!ecarContentEntries['manifest.json']) {
       throw "MANIFEST_MISSING";
     }
-    const manifestPath = getDestFilePath(ecarContentEntries['manifest.json'], contentImportData._id);
-    await extractFile(zipHandler, manifestPath)
+    await extractFile(zipHandler, getDestFilePath(ecarContentEntries['manifest.json'], contentImportData._id))
     manifestJson = JSON.parse(fs.readFileSync(path.join(contentBasePath, 'manifest.json'), 'utf8'));
     let parent = _.get(manifestJson, 'archive.items[0]');
     if (_.get(parent, 'visibility') !== 'Default') {
@@ -72,7 +66,6 @@ const parseEcar = async () => {
     if (parent.compatibilityLevel > config.get("CONTENT_COMPATIBILITY_LEVEL")) {
       throw `UNSUPPORTED_COMPATIBILITY_LEVEL`;
     }
-    contentImportData.ecarEntriesCount = _.values(zipHandler.entries()).length;
     contentImportData.contentId = parent.identifier;
     contentImportData.contentType = parent.mimeType;
     if (contentImportData.contentType === 'application/vnd.ekstep.content-collection') {
@@ -80,11 +73,9 @@ const parseEcar = async () => {
         item => (item.mimeType !== 'application/vnd.ekstep.content-collection'))
         .map(item => item.identifier)
     }
-    contentImportData.extractedEcarEntriesCount = {};
-    contentImportData.artifactUnzipped = {};
-    process.send({ message: ImportSteps.parseEcar, contentImportData })
+    process.send({ message: ImportSteps.parseEcar, contentImportData });
   } catch (err) {
-    process.send({ message: "IMPORT_ERROR", err })
+    process.send({ message: "IMPORT_ERROR", err });
   }
 }
 
@@ -107,61 +98,55 @@ const extractEcar = async () => {
     }
     let contentMap = {};
     let artifactToBeUnzipped = [];
+    let artifactToBeUnzippedSize = 0;
     if(!manifestJson){
       manifestJson = JSON.parse(fs.readFileSync(path.join(path.join(contentFolder, contentImportData._id), 'manifest.json'), 'utf8'));
     }
-    _.get(manifestJson, 'archive.items')
-    .forEach(item => contentMap[item.identifier] = item); // line maps all content to object
-    let extractedCount = 0;
+    _.get(manifestJson, 'archive.items').forEach(item => contentMap[item.identifier] = item); // maps all content to object
+    const syncFunc = syncCloser(ImportProgress.EXTRACT_ECAR ,65);
     for (const entry of _.values(zipHandler.entries()) as any) {
-      if (!contentImportData.extractedEcarEntriesCount[entry.name]) {
+      syncFunc(entry.compressedSize)
+      if (!contentImportData.extractedEcarEntries[entry.name]) {
         const pathObj = getDestFilePath(entry, contentImportData.contentId, contentMap);
         if (entry.name.endsWith('.zip')) {
-          artifactToBeUnzipped.push(path.join(pathObj.destRelativePath, path.basename(entry.name)));
+          artifactToBeUnzippedSize += entry.compressedSize;
+          artifactToBeUnzipped.push({ 
+            src: path.join(pathObj.destRelativePath, path.basename(entry.name)),
+            size: entry.compressedSize
+          });
         }
-        await extractFile(zipHandler, pathObj)
-        contentImportData.extractedEcarEntriesCount[entry.name] = true;
-        if(!entry.isDirectory){
-          extractedCount++;
-        }
-        if(!(extractedCount % 20)){
-          process.send({ message: 'DATA_SYNC', contentImportData })
-        }
+        await extractFile(zipHandler, pathObj);
+        contentImportData.extractedEcarEntries[entry.name] = true;
       }
     }
     console.info(contentImportData._id, 'ecar extracted')
-    contentImportData.importStep = ImportSteps.extractArtifact;
-    contentImportData.artifactCount = artifactToBeUnzipped.length;
-    process.send({ message: 'DATA_SYNC', contentImportData })
-    await unzipArtifacts(artifactToBeUnzipped);
-    await fileSDK.remove(path.join('ecars', contentImportData._id + '.ecar'))
-      .catch(err => console.log('error while deleting ecar folder'))
-    await fileSDK.remove(path.join('content', contentImportData._id))
-      .then(data => console.log(contentImportData._id, 'deleting ecar content temp folder', path.join('content', contentImportData._id)))
-      .catch(err => console.log(contentImportData._id, 'error while deleting ecar folder'))
+    await unzipArtifacts(artifactToBeUnzipped, artifactToBeUnzippedSize);
+    removeFile(path.join('ecars', contentImportData._id + '.ecar'));
+    removeFile(path.join('content', contentImportData._id));
     console.info(contentImportData._id, 'artifacts unzipped')
     process.send({ message: ImportSteps.extractEcar, contentImportData })
   } catch (err) {
     process.send({ message: "IMPORT_ERROR", err })
   } finally {
-    if (zipHandler.close) {
-      zipHandler.close();
-    }
+    zipHandler.close && zipHandler.close();
   }
 }
-const unzipArtifacts = async (artifactToBeUnzipped = []) => {
-  let extractedCount = 0;
+const removeFile = (location) => {
+  fileSDK.remove(location)
+      .catch(err => console.log('error while deleting ecar folder', location))
+}
+const unzipFile = async (src, dest = path.dirname(src)) => {
+  await fileSDK.unzip(src, dest, false).catch(err => console.log('error while unzip file', src))
+
+}
+const unzipArtifacts = async (artifactToBeUnzipped = [], artifactToBeUnzippedSize) => {
+  const syncFunc = syncCloser(ImportProgress.EXTRACT_ARTIFACT, 8, artifactToBeUnzippedSize);
   for (const artifact of artifactToBeUnzipped) {
-    if (!contentImportData.artifactUnzipped[artifact]) {
-      await fileSDK.unzip(artifact, path.dirname(artifact), false)
-        .catch(err => console.log('error while unzip file', artifact))
-      await fileSDK.remove(artifact)
-        .catch(err => console.log('error while deleting zip file', artifact))
-      contentImportData.artifactUnzipped[artifact] = true;
-      extractedCount++;
-      if(!(extractedCount % 3)){
-        process.send({ message: 'DATA_SYNC', contentImportData })
-      }
+    syncFunc(artifact.size)
+    if (!contentImportData.artifactUnzipped[artifact.src]) {
+      await unzipFile(artifact.src);
+      removeFile(artifact.src);
+      contentImportData.artifactUnzipped[artifact.src] = true;
     }
   }
 }
@@ -227,7 +212,7 @@ process.on('message', (data) => {
     copyEcar()
   } else if (data.message === ImportSteps.parseEcar) {
     parseEcar()
-  } else if (data.message === ImportSteps.extractEcar || data.message === ImportSteps.extractArtifact) {
+  } else if (data.message === ImportSteps.extractEcar) {
     dbContents = data.dbContents;
     extractEcar();
   } else if (data.message === "KILL") {

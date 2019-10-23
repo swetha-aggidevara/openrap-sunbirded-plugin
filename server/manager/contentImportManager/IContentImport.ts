@@ -2,7 +2,6 @@ export enum ImportSteps {
   copyEcar = "COPY_ECAR",
   parseEcar = "PARSE_ECAR",
   extractEcar = "EXTRACT_ECAR",
-  extractArtifact = "EXTRACT_ARTIFACT",
   processContents = "PROCESS_CONTENTS",
   complete = "COMPLETE"
 }
@@ -36,15 +35,12 @@ export interface IContentImport {
   contentId?: string;
   contentType?: string;
   importStep?: ImportSteps;
-  ecarEntriesCount?: number; 
-  extractedEcarEntriesCount?: Object;
-  artifactCount?: number;
-  artifactUnzipped?: Object;
+  extractedEcarEntries: Object;
+  artifactUnzipped: Object;
   failedReason?: string;
   childNodes?: Array<string>;
   importProgress?: number;
   ecarFileSize?: number;
-  ecarFileCopied?: number;
 }
 export interface IContentManifest {
   archive: {
