@@ -15,7 +15,7 @@ const systemInfo = {
     linux: 'linux'
 };
 
-export default class DesktopApp {
+export default class appUpdate {
 
     constructor() { }
 
