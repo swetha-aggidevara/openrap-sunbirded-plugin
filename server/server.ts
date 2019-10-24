@@ -6,6 +6,7 @@ import { frameworkAPI } from "@project-sunbird/ext-framework-server/api";
 import * as path from "path";
 import { Inject } from "typescript-ioc";
 import ContentManager from "./manager/ContentManager";
+import {ContentImportManager} from "./manager/contentImportManager"
 import { Framework } from "./controllers/framework";
 import { Organization } from "./controllers/organization";
 import { Page } from "./controllers/page";
@@ -35,6 +36,9 @@ export class Server extends BaseServer {
 
   @Inject
   private contentManager: ContentManager;
+
+  @Inject
+  private contentImportManager: ContentImportManager;
 
   @Inject
   private fileSDK;
@@ -128,7 +132,12 @@ export class Server extends BaseServer {
       this.fileSDK.getAbsPath(this.contentFilesPath),
       this.fileSDK.getAbsPath(this.ecarsFolderPath)
     );
-
+    this.contentImportManager.initialize(
+      manifest.id,
+      this.fileSDK.getAbsPath(this.contentFilesPath),
+      this.fileSDK.getAbsPath(this.ecarsFolderPath)
+    );
+    await this.contentImportManager.reconcile();
     // delete contents in temp directory
     await this.fileSDK
       .remove("temp")

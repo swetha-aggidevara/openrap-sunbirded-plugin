@@ -515,6 +515,10 @@ export class Router {
         }
       })
     );
+    app.post("/api/content/v2/import", content.importV2.bind(content))
+    app.post("/api/content/v2/import/pause/:importId", content.pauseImport.bind(content));
+    app.post("/api/content/v2/import/resume/:importId", content.resumeImport.bind(content));
+    app.post("/api/content/v2/import/cancel/:importId", content.cancelImport.bind(content));
 
     app.post(
       "/api/content/v1/import",

@@ -9,6 +9,7 @@ import * as fs from "fs";
 import { logger } from "@project-sunbird/ext-framework-server/logger";
 import * as path from "path";
 import ContentManager from "../../manager/ContentManager";
+import { ContentImportManager } from "../../manager/contentImportManager"
 import * as uuid from "uuid";
 import Hashids from "hashids";
 import { containerAPI } from "OpenRAP/dist/api";
@@ -32,12 +33,20 @@ export default class Content {
     @Inject
     private contentManager: ContentManager;
 
+    @Inject
+    private contentImportManager: ContentImportManager;
+
     private fileSDK;
 
     constructor(manifest: Manifest) {
         this.databaseSdk.initialize(manifest.id);
         this.fileSDK = containerAPI.getFileSDKInstance(manifest.id);
         this.contentManager.initialize(
+            manifest.id,
+            this.fileSDK.getAbsPath(this.contentsFilesPath),
+            this.fileSDK.getAbsPath(this.ecarsFolderPath)
+        );
+        this.contentImportManager.initialize(
             manifest.id,
             this.fileSDK.getAbsPath(this.contentsFilesPath),
             this.fileSDK.getAbsPath(this.ecarsFolderPath)
@@ -86,12 +95,12 @@ export default class Content {
                 logger.debug(`ReqId = "${req.headers['X-msgid']}": Call isUpdateRequired()`)
                 if (this.isUpdateRequired(content, req)) {
                     logger.debug(`ReqId = "${req.headers['X-msgid']}": Call checkForUpdate() to check whether update is required for content: `, _.get(content, 'identifier'));
-                    content =   await this.checkForUpdates(content, req)
+                    content = await this.checkForUpdates(content, req)
                     resObj['content'] = content;
-                    return res.send(Response.success('api.content.read', resObj,req));
+                    return res.send(Response.success('api.content.read', resObj, req));
                 } else {
                     resObj['content'] = content;
-                    return res.send(Response.success('api.content.read', resObj,req));
+                    return res.send(Response.success('api.content.read', resObj, req));
                 }
             } catch (error) {
                 logger.error(
@@ -144,7 +153,7 @@ export default class Content {
                     };
                 }
 
-                return res.send(Response.success('api.content.search', resObj,req));
+                return res.send(Response.success('api.content.search', resObj, req));
             })
             .catch(err => {
                 console.log(err);
@@ -164,6 +173,50 @@ export default class Content {
             });
     }
 
+    async importV2(req: any, res: any) {
+        const ecarFilePaths = req.body
+        if (!ecarFilePaths) {
+            return res.status(400).send(Response.error(`api.content.import`, 400, "MISSING_ECAR_PATH"));
+        }
+        this.contentImportManager.registerImportJob(ecarFilePaths).then(jobIds => {
+            res.send(Response.success('api.content.import', {
+                importedJobIds: jobIds
+            }, req))
+        }).catch(err => {
+            res.status(500);
+            res.send(Response.error(`api.content.import`, 400, err.message))
+        });
+    }
+    async pauseImport(req: any, res: any) {
+        this.contentImportManager.pauseImport(req.params.importId).then(jobIds => {
+            res.send(Response.success('api.content.import', {
+                jobIds
+            }, req))
+        }).catch(err => {
+            res.status(500);
+            res.send(Response.error(`api.content.import`, 400, err.message))
+        });
+    }
+    async resumeImport(req: any, res: any) {
+        this.contentImportManager.resumeImport(req.params.importId).then(jobIds => {
+            res.send(Response.success('api.content.import', {
+                jobIds
+            }, req))
+        }).catch(err => {
+            res.status(500);
+            res.send(Response.error(`api.content.import`, 400, err.message))
+        });;
+    }
+    async cancelImport(req: any, res: any) {
+        await this.contentImportManager.cancelImport(req.params.importId).then(jobIds => {
+            res.send(Response.success('api.content.import', {
+                jobIds
+            }, req))
+        }).catch(err => {
+            res.status(500);
+            res.send(Response.error(`api.content.import`, 400, err.message))
+        });;
+    }
 
     import(req: any, res: any): any {
         logger.debug(`ReqId = "${req.headers['X-msgid']}": Import method is called to import content`);
@@ -244,7 +297,7 @@ export default class Content {
                                             content.name
                                             }.ecar`
                                     }
-                                },req)
+                                }, req)
                             );
                             logger.info(`ReqId = "${req.headers['X-msgid']}": Content:${id} Exported successfully`);
                         }
@@ -349,7 +402,7 @@ export default class Content {
                                     '/temp/' +
                                     `${parent.name}.ecar`
                             }
-                        },req)
+                        }, req)
                     );
                     logger.info(`ReqId = "${req.headers['X-msgid']}": Collection:${id} Exported successfully`)
                 }
@@ -388,7 +441,7 @@ export default class Content {
 
     /* This method converts the buffer data to json and if any error will catch and return the buffer data */
 
-    convertBufferToJson(proxyResData,req) {
+    convertBufferToJson(proxyResData, req) {
         logger.debug(`ReqId = "${req.headers['X-msgid']}": Converting Bufferdata to json`)
         let proxyData;
         try {
@@ -483,7 +536,7 @@ export default class Content {
 
     searchDownloadingContent(contents, reqId) {
         logger.debug(`ReqId = "${reqId}": searchDownloadingContent method is called`);
-        let dbFilters =  {
+        let dbFilters = {
             "selector": {
                 "contentId": {
                     "$in": contents
@@ -501,7 +554,7 @@ export default class Content {
             logger.info(`ReqId = "${req.headers['X-msgid']}": updateAvailble for content and Don't call API`);
             return false;
         } else if (_.get(content, 'desktopAppMetadata.lastUpdateCheckedOn')) {
-            logger.info(`ReqId = "${req.headers['X-msgid']}": checking when is the last updatechecked on`, _.get(content, 'desktopAppMetadata.lastUpdateCheckedOn') );
+            logger.info(`ReqId = "${req.headers['X-msgid']}": checking when is the last updatechecked on`, _.get(content, 'desktopAppMetadata.lastUpdateCheckedOn'));
             return ((Date.now() - _.get(content, 'desktopAppMetadata.lastUpdateCheckedOn')) / 3600000) > INTERVAL_TO_CHECKUPDATE ? true : false;
         }
         logger.info(`ReqId = "${req.headers['X-msgid']}": update is not available for content and call API`);
