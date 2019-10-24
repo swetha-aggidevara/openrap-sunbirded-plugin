@@ -183,7 +183,7 @@ export default class Content {
                 importedJobIds: jobIds
             }, req))
         }).catch(err => {
-            res.status(400);
+            res.status(500);
             res.send(Response.error(`api.content.import`, 400, err.message))
         });
     }
@@ -193,7 +193,7 @@ export default class Content {
                 jobIds
             }, req))
         }).catch(err => {
-            res.status(400);
+            res.status(500);
             res.send(Response.error(`api.content.import`, 400, err.message))
         });
     }
@@ -203,7 +203,7 @@ export default class Content {
                 jobIds
             }, req))
         }).catch(err => {
-            res.status(400);
+            res.status(500);
             res.send(Response.error(`api.content.import`, 400, err.message))
         });;
     }
@@ -213,7 +213,7 @@ export default class Content {
                 jobIds
             }, req))
         }).catch(err => {
-            res.status(400);
+            res.status(500);
             res.send(Response.error(`api.content.import`, 400, err.message))
         });;
     }
