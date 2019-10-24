@@ -24,7 +24,7 @@ const syncCloser = (initialProgress, percentage, totalSize = contentImportData.e
   const subscription = syncData$.pipe(throttleTime(2500)).subscribe(data => {
     let newProgress = ((completed / totalSize) * percentage);
     contentImportData.importProgress = initialProgress + newProgress;
-    sendMessage("DATA_SYNC")
+    sendMessage("DATA_SYNC");
   });
   return (chunk = 0) => {
     completed += chunk;
