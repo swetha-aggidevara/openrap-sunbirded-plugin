@@ -6,7 +6,9 @@ import * as path from 'path';
 import { manifest } from '../../manifest';
 import { containerAPI } from 'OpenRAP/dist/api';
 import config from '../../config';
-import { } from 'rxjs';
+import { BehaviorSubject, Subject } from 'rxjs';
+import {debounceTime, throttleTime} from 'rxjs/operators';
+
 let zipHandler;
 let contentImportData: IContentImport;
 let dbContents;
@@ -16,32 +18,41 @@ const ecarFolder = fileSDK.getAbsPath('ecars');
 let manifestJson;
 
 const syncCloser = (initialProgress, percentage, totalSize = contentImportData.ecarFileSize) => {
-  let lastSyncProgress = (contentImportData && contentImportData.ecarFileSize > 52428800 ? 2 : 15);
   initialProgress = initialProgress ? initialProgress : contentImportData.importProgress;
   let completed = 1;
-  return (chunk) => {
-      completed += chunk;
-      let newProgress = ((completed / totalSize) * percentage);
-      contentImportData.importProgress = initialProgress + newProgress;
-      console.log('sync function progress', newProgress, lastSyncProgress, contentImportData.importProgress);
-      if(contentImportData.importProgress > lastSyncProgress){
-        lastSyncProgress += (contentImportData && contentImportData.ecarFileSize > 52428800 ? 2 : 15);
-        process.send({ message: 'DATA_SYNC', contentImportData })
-      }
+  const syncData$ = new Subject<number>();
+  const subscription = syncData$.pipe(throttleTime(1000)).subscribe(data => {
+    let newProgress = ((completed / totalSize) * percentage);
+    contentImportData.importProgress = initialProgress + newProgress;
+    process.send({ message: 'DATA_SYNC', contentImportData })
+  });
+  return (chunk = 0) => {
+    completed += chunk;
+    syncData$.next(completed);
+    return subscription;
   }
 }
 const copyEcar = () => {
   try {
     console.info(contentImportData._id, 'copping ecar from src location to ecar folder', contentImportData.ecarSourcePath, ecarFolder);
     contentImportData.ecarFileSize = fs.statSync(contentImportData.ecarSourcePath).size;
+    const syncFunc = syncCloser(ImportProgress.COPY_ECAR, 25);
     const toStream = fs.createWriteStream(path.join(ecarFolder, contentImportData._id + '.ecar'));
     const fromStream = fs.createReadStream(contentImportData.ecarSourcePath);
     fromStream.pipe(toStream);
-    const syncFunc = syncCloser(ImportProgress.COPY_ECAR, 23);
-    fromStream.on('data', buffer => syncFunc(buffer.length))
-    toStream.on('finish', data => process.send({ message: ImportSteps.copyEcar, contentImportData }));
-    toStream.on('error', err => process.send({ message: "IMPORT_ERROR", contentImportData, err }));
-    fromStream.on('error', err => process.send({ message: "IMPORT_ERROR", contentImportData, err }))
+    fromStream.on('data', buffer => syncFunc(buffer.length));
+    toStream.on('finish', data => { 
+      syncFunc().unsubscribe(); 
+      process.send({ message: ImportSteps.copyEcar, contentImportData })
+    });
+    toStream.on('error', err => { 
+      syncFunc().unsubscribe(); 
+      process.send({ message: "IMPORT_ERROR", contentImportData, err })
+    });
+    fromStream.on('error', err => { 
+      syncFunc().unsubscribe(); 
+      process.send({ message: "IMPORT_ERROR", contentImportData, err })
+    })
   } catch (err) {
     process.send({ message: "IMPORT_ERROR", contentImportData, err })
   }
@@ -118,6 +129,7 @@ const extractEcar = async () => {
         contentImportData.extractedEcarEntries[entry.name] = true;
       }
     }
+    syncFunc().unsubscribe();
     console.info(contentImportData._id, 'ecar extracted')
     await unzipArtifacts(artifactToBeUnzipped, artifactToBeUnzippedSize);
     removeFile(path.join('ecars', contentImportData._id + '.ecar'));
@@ -139,7 +151,7 @@ const unzipFile = async (src, dest = path.dirname(src)) => {
 
 }
 const unzipArtifacts = async (artifactToBeUnzipped = [], artifactToBeUnzippedSize) => {
-  const syncFunc = syncCloser(ImportProgress.EXTRACT_ARTIFACT, 8, artifactToBeUnzippedSize);
+  const syncFunc = syncCloser(ImportProgress.EXTRACT_ARTIFACT, 9, artifactToBeUnzippedSize);
   for (const artifact of artifactToBeUnzipped) {
     syncFunc(artifact.size)
     if (!contentImportData.artifactUnzipped[artifact.src]) {
@@ -148,6 +160,7 @@ const unzipArtifacts = async (artifactToBeUnzipped = [], artifactToBeUnzippedSiz
       contentImportData.artifactUnzipped[artifact.src] = true;
     }
   }
+  syncFunc().unsubscribe();
 }
 const getDestFilePath = (entry, id, contentMap = {}) => {
   let patObj = {

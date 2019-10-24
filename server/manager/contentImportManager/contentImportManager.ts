@@ -410,7 +410,7 @@ class ImportEcar {
   }
   handleWorkerCloseEvents() {
     this.workerProcessRef.on('exit', (code, signal) => {
-      console.log('------------------CHILD_PROCESS_EXIT-------------------', code, signal);
+      console.log(this.contentImportData._id, 'Child process exited with', code, signal);
       if(signal === 'SIGHUP'){
         return;
       }
@@ -449,7 +449,7 @@ class ImportEcar {
     if(contentImportData){
       this.contentImportData = contentImportData;
     }
-    console.log('----------progress---------------', this.contentImportData.importProgress, this.contentImportData.importStep);
+    console.info(this.contentImportData._id, 'progress with import step', this.contentImportData.importProgress, this.contentImportData.importStep);
     this.contentImportData.importProgress > 100 ? 99: this.contentImportData.importProgress;
     let dbResponse = await this.dbSDK.update('content_import', this.contentImportData._id, this.contentImportData)
     .catch(async err => {

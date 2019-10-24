@@ -7,10 +7,10 @@ export enum ImportSteps {
 }
 export enum ImportProgress {
   "COPY_ECAR" = 1,
-  "PARSE_ECAR" = 23,
-  "EXTRACT_ECAR" = 25,
+  "PARSE_ECAR" = 25,
+  "EXTRACT_ECAR" = 26,
   "EXTRACT_ARTIFACT" = 90,
-  "PROCESS_CONTENTS" = 98,
+  "PROCESS_CONTENTS" = 99,
   "COMPLETE" = 100
 }
 export enum ImportStatus {
