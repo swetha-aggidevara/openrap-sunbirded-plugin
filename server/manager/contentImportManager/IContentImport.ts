@@ -37,6 +37,7 @@ export interface IContentImport {
   importStep?: ImportSteps;
   extractedEcarEntries: Object;
   artifactUnzipped: Object;
+  failedCode?: string;
   failedReason?: string;
   childNodes?: Array<string>;
   importProgress?: number;
@@ -46,4 +47,23 @@ export interface IContentManifest {
   archive: {
     items: Array<any>;
   };
+}
+export class ErrorObj {
+  errCode: string;
+  errMessage: string;
+}
+export const getErrorObj = (error, errCode = "UNHANDLED_ERROR") => {
+  if(error instanceof ErrorObj){
+    return error;
+  }
+  let errObj = {
+    errCode,
+    errMessage: error.message
+  };
+  return errObj;
+}
+export const handelError = (errCode) => {
+  return (error: Error) => {
+    throw getErrorObj(error, errCode);
+  }
 }

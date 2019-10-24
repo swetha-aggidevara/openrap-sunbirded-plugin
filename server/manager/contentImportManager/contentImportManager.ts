@@ -2,7 +2,7 @@ import * as  _ from 'lodash';
 import * as uuid from 'uuid';
 import * as childProcess from 'child_process';
 import * as os from 'os';
-import { IContentImport, ImportStatus, ImportSteps, IContentManifest, ImportProgress } from './IContentImport'
+import { IContentImport, ImportStatus, ImportSteps, IContentManifest, getErrorObj, handelError, ErrorObj } from './IContentImport'
 import { Inject } from 'typescript-ioc';
 import * as path from 'path';
 import DatabaseSDK from './../../sdk/database';
@@ -249,16 +249,21 @@ class ImportEcar {
         break;
       }
       default: {
-        this.handleChildProcessError('UNHANDLED_IMPORT_STEP', {});
+        this.handleChildProcessError({ errCode: "UNHANDLED_IMPORT_STEP", errMessage: "unsupported import step"});
         break;
       }
     }
   }
-
-  private async extractEcar(contentImportData?) {
+  /** 
+   * _id, _rev, ImportStep, ImportStatus should not be copied from child. Parent will handle status update and import progress
+  */
+  saveDataFromWorker(contentImportData: IContentImport){
+    this.contentImportData = { ...this.contentImportData,
+      ..._.pick(contentImportData, ['childNodes', 'contentId', 'contentType', 'extractedEcarEntries', 'artifactUnzipped', 'importProgress', 'ecarFileSize'])}
+  }
+  private async extractEcar() {
     try {
-      if (contentImportData) {
-        this.contentImportData = contentImportData;
+      if(this.contentImportData.importStep !== ImportSteps.extractEcar){
         this.contentImportData.importStep = ImportSteps.extractEcar;
         await this.syncStatusToDb();
       }
@@ -281,10 +286,9 @@ class ImportEcar {
     }
   }
 
-  async processContents(contentImportData?) {
+  async processContents() {
     try {
-      if (contentImportData) {
-        this.contentImportData = contentImportData;
+      if(this.contentImportData.importStep !== ImportSteps.processContents){
         this.contentImportData.importStep = ImportSteps.processContents;
         await this.syncStatusToDb();
       }
@@ -299,7 +303,7 @@ class ImportEcar {
       await this.syncStatusToDb();
       this.cb(null, this.contentImportData);
     } catch (err) {
-      console.error('Error while processContents for ', this.contentImportData._id, err);
+      console.error(this.contentImportData._id, 'Error while processContents for ', err);
       this.contentImportData.importStatus = ImportStatus.failed;
       await this.syncStatusToDb();
       this.cb('ERROR', this.contentImportData);
@@ -310,7 +314,7 @@ class ImportEcar {
   }
 
   private async saveContentsToDb(dbContents) {
-    console.log('saving contents to db');
+    console.info(this.contentImportData._id, 'saving contents to db');
     this.manifestJson = await this.fileSDK.readJSON(path.join(path.join(this.fileSDK.getAbsPath('content'), this.contentImportData.contentId), 'manifest.json'));
     let parent = _.get(this.manifestJson, 'archive.items[0]');
     parent._id = parent.identifier;
@@ -349,31 +353,16 @@ class ImportEcar {
     await this.dbSDK.bulk('content', [parent, ...resources]);
   }
 
-  async importComplete(contentImportData) {
-    try {
-      if (contentImportData) {
-        this.contentImportData = contentImportData;
-        this.contentImportData.importStep = ImportSteps.complete;
-        await this.syncStatusToDb();
-      }
-      this.cb(null, this.contentImportData);
-    } catch (err) {
-      console.error('Error while processContents for ', this.contentImportData._id, err);
-      this.contentImportData.importStatus = ImportStatus.failed;
+  async importComplete() {
+    if (this.contentImportData.importStep = ImportSteps.complete) {
+      this.contentImportData.importStep = ImportSteps.complete;
       await this.syncStatusToDb();
-      this.cb('ERROR', this.contentImportData);
-      this.cleanUpFolders();
-    } finally {
-      this.workerProcessRef.kill('SIGHUP');
     }
+    this.cb(null, this.contentImportData);
+    this.workerProcessRef.kill('SIGHUP');
   }
 
-  private async copyEcar(contentImportData) {
-    if (contentImportData) {
-      this.contentImportData = contentImportData;
-      this.contentImportData.importStep = ImportSteps.processContents;
-      await this.syncStatusToDb();
-    }
+  private async copyEcar() {
     this.contentImportData.importStep = ImportSteps.parseEcar
     await this.syncStatusToDb();
     this.workerProcessRef.send({
@@ -386,25 +375,24 @@ class ImportEcar {
     this.workerProcessRef.on('message', async (data) => {
       console.log('Message from child process for importId:' + _.get(data, 'contentImportData._id'), data.message);
       if(data.contentImportData){
-        data.contentImportData._rev = this.contentImportData._rev; // this line prevents conflict: Document update conflict of pouchDb
-        data.contentImportData.importStatus = this.contentImportData.importStatus; // this line preserves importStatus
+        this.saveDataFromWorker(data.contentImportData); // save only required data from child, 
       }
       if (data.message === ImportSteps.copyEcar) {
-        this.copyEcar(data.contentImportData)
+        this.copyEcar()
       } else if (data.message === ImportSteps.parseEcar) {
-        this.extractEcar(data.contentImportData)
+        this.extractEcar()
       } else if (data.message === ImportSteps.extractEcar) {
-        this.processContents(data.contentImportData)
+        this.processContents()
       } else if (data.message === ImportSteps.complete) {
-        this.importComplete(data.contentImportData)
+        this.importComplete()
       } else if (data.message === "DATA_SYNC") {
-        this.syncStatusToDb(data.contentImportData)
+        this.syncStatusToDb()
       } else if (data.message === "DATA_SYNC_KILL") {
-        this.handleKillSignal(data.contentImportData);
+        this.handleKillSignal();
       } else if (data.message === 'IMPORT_ERROR') {
-        this.handleChildProcessError(data.message, data.err,  data.contentImportData);
+        this.handleChildProcessError(data.err);
       } else {
-        this.handleChildProcessError('UNHANDLED_WORKER_MESSAGE', data.err, data.contentImportData);
+        this.handleChildProcessError({ errCode: "UNHANDLED_WORKER_MESSAGE", errMessage: "unsupported import step"});
       }
     });
   }
@@ -425,30 +413,20 @@ class ImportEcar {
     await this.syncStatusToDb();
     this.cleanUpFolders();
   }
-  private async handleChildProcessError(message, err = {}, contentImportData?) {
-    try {
-      console.error('Got error while importing ecar with importId:', this.contentImportData._id);
-      console.error(err)
-      if (contentImportData) {
-        this.contentImportData = contentImportData;
-      }
-      this.contentImportData.importStatus = ImportStatus.failed;
-      await this.syncStatusToDb();
-    } catch(err) {
-      console.error('Error while handling error for ', this.contentImportData._id)
-    } finally {
-      this.cb(message, this.contentImportData);
-      this.workerProcessRef.kill('SIGHUP');
-    }
+  private async handleChildProcessError(err: ErrorObj) {
+    console.error(this.contentImportData._id, 'Got error while importing ecar with importId:', err);
+    this.contentImportData.failedCode = err.errCode;
+    this.contentImportData.failedReason = err.errMessage;
+    this.contentImportData.importStatus = ImportStatus.failed;
+    await this.syncStatusToDb();
+    this.cb(err, this.contentImportData);
+    this.cleanUpFolders();
   }
   cleanUpFolders(){
     // delete ecar folder and extracted content folders
   }
 
-  private async syncStatusToDb(contentImportData?) {
-    if(contentImportData){
-      this.contentImportData = contentImportData;
-    }
+  private async syncStatusToDb() {
     console.info(this.contentImportData._id, 'progress with import step', this.contentImportData.importProgress, this.contentImportData.importStep);
     this.contentImportData.importProgress > 100 ? 99: this.contentImportData.importProgress;
     let dbResponse = await this.dbSDK.update('content_import', this.contentImportData._id, this.contentImportData)
@@ -490,14 +468,12 @@ class ImportEcar {
     this.contentImportData.importStatus = ImportStatus.paused;
     this.workerProcessRef.send({ message: 'KILL' });
   }
-  async handleKillSignal(contentImportData) {
+  async handleKillSignal() {
     this.workerProcessRef.kill('SIGHUP');
-    console.log('kill signal from child', this.contentImportData.importStatus, this.contentImportData.importStep);
+    console.log(this.contentImportData._id, 'kill signal from child', this.contentImportData.importStatus, this.contentImportData.importStep);
     if (this.contentImportData.importStatus === ImportStatus.paused) {
-      this.contentImportData = contentImportData;
       this.contentImportData.importStatus = ImportStatus.paused; // this line should not be removed
     } else if(this.contentImportData.importStatus === ImportStatus.canceled) {
-      this.contentImportData = contentImportData;
       this.contentImportData.importStatus = ImportStatus.canceled; // this line should not be removed
       this.cleanUpFolders();
     }

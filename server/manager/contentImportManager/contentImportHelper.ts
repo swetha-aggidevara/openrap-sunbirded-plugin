@@ -1,4 +1,4 @@
-import { IContentImport, ImportSteps, ImportProgress } from './IContentImport'
+import { IContentImport, ImportSteps, ImportProgress, getErrorObj, handelError, ErrorObj } from './IContentImport'
 import * as  StreamZip from 'node-stream-zip';
 import * as  fs from 'fs';
 import * as  _ from 'lodash';
@@ -6,8 +6,8 @@ import * as path from 'path';
 import { manifest } from '../../manifest';
 import { containerAPI } from 'OpenRAP/dist/api';
 import config from '../../config';
-import { BehaviorSubject, Subject } from 'rxjs';
-import {debounceTime, throttleTime} from 'rxjs/operators';
+import { Subject } from 'rxjs';
+import { throttleTime} from 'rxjs/operators';
 
 let zipHandler;
 let contentImportData: IContentImport;
@@ -21,10 +21,10 @@ const syncCloser = (initialProgress, percentage, totalSize = contentImportData.e
   initialProgress = initialProgress ? initialProgress : contentImportData.importProgress;
   let completed = 1;
   const syncData$ = new Subject<number>();
-  const subscription = syncData$.pipe(throttleTime(1000)).subscribe(data => {
+  const subscription = syncData$.pipe(throttleTime(2500)).subscribe(data => {
     let newProgress = ((completed / totalSize) * percentage);
     contentImportData.importProgress = initialProgress + newProgress;
-    process.send({ message: 'DATA_SYNC', contentImportData })
+    sendMessage("DATA_SYNC")
   });
   return (chunk = 0) => {
     completed += chunk;
@@ -32,29 +32,40 @@ const syncCloser = (initialProgress, percentage, totalSize = contentImportData.e
     return subscription;
   }
 }
-const copyEcar = () => {
+const getEcarSize = (filePath): Promise<number> => {
+  return new Promise((resolve, reject) => {
+    fs.stat(filePath, (err, stats) => {
+      if(err){
+        return reject(err)
+      }
+      resolve(stats.size);
+    })
+  })
+}
+
+const copyEcar = async () => {
   try {
     console.info(contentImportData._id, 'copping ecar from src location to ecar folder', contentImportData.ecarSourcePath, ecarFolder);
-    contentImportData.ecarFileSize = fs.statSync(contentImportData.ecarSourcePath).size;
+    contentImportData.ecarFileSize = await getEcarSize(contentImportData.ecarSourcePath).catch(handelError('ECAR_STATS'));
     const syncFunc = syncCloser(ImportProgress.COPY_ECAR, 25);
     const toStream = fs.createWriteStream(path.join(ecarFolder, contentImportData._id + '.ecar'));
     const fromStream = fs.createReadStream(contentImportData.ecarSourcePath);
     fromStream.pipe(toStream);
     fromStream.on('data', buffer => syncFunc(buffer.length));
-    toStream.on('finish', data => { 
-      syncFunc().unsubscribe(); 
-      process.send({ message: ImportSteps.copyEcar, contentImportData })
+    toStream.on('finish', data => {
+      syncFunc().unsubscribe();
+      sendMessage(ImportSteps.copyEcar)
     });
     toStream.on('error', err => { 
       syncFunc().unsubscribe(); 
-      process.send({ message: "IMPORT_ERROR", contentImportData, err })
+      sendMessage("IMPORT_ERROR", getErrorObj(err, "UNHANDLED_COPY_ECAR_ERROR"))
     });
     fromStream.on('error', err => { 
       syncFunc().unsubscribe(); 
-      process.send({ message: "IMPORT_ERROR", contentImportData, err })
+      sendMessage("IMPORT_ERROR", getErrorObj(err, "UNHANDLED_COPY_ECAR_ERROR"))
     })
   } catch (err) {
-    process.send({ message: "IMPORT_ERROR", contentImportData, err })
+    sendMessage("IMPORT_ERROR", getErrorObj(err, "UNHANDLED_COPY_ECAR_ERROR"))
   }
 }
 
@@ -62,20 +73,20 @@ const parseEcar = async () => {
   try {
     let ecarBasePath = path.join(ecarFolder, contentImportData._id + '.ecar');
     let contentBasePath = path.join(contentFolder, contentImportData._id); // temp path
-    zipHandler = await loadZipHandler(ecarBasePath);
+    zipHandler = await loadZipHandler(ecarBasePath).catch(handelError('LOAD_ECAR'));
     await fileSDK.mkdir(path.join('content', contentImportData._id));
     const ecarContentEntries = zipHandler.entries();
     if (!ecarContentEntries['manifest.json']) {
-      throw "MANIFEST_MISSING";
+      throw getErrorObj({ message: "manifest.json is missing in ecar" }, "MANIFEST_MISSING");
     }
     await extractFile(zipHandler, getDestFilePath(ecarContentEntries['manifest.json'], contentImportData._id))
     manifestJson = await fileSDK.readJSON(path.join(contentBasePath, 'manifest.json'))
     let parent = _.get(manifestJson, 'archive.items[0]');
     if (_.get(parent, 'visibility') !== 'Default') {
-      throw 'INVALID_MANIFEST'
+      throw getErrorObj({ message: `manifest.json dosn't contain content with visibility Default` }, "INVALID_MANIFEST");
     }
     if (parent.compatibilityLevel > config.get("CONTENT_COMPATIBILITY_LEVEL")) {
-      throw `UNSUPPORTED_COMPATIBILITY_LEVEL`;
+      throw getErrorObj({ message: `${parent.compatibilityLevel} not supported. Required ${config.get("CONTENT_COMPATIBILITY_LEVEL")} and below` }, "UNSUPPORTED_COMPATIBILITY_LEVEL");
     }
     contentImportData.contentId = parent.identifier;
     contentImportData.contentType = parent.mimeType;
@@ -84,9 +95,9 @@ const parseEcar = async () => {
         item => (item.mimeType !== 'application/vnd.ekstep.content-collection'))
         .map(item => item.identifier)
     }
-    process.send({ message: ImportSteps.parseEcar, contentImportData });
+    sendMessage(ImportSteps.parseEcar)
   } catch (err) {
-    process.send({ message: "IMPORT_ERROR", err });
+    sendMessage("IMPORT_ERROR", getErrorObj(err, "UNHANDLED_PARSE_ECAR_ERROR"))
   }
 }
 
@@ -98,19 +109,19 @@ const extractEcar = async () => {
       // 1.check compatibility level and content version, if ecar has higher level then update 
       // 2.content version of childNodes of collection if update available update content
       // 3.new ecar has more content that imported ecar in app, add those missing content to app
-      process.send({ message: ImportSteps.complete, contentImportData })
+      sendMessage(ImportSteps.complete)
       return;
     }
     let ecarBasePath = path.join(ecarFolder, contentImportData._id + '.ecar');
     await fileSDK.mkdir(path.join('content', contentImportData.contentId));
     if (!zipHandler) {
-      zipHandler = await loadZipHandler(ecarBasePath);
+      zipHandler = await loadZipHandler(ecarBasePath).catch(handelError('LOAD_ECAR'));
     }
     let contentMap = {};
     let artifactToBeUnzipped = [];
     let artifactToBeUnzippedSize = 0;
     if(!manifestJson){
-      manifestJson = await fileSDK.readJSON(path.join(path.join(contentFolder, contentImportData._id), 'manifest.json'))
+      manifestJson = await fileSDK.readJSON(path.join(path.join(contentFolder, contentImportData._id), 'manifest.json')).catch(handelError('READ_MANIFEST_JSON'))
     }
     _.get(manifestJson, 'archive.items').forEach(item => contentMap[item.identifier] = item); // maps all content to object
     const syncFunc = syncCloser(ImportProgress.EXTRACT_ECAR ,65);
@@ -125,19 +136,19 @@ const extractEcar = async () => {
             size: entry.compressedSize
           });
         }
-        await extractFile(zipHandler, pathObj);
+        await extractFile(zipHandler, pathObj).catch(handelError('EXTRACT_ECAR_CONTENT'));
         contentImportData.extractedEcarEntries[entry.name] = true;
       }
     }
     syncFunc().unsubscribe();
     console.info(contentImportData._id, 'ecar extracted')
-    await unzipArtifacts(artifactToBeUnzipped, artifactToBeUnzippedSize);
+    await unzipArtifacts(artifactToBeUnzipped, artifactToBeUnzippedSize).catch(handelError('EXTRACT_ARTIFACTS'));
     removeFile(path.join('ecars', contentImportData._id + '.ecar'));
     removeFile(path.join('content', contentImportData._id));
     console.info(contentImportData._id, 'artifacts unzipped')
-    process.send({ message: ImportSteps.extractEcar, contentImportData })
+    sendMessage(ImportSteps.extractEcar)
   } catch (err) {
-    process.send({ message: "IMPORT_ERROR", err })
+    sendMessage("IMPORT_ERROR", getErrorObj(err, "UNHANDLED_EXTRACT_ECAR_ERROR"))
   } finally {
     zipHandler.close && zipHandler.close();
   }
@@ -210,7 +221,16 @@ const loadZipHandler = async (path) => {
     zip.on('error', reject);
   })
 }
-
+const sendMessage = (message: string, err?: ErrorObj) => {
+  const messageObj: any = {
+    message,
+    contentImportData,
+  }
+  if(err){
+    messageObj.err = err;
+  }
+  process.send(messageObj)
+}
 process.on('message', (data) => {
   if (_.includes([ImportSteps.copyEcar, ImportSteps.parseEcar, ImportSteps.extractEcar], data.message)) {
     contentImportData = data.contentImportData;
@@ -226,6 +246,6 @@ process.on('message', (data) => {
     if (zipHandler && zipHandler.close) {
       zipHandler.close();
     }
-    process.send({ message: "DATA_SYNC_KILL", contentImportData })
+    sendMessage("DATA_SYNC_KILL");
   }
 });
