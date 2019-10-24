@@ -18,7 +18,7 @@ import config from "./config";
 import { logger } from "@project-sunbird/ext-framework-server/logger";
 import * as uuid from "uuid";
 import { containerAPI } from "OpenRAP/dist/api";
-import DesktopApp from "./controllers/desktopApp";
+import DesktopApp from "./controllers/appUpdate";
 
 let telemetry;
 
