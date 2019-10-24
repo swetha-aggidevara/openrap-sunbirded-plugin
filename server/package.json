@@ -34,6 +34,7 @@
     "all": true
   },
   "dependencies": {
+    "node-stream-zip": "^1.8.2",
     "busboy": "^0.3.0",
     "decompress-zip": "^0.2.2",
     "ejs": "^2.6.1",
