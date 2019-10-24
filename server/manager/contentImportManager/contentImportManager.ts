@@ -354,8 +354,9 @@ class ImportEcar {
   }
 
   async importComplete() {
-    if (this.contentImportData.importStep = ImportSteps.complete) {
+    if (this.contentImportData.importStep !== ImportSteps.complete) {
       this.contentImportData.importStep = ImportSteps.complete;
+      this.contentImportData.importStatus = ImportStatus.completed;
       await this.syncStatusToDb();
     }
     this.cb(null, this.contentImportData);
