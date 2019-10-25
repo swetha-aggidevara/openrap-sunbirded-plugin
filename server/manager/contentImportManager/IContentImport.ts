@@ -31,6 +31,7 @@ export interface IContentImport {
   _rev?: string;
   importStatus: ImportStatus;
   createdOn: string | number;
+  updatedOn: string | number;
   ecarSourcePath: string;
   contentId?: string;
   contentType?: string;

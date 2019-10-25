@@ -6,7 +6,10 @@ import { Manifest } from "@project-sunbird/ext-framework-server/models";
 import { logger } from '@project-sunbird/ext-framework-server/logger';
 import { containerAPI } from "OpenRAP/dist/api";
 import { HTTPService } from "@project-sunbird/ext-framework-server/services";
-
+import * as path from "path";
+import { ImportStatus, IContentImport } from "../../manager/contentImportManager"
+import { IAddedUsingType } from '../../controllers/content/IContent';
+const sessionStartTime = Date.now();
 export enum CONTENT_DOWNLOAD_STATUS {
     Submitted = "SUBMITTED",
     Completed = "COMPLETED",
@@ -77,7 +80,7 @@ export default class ContentDownload {
                             updatedOn: Date.now()
                         })
                         logger.info(`ReqId = "${req.headers['X-msgid']}": Content Inserted in Database Successfully`);
-                        return res.send(Response.success("api.content.download", { downloadId },req));
+                        return res.send(Response.success("api.content.download", { downloadId }, req));
                         // return response the downloadId
                     } else {
                         logger.info(`ReqId = "${req.headers['X-msgid']}": Found content:${_.get(content, 'data.result.content.mimeType')} is of type collection`)
@@ -101,10 +104,10 @@ export default class ContentDownload {
                                         "limit": childNodes.length
                                     }
                                 }, {
-                                    headers: {
-                                        "Content-Type": "application/json"
-                                    }
-                                }).toPromise();
+                                headers: {
+                                    "Content-Type": "application/json"
+                                }
+                            }).toPromise();
                             logger.info(`ReqId = "${req.headers['X-msgid']}": Found child contents: ${_.get(childrenContentsRes, 'data.result.count')}`);
                             if (_.get(childrenContentsRes, 'data.result.count')) {
                                 let contents = _.get(childrenContentsRes, 'data.result.content');
@@ -137,7 +140,7 @@ export default class ContentDownload {
                             updatedOn: Date.now()
                         })
                         logger.info(`ReqId = "${req.headers['X-msgid']}": Collection inserted successfully`);
-                        return res.send(Response.success("api.content.download", {downloadId},req));
+                        return res.send(Response.success("api.content.download", { downloadId }, req));
                     }
                 } else {
                     logger.error(`ReqId = "${req.headers['X-msgid']}": Received error while processing download request ${content}, for content ${req.params.id}`);
@@ -186,7 +189,7 @@ export default class ContentDownload {
                                 "name": doc.name,
                                 "status": CONTENT_DOWNLOAD_STATUS.Submitted,
                                 "createdOn": doc.createdOn,
-                                "pkgVersion": _.get(doc ,'queueMetaData.pkgVersion'),
+                                "pkgVersion": _.get(doc, 'queueMetaData.pkgVersion'),
                                 "contentType": _.get(doc, 'queueMetaData.contentType')
                             };
                         })
@@ -221,7 +224,7 @@ export default class ContentDownload {
                                 "name": doc.name,
                                 "status": API_DOWNLOAD_STATUS.completed,
                                 "createdOn": doc.createdOn,
-                                "pkgVersion": _.get(doc ,'queueMetaData.pkgVersion'),
+                                "pkgVersion": _.get(doc, 'queueMetaData.pkgVersion'),
                                 "contentType": _.get(doc, 'queueMetaData.contentType')
                             };
                         })
@@ -300,7 +303,7 @@ export default class ContentDownload {
                                 "name": doc.name,
                                 "status": API_DOWNLOAD_STATUS.failed,
                                 "createdOn": doc.createdOn,
-                                "pkgVersion": _.get(doc,'queueMetaData.pkgVersion'),
+                                "pkgVersion": _.get(doc, 'queueMetaData.pkgVersion'),
                                 "contentType": _.get(doc, 'queueMetaData.contentType')
                             };
                         })
@@ -309,6 +312,11 @@ export default class ContentDownload {
 
 
                 logger.info(`ReqId = "${req.headers['X-msgid']}": Received all downloaded Contents`);
+                const importJobs = await this.listContentImport();
+                submitted.push(...importJobs.submitted);
+                inprogress.push(...importJobs.inprogress);
+                failed.push(...importJobs.failed);
+                completed.push(...importJobs.completed);
                 return res.send(Response.success("api.content.download.list", {
                     response: {
                         downloads: {
@@ -318,7 +326,7 @@ export default class ContentDownload {
                             completed: _.take(completed, 10)
                         }
                     }
-                },req));
+                }, req));
 
             } catch (error) {
                 logger.error(`ReqId = "${req.headers['X-msgid']}": Error while processing the list request and err.message: ${error.message}`)
@@ -326,5 +334,59 @@ export default class ContentDownload {
                 return res.send(Response.error("api.content.download.list", 500))
             }
         })()
+    }
+    public async listContentImport() {
+        const importJobs = await this.databaseSdk.find('content_import', {
+            "selector": {
+                $or: [
+                    {
+                        importStatus: {
+                            "$in": [ImportStatus.inProgress, ImportStatus.inQueue, ImportStatus.reconcile]
+                        }
+                    },
+                    {
+                        importStatus: {
+                            "$in": [ImportStatus.failed, ImportStatus.completed]
+                        },
+                        updatedOn: {
+                            "$gt": sessionStartTime
+                        }
+                    }
+                ]
+            }
+        }).catch((error) => {
+            console.error('Error while fetching content import status');
+            return {docs: []}
+        });
+        const contentImportJobs = {
+            submitted: [],
+            inprogress: [],
+            failed: [],
+            completed: []
+        };
+        console.log(importJobs);
+        _.forEach(importJobs.docs, (job: IContentImport) => {
+            const jobObj = {
+                contentId: job.contentId,
+                id: job._id,
+                resourceId: job.contentId,
+                name: job.ecarSourcePath ? path.basename(job.ecarSourcePath) : 'untiteled upload',
+                totalSize: 100,
+                downloadedSize: job.importProgress,
+                status: job.importStatus,
+                createdOn: job.createdOn,
+                addedUsing: IAddedUsingType.import
+            }
+            if (ImportStatus.inProgress === job.importStatus) {
+                contentImportJobs.inprogress.push(jobObj)
+            } else if (ImportStatus.inQueue === job.importStatus || ImportStatus.reconcile === job.importStatus) {
+                contentImportJobs.submitted.push(jobObj)
+            } else if (ImportStatus.completed === job.importStatus) {
+                contentImportJobs.completed.push(jobObj)
+            } else if (ImportStatus.failed === job.importStatus) {
+                contentImportJobs.failed.push(jobObj)
+            }
+        });
+        return contentImportJobs;
     }
 }

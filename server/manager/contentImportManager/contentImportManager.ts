@@ -52,7 +52,6 @@ export class ContentImportManager {
     }
     this.checkImportQueue()
   }
-
   public async registerImportJob(ecarPaths: Array<string>): Promise<Array<string>> {
     console.info('registerImportJob started for ', ecarPaths);
     ecarPaths = await this.getUnregisteredEcars(ecarPaths)
@@ -65,6 +64,7 @@ export class ContentImportManager {
         _id: uuid(),
         importStatus: ImportStatus.inQueue,
         createdOn: Date.now(),
+        updatedOn: Date.now(),
         ecarSourcePath: ecarPath,
         importStep: ImportSteps.copyEcar,
         importProgress: 0,
@@ -430,6 +430,7 @@ class ImportEcar {
   private async syncStatusToDb() {
     console.info(this.contentImportData._id, 'progress with import step', this.contentImportData.importProgress, this.contentImportData.importStep);
     this.contentImportData.importProgress > 100 ? 99: this.contentImportData.importProgress;
+    this.contentImportData.updatedOn = Date.now();
     let dbResponse = await this.dbSDK.update('content_import', this.contentImportData._id, this.contentImportData)
     .catch(async err => {
       console.error('syncStatusToDb error for', this.contentImportData._id, 'with status and code', err.status, err.name)
