@@ -364,7 +364,6 @@ export default class ContentDownload {
             failed: [],
             completed: []
         };
-        console.log(importJobs);
         _.forEach(importJobs.docs, (job: IContentImport) => {
             const jobObj = {
                 contentId: job.contentId,
