@@ -184,7 +184,7 @@ export default class Content {
             }, req))
         }).catch(err => {
             res.status(500);
-            res.send(Response.error(`api.content.import`, 400, err.message))
+            res.send(Response.error(`api.content.import`, 400, err.errMessage || err.message, err.code))
         });
     }
     async pauseImport(req: any, res: any) {

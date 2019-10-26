@@ -35,9 +35,10 @@ export class ContentImportManager {
   then checkImportQueue will be called, checkImportQueue will pick RECONCILE on priority and completes import task the task
   */
   public async reconcile() {
-    let inProgressJob = await this.dbSDK.find('content_import', {
+    let inProgressJob = await this.dbSDK.find('content_manager', {
       "selector": {
-        importStatus: {
+        type: IAddedUsingType.import,
+        status: {
           "$in": [ImportStatus.inProgress]
         }
       }
@@ -45,12 +46,22 @@ export class ContentImportManager {
     console.info('list of inProgress jobs found while reconcile', inProgressJob.docs.length);
     if(inProgressJob.docs.length){
       const updateQuery: Array<IContentImport> = _.map(inProgressJob.docs, (job: IContentImport) => {
-        job.importStatus = ImportStatus.reconcile;
+        job.status = ImportStatus.reconcile;
         return job;
       })
-      await this.dbSDK.bulk('content_import', updateQuery);
+      await this.dbSDK.bulk('content_manager', updateQuery);
     }
     this.checkImportQueue()
+  }
+  getEcarSize (filePath): Promise<number> {
+    return new Promise((resolve, reject) => {
+      fs.stat(filePath, (err, stats) => {
+        if(err){
+          return reject(err)
+        }
+        resolve(stats.size);
+      })
+    })
   }
   public async registerImportJob(ecarPaths: Array<string>): Promise<Array<string>> {
     console.info('registerImportJob started for ', ecarPaths);
@@ -58,28 +69,40 @@ export class ContentImportManager {
     console.info('after unique check', ecarPaths);
     if (!ecarPaths || !ecarPaths.length) {
       console.debug('no unique ecar found, exiting registerImportJob');
-      return [];
+      // return [];
+      throw {
+        errCode: "ECARS_ADDED_ALREADY",
+        errMessage: "All ecar are added to content manager"
+      }
     }
-    const dbData: Array<IContentImport> = _.map(ecarPaths, (ecarPath: string): IContentImport => ({
+    const dbData: Array<IContentImport> = [];
+    for(const ecarPath of ecarPaths){
+      const contentSize = await this.getEcarSize(ecarPath).catch(handelError('ECAR_NOT_EXIST'));
+      dbData.push({
         _id: uuid(),
-        importStatus: ImportStatus.inQueue,
+        type: IAddedUsingType.import,
+        name: path.basename(ecarPath),
+        status: ImportStatus.inQueue,
+        contentSize: contentSize,
         createdOn: Date.now(),
         updatedOn: Date.now(),
         ecarSourcePath: ecarPath,
         importStep: ImportSteps.copyEcar,
-        importProgress: 0,
+        progress: 0,
         extractedEcarEntries: {},
         artifactUnzipped: {}
-      }));
-    await this.dbSDK.bulk('content_import', dbData);
+      });
+    }
+    await this.dbSDK.bulk('content_manager', dbData);
     this.checkImportQueue();
     return dbData.map(data => data._id)
   }
 
   private async checkImportQueue(status: Array<ImportStatus> = [ImportStatus.reconcile, ImportStatus.resume, ImportStatus.inQueue]) {
-    let { docs } = await this.dbSDK.find('content_import', {
+    let { docs } = await this.dbSDK.find('content_manager', {
       "selector": {
-        importStatus: {
+        type: IAddedUsingType.import,
+        status: {
           "$in": status
         }
       }
@@ -123,12 +146,12 @@ export class ContentImportManager {
   }
 
   public async pauseImport(importId: string) {
-    const importDbResults: IContentImport = await this.dbSDK.get('content_import', importId)
+    const importDbResults: IContentImport = await this.dbSDK.get('content_manager', importId)
     .catch(err => console.error('pauseImport error while fetching job details for ', importId));
-    if (!importDbResults || _.includes([ImportStatus.canceled, ImportStatus.completed, ImportStatus.failed, ImportStatus.pausing, ImportStatus.canceling], importDbResults.importStatus)) {
+    if (!importDbResults || _.includes([ImportStatus.canceled, ImportStatus.completed, ImportStatus.failed, ImportStatus.pausing, ImportStatus.canceling], importDbResults.status)) {
       throw "INVALID_OPERATION"
     }
-    if (importDbResults.importStatus === ImportStatus.inProgress) {
+    if (importDbResults.status === ImportStatus.inProgress) {
       const inProgressJob: IRunningImportJobs = _.find(this.runningImportJobs, { _id: importId }); // running/in-progress job
       if (!inProgressJob) {
         throw "INVALID_OPERATION"
@@ -136,32 +159,32 @@ export class ContentImportManager {
       inProgressJob.jobReference.pause();
       _.remove(this.runningImportJobs, job => job._id === inProgressJob._id) // update meta data in db 
     } else {
-      importDbResults.importStatus = ImportStatus.paused; // update db with new status
-      await this.dbSDK.update('content_import', importId, importDbResults)
+      importDbResults.status = ImportStatus.paused; // update db with new status
+      await this.dbSDK.update('content_manager', importId, importDbResults)
         .catch(err => console.error('pauseImport error while updating job details for ', importId));
     }
     this.checkImportQueue();
   }
 
   public async resumeImport(importId: string) {
-    const importDbResults: IContentImport = await this.dbSDK.get('content_import', importId)
+    const importDbResults: IContentImport = await this.dbSDK.get('content_manager', importId)
     .catch(err => console.error('resumeImport error while fetching job details for ', importId));
-    if (!importDbResults || !_.includes([ImportStatus.paused], importDbResults.importStatus)) {
+    if (!importDbResults || !_.includes([ImportStatus.paused], importDbResults.status)) {
       throw "INVALID_OPERATION"
     }
-    importDbResults.importStatus = ImportStatus.resume;
-    await this.dbSDK.update('content_import', importId, importDbResults)
+    importDbResults.status = ImportStatus.resume;
+    await this.dbSDK.update('content_manager', importId, importDbResults)
       .catch(err => console.error('resumeImport error while updating job details for ', importId));
     this.checkImportQueue();
   }
 
   public async cancelImport(importId: string) {
-    const importDbResults: IContentImport = await this.dbSDK.get('content_import', importId)
+    const importDbResults: IContentImport = await this.dbSDK.get('content_manager', importId)
     .catch(err => console.error('cancelImport error while fetching job details for ', importId));
-    if (!importDbResults || _.includes([ImportStatus.canceled, ImportStatus.canceling, ImportStatus.completed, ImportStatus.failed], importDbResults.importStatus)) {
+    if (!importDbResults || _.includes([ImportStatus.canceled, ImportStatus.canceling, ImportStatus.completed, ImportStatus.failed], importDbResults.status)) {
       throw "INVALID_OPERATION"
     }
-    if (importDbResults.importStatus === ImportStatus.inProgress) {
+    if (importDbResults.status === ImportStatus.inProgress) {
       const inProgressJob: IRunningImportJobs = _.find(this.runningImportJobs, { _id: importId }); // running/in-progress job
       if (!inProgressJob) {
         throw "INVALID_OPERATION"
@@ -169,17 +192,18 @@ export class ContentImportManager {
       inProgressJob.jobReference.cancel();
       _.remove(this.runningImportJobs, job => job._id === inProgressJob._id);
     } else {
-      importDbResults.importStatus = ImportStatus.canceled;
-      await this.dbSDK.update('content_import', importId, importDbResults)
+      importDbResults.status = ImportStatus.canceled;
+      await this.dbSDK.update('content_manager', importId, importDbResults)
         .catch(err => console.error('cancelImport error while updating job details for ', importId));
     }
     this.checkImportQueue();
   }
 
   private async getUnregisteredEcars(ecarPaths: Array<string>): Promise<Array<string>> {
-    const registeredEcars = await this.dbSDK.find('content_import', {
+    const registeredEcars = await this.dbSDK.find('content_manager', {
       "selector": {
-        importStatus: {
+        type: IAddedUsingType.import,
+        status: {
           "$in": [ImportStatus.inProgress, ImportStatus.inQueue, ImportStatus.reconcile, ImportStatus.resume]
         }
       }
@@ -222,8 +246,8 @@ class ImportEcar {
   }
 
   async startImport(step = this.contentImportData.importStep) {
-    this.contentImportData.importStatus = ImportStatus.inProgress;
-    this.contentImportData.importProgress = 0;
+    this.contentImportData.status = ImportStatus.inProgress;
+    this.contentImportData.progress = 0;
     await this.syncStatusToDb();
     switch (step) {
       case ImportSteps.copyEcar: {
@@ -259,7 +283,7 @@ class ImportEcar {
   */
   saveDataFromWorker(contentImportData: IContentImport){
     this.contentImportData = { ...this.contentImportData,
-      ..._.pick(contentImportData, ['childNodes', 'contentId', 'contentType', 'extractedEcarEntries', 'artifactUnzipped', 'importProgress', 'ecarFileSize'])}
+      ..._.pick(contentImportData, ['childNodes', 'contentId', 'contentType', 'extractedEcarEntries', 'artifactUnzipped', 'progress', 'contentSize'])}
   }
   private async extractEcar() {
     try {
@@ -279,7 +303,7 @@ class ImportEcar {
       });
     } catch (err) {
       console.error(this.contentImportData._id, 'Error while processContents ', err);
-      this.contentImportData.importStatus = ImportStatus.failed;
+      this.contentImportData.status = ImportStatus.failed;
       await this.syncStatusToDb();
       this.cb('ERROR', this.contentImportData);
       this.cleanUpFolders();
@@ -299,12 +323,12 @@ class ImportEcar {
       const dbContents = await this.getContentsFromDB(contentIds);
       await this.saveContentsToDb(dbContents)
       this.contentImportData.importStep = ImportSteps.complete;
-      this.contentImportData.importStatus = ImportStatus.completed;
+      this.contentImportData.status = ImportStatus.completed;
       await this.syncStatusToDb();
       this.cb(null, this.contentImportData);
     } catch (err) {
       console.error(this.contentImportData._id, 'Error while processContents for ', err);
-      this.contentImportData.importStatus = ImportStatus.failed;
+      this.contentImportData.status = ImportStatus.failed;
       await this.syncStatusToDb();
       this.cb('ERROR', this.contentImportData);
       this.cleanUpFolders();
@@ -356,7 +380,7 @@ class ImportEcar {
   async importComplete() {
     if (this.contentImportData.importStep !== ImportSteps.complete) {
       this.contentImportData.importStep = ImportSteps.complete;
-      this.contentImportData.importStatus = ImportStatus.completed;
+      this.contentImportData.status = ImportStatus.completed;
       await this.syncStatusToDb();
     }
     this.cb(null, this.contentImportData);
@@ -403,14 +427,14 @@ class ImportEcar {
       if(signal === 'SIGHUP'){
         return;
       }
-      if (!_.includes([ImportStatus.canceled, ImportStatus.paused], this.contentImportData.importStatus)) {
+      if (!_.includes([ImportStatus.canceled, ImportStatus.paused], this.contentImportData.status)) {
         this.handleUnexpectedChildProcessExit(code, signal);
       }
     });
   }
   async handleUnexpectedChildProcessExit(code, signal){
     console.error('Unexpected exit of child process for importId', this.contentImportData._id, 'with signal and code', code, signal);
-    this.contentImportData.importStatus = ImportStatus.failed; // this line should not be removed
+    this.contentImportData.status = ImportStatus.failed; // this line should not be removed
     await this.syncStatusToDb();
     this.cleanUpFolders();
   }
@@ -418,7 +442,7 @@ class ImportEcar {
     console.error(this.contentImportData._id, 'Got error while importing ecar with importId:', err);
     this.contentImportData.failedCode = err.errCode;
     this.contentImportData.failedReason = err.errMessage;
-    this.contentImportData.importStatus = ImportStatus.failed;
+    this.contentImportData.status = ImportStatus.failed;
     await this.syncStatusToDb();
     this.cb(err, this.contentImportData);
     this.cleanUpFolders();
@@ -428,17 +452,17 @@ class ImportEcar {
   }
 
   private async syncStatusToDb() {
-    console.info(this.contentImportData._id, 'progress with import step', this.contentImportData.importProgress, this.contentImportData.importStep);
-    this.contentImportData.importProgress > 100 ? 99: this.contentImportData.importProgress;
+    console.info(this.contentImportData._id, 'progress with import step', this.contentImportData.progress, this.contentImportData.importStep);
+    this.contentImportData.progress > 100 ? 99: this.contentImportData.progress;
     this.contentImportData.updatedOn = Date.now();
-    let dbResponse = await this.dbSDK.update('content_import', this.contentImportData._id, this.contentImportData)
+    let dbResponse = await this.dbSDK.update('content_manager', this.contentImportData._id, this.contentImportData)
     .catch(async err => {
       console.error('syncStatusToDb error for', this.contentImportData._id, 'with status and code', err.status, err.name)
       if(err.status === 409 && err.name === 'conflict'){
-        const jobDb: IContentImport = await this.dbSDK.get('content_import', this.contentImportData._id);
+        const jobDb: IContentImport = await this.dbSDK.get('content_manager', this.contentImportData._id);
         if(jobDb && jobDb._rev){
           this.contentImportData._rev = jobDb._rev;
-          return await this.dbSDK.update('content_import', this.contentImportData._id, this.contentImportData);
+          return await this.dbSDK.update('content_manager', this.contentImportData._id, this.contentImportData);
         }
       }
     });
@@ -458,25 +482,25 @@ class ImportEcar {
   }
   async cancel() {
     console.log('canceling running import job for', this.contentImportData._id);
-    this.contentImportData.importStatus = ImportStatus.canceling;
+    this.contentImportData.status = ImportStatus.canceling;
     await this.syncStatusToDb();
-    this.contentImportData.importStatus = ImportStatus.canceled;
+    this.contentImportData.status = ImportStatus.canceled;
     this.workerProcessRef.send({ message: 'KILL' });
   }
   async pause() {
     console.log('pausing running import job for', this.contentImportData._id);
-    this.contentImportData.importStatus = ImportStatus.pausing; // update db with new status
+    this.contentImportData.status = ImportStatus.pausing; // update db with new status
     await this.syncStatusToDb();
-    this.contentImportData.importStatus = ImportStatus.paused;
+    this.contentImportData.status = ImportStatus.paused;
     this.workerProcessRef.send({ message: 'KILL' });
   }
   async handleKillSignal() {
     this.workerProcessRef.kill('SIGHUP');
-    console.log(this.contentImportData._id, 'kill signal from child', this.contentImportData.importStatus, this.contentImportData.importStep);
-    if (this.contentImportData.importStatus === ImportStatus.paused) {
-      this.contentImportData.importStatus = ImportStatus.paused; // this line should not be removed
-    } else if(this.contentImportData.importStatus === ImportStatus.canceled) {
-      this.contentImportData.importStatus = ImportStatus.canceled; // this line should not be removed
+    console.log(this.contentImportData._id, 'kill signal from child', this.contentImportData.status, this.contentImportData.importStep);
+    if (this.contentImportData.status === ImportStatus.paused) {
+      this.contentImportData.status = ImportStatus.paused; // this line should not be removed
+    } else if(this.contentImportData.status === ImportStatus.canceled) {
+      this.contentImportData.status = ImportStatus.canceled; // this line should not be removed
       this.cleanUpFolders();
     }
     await this.syncStatusToDb();

@@ -132,7 +132,7 @@
             ]
         },
         {
-            "name": "content_import",
+            "name": "content_manager",
             "indexes": [
                 {
                     "index": {
@@ -141,16 +141,16 @@
                         ]
                     },
                     "type": "json",
-                    "name": "created_on_sort_index"
+                    "name": "createdOn"
                 },
                 {
                     "index": {
                         "fields": [
-                            "importStatus"
+                            "status"
                         ]
                     },
                     "type": "json",
-                    "name": "importStatus"
+                    "name": "status"
                 }
             ]
         }

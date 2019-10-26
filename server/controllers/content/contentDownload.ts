@@ -336,16 +336,18 @@ export default class ContentDownload {
         })()
     }
     public async listContentImport() {
-        const importJobs = await this.databaseSdk.find('content_import', {
+        const importJobs = await this.databaseSdk.find('content_manager', {
             "selector": {
                 $or: [
-                    {
-                        importStatus: {
+                    {   
+                        type: IAddedUsingType.import,
+                        status: {
                             "$in": [ImportStatus.inProgress, ImportStatus.inQueue, ImportStatus.reconcile]
                         }
                     },
                     {
-                        importStatus: {
+                        type: IAddedUsingType.import,
+                        status: {
                             "$in": [ImportStatus.failed, ImportStatus.completed]
                         },
                         updatedOn: {
@@ -369,20 +371,20 @@ export default class ContentDownload {
                 contentId: job.contentId,
                 id: job._id,
                 resourceId: job.contentId,
-                name: job.ecarSourcePath ? path.basename(job.ecarSourcePath) : 'untiteled upload',
+                name: job.name,
                 totalSize: 100,
-                downloadedSize: job.importProgress,
-                status: job.importStatus,
+                downloadedSize: job.progress,
+                status: job.status,
                 createdOn: job.createdOn,
-                addedUsing: IAddedUsingType.import
+                addedUsing: job.type
             }
-            if (ImportStatus.inProgress === job.importStatus) {
+            if (ImportStatus.inProgress === job.status) {
                 contentImportJobs.inprogress.push(jobObj)
-            } else if (ImportStatus.inQueue === job.importStatus || ImportStatus.reconcile === job.importStatus) {
+            } else if (ImportStatus.inQueue === job.status || ImportStatus.reconcile === job.status) {
                 contentImportJobs.submitted.push(jobObj)
-            } else if (ImportStatus.completed === job.importStatus) {
+            } else if (ImportStatus.completed === job.status) {
                 contentImportJobs.completed.push(jobObj)
-            } else if (ImportStatus.failed === job.importStatus) {
+            } else if (ImportStatus.failed === job.status) {
                 contentImportJobs.failed.push(jobObj)
             }
         });

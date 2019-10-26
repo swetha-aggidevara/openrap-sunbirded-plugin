@@ -17,13 +17,13 @@ const contentFolder = fileSDK.getAbsPath('content');
 const ecarFolder = fileSDK.getAbsPath('ecars');
 let manifestJson;
 
-const syncCloser = (initialProgress, percentage, totalSize = contentImportData.ecarFileSize) => {
-  initialProgress = initialProgress ? initialProgress : contentImportData.importProgress;
+const syncCloser = (initialProgress, percentage, totalSize = contentImportData.contentSize) => {
+  initialProgress = initialProgress ? initialProgress : contentImportData.progress;
   let completed = 1;
   const syncData$ = new Subject<number>();
   const subscription = syncData$.pipe(throttleTime(2500)).subscribe(data => {
     let newProgress = ((completed / totalSize) * percentage);
-    contentImportData.importProgress = initialProgress + newProgress;
+    contentImportData.progress = initialProgress + newProgress;
     sendMessage("DATA_SYNC");
   });
   return (chunk = 0) => {
@@ -32,21 +32,10 @@ const syncCloser = (initialProgress, percentage, totalSize = contentImportData.e
     return subscription;
   }
 }
-const getEcarSize = (filePath): Promise<number> => {
-  return new Promise((resolve, reject) => {
-    fs.stat(filePath, (err, stats) => {
-      if(err){
-        return reject(err)
-      }
-      resolve(stats.size);
-    })
-  })
-}
 
 const copyEcar = async () => {
   try {
     console.info(contentImportData._id, 'copping ecar from src location to ecar folder', contentImportData.ecarSourcePath, ecarFolder);
-    contentImportData.ecarFileSize = await getEcarSize(contentImportData.ecarSourcePath).catch(handelError('ECAR_STATS'));
     const syncFunc = syncCloser(ImportProgress.COPY_ECAR, 25);
     const toStream = fs.createWriteStream(path.join(ecarFolder, contentImportData._id + '.ecar'));
     const fromStream = fs.createReadStream(contentImportData.ecarSourcePath);
@@ -54,6 +43,7 @@ const copyEcar = async () => {
     fromStream.on('data', buffer => syncFunc(buffer.length));
     toStream.on('finish', data => {
       syncFunc().unsubscribe();
+      contentImportData.progress = ImportProgress.PARSE_ECAR
       sendMessage(ImportSteps.copyEcar)
     });
     toStream.on('error', err => { 
@@ -95,6 +85,7 @@ const parseEcar = async () => {
         item => (item.mimeType !== 'application/vnd.ekstep.content-collection'))
         .map(item => item.identifier)
     }
+    contentImportData.progress = ImportProgress.EXTRACT_ECAR;
     sendMessage(ImportSteps.parseEcar)
   } catch (err) {
     sendMessage("IMPORT_ERROR", getErrorObj(err, "UNHANDLED_PARSE_ECAR_ERROR"))
@@ -146,6 +137,7 @@ const extractEcar = async () => {
     removeFile(path.join('ecars', contentImportData._id + '.ecar'));
     removeFile(path.join('content', contentImportData._id));
     console.info(contentImportData._id, 'artifacts unzipped')
+    contentImportData.progress = ImportProgress.PROCESS_CONTENTS;
     sendMessage(ImportSteps.extractEcar)
   } catch (err) {
     sendMessage("IMPORT_ERROR", getErrorObj(err, "UNHANDLED_EXTRACT_ECAR_ERROR"))

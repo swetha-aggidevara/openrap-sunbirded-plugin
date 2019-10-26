@@ -29,20 +29,22 @@ export enum ImportStatus {
 export interface IContentImport {
   _id: string;
   _rev?: string;
-  importStatus: ImportStatus;
-  createdOn: string | number;
-  updatedOn: string | number;
-  ecarSourcePath: string;
+  status: ImportStatus;
+  type: string;
+  name: string;
+  createdOn: number;
+  updatedOn: number;
+  progress: number;
+  contentSize: number;
   contentId?: string;
   contentType?: string;
+  failedCode?: string;
+  failedReason?: string;
+  ecarSourcePath: string;
   importStep?: ImportSteps;
   extractedEcarEntries: Object;
   artifactUnzipped: Object;
-  failedCode?: string;
-  failedReason?: string;
   childNodes?: Array<string>;
-  importProgress?: number;
-  ecarFileSize?: number;
 }
 export interface IContentManifest {
   archive: {
