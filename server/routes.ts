@@ -18,6 +18,8 @@ import config from "./config";
 import { logger } from "@project-sunbird/ext-framework-server/logger";
 import * as uuid from "uuid";
 import { containerAPI } from "OpenRAP/dist/api";
+import DesktopApp from "./controllers/appUpdate";
+
 let telemetry;
 
 const proxyUrl = process.env.APP_BASE_URL;
@@ -555,6 +557,11 @@ export class Router {
     let contentUpdate = new ContentUpdate(manifest);
     app.post("/api/content/v1/update/:id", (req, res) => {
       contentUpdate.contentUpdate(req, res);
+    });
+
+    let desktopApp = new DesktopApp();
+    app.get("/api/desktop/v1/update", (req, res) => {
+      desktopApp.getDesktopAppUpate(req, res);
     });
 
     app.use(
