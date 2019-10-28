@@ -100,12 +100,6 @@
             ]
         },
         {
-            "name": "telemetry"
-        },
-        {
-            "name": "config"
-        },
-        {
             "name": "content_download",
             "indexes": [
                 {

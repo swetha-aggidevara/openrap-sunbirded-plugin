@@ -57,22 +57,21 @@ export class Router {
         const elapsedHrTime = process.hrtime(startHrTime);
         let elapsedTime =
           (elapsedHrTime[0] * 1000 + elapsedHrTime[1] / 1e6) / 1000;
-        logger.info(
-          `${req.headers["X-msgid"] || ""} path: ${
-            req.path
-          } took ${elapsedTime}s`
-        );
+        if (elapsedTime > 1) {
+          logger.warn(
+            `${req.headers["X-msgid"] || ""} path: ${
+              req.path
+            } took ${elapsedTime}s`
+          );
+        }
 
         if (res.statusCode >= 200 && res.statusCode <= 300) {
-          let params = [
+          let params: object[] = [
             {
               duration: parseFloat(elapsedTime.toFixed(3))
             },
             {
               protocol: _.toUpper(req.protocol)
-            },
-            {
-              size: parseInt(res.getHeader("Content-Length"))
             },
             {
               method: req.method
@@ -82,9 +81,16 @@ export class Router {
             },
             {
               status: res.statusCode
-            },
-            { rid: req.rid }
+            }
           ];
+          let rid = _.get(req, "rid");
+          if (rid) {
+            params.push({ rid: rid });
+          }
+          let size = parseInt(res.getHeader("Content-Length"));
+          if (size) {
+            params.push({ size: size });
+          }
           let logEvent = {
             context: {
               env: "openrap-sunbirded-plugin"
@@ -92,11 +98,10 @@ export class Router {
             edata: {
               level: "INFO",
               type: "api_access",
-              message: "",
-              params: _.reject(params, _.isEmpty)
+              message: `The api is successfully processed with url ${req.originalUrl} and method ${req.method}`,
+              params: params
             }
           };
-          logger.info(JSON.stringify(logEvent));
           telemetryInstance.log(logEvent);
         }
       });
@@ -517,10 +522,19 @@ export class Router {
         }
       })
     );
-    app.post("/api/content/v2/import", content.importV2.bind(content))
-    app.post("/api/content/v2/import/pause/:importId", content.pauseImport.bind(content));
-    app.post("/api/content/v2/import/resume/:importId", content.resumeImport.bind(content));
-    app.post("/api/content/v2/import/cancel/:importId", content.cancelImport.bind(content));
+    app.post("/api/content/v2/import", content.importV2.bind(content));
+    app.post(
+      "/api/content/v2/import/pause/:importId",
+      content.pauseImport.bind(content)
+    );
+    app.post(
+      "/api/content/v2/import/resume/:importId",
+      content.resumeImport.bind(content)
+    );
+    app.post(
+      "/api/content/v2/import/cancel/:importId",
+      content.cancelImport.bind(content)
+    );
 
     app.post(
       "/api/content/v1/import",
@@ -551,7 +565,7 @@ export class Router {
     );
 
     app.post("/api/v1/device/registry/:id", (req, res) => {
-      telemetry.registerDevice(req, res);
+      res.status(200).end();
     });
 
     let contentUpdate = new ContentUpdate(manifest);
@@ -625,7 +639,7 @@ export class Router {
     locals.helpLinkVisibility = null;
     locals.defaultTenantIndexStatus = null;
     locals.extContWhitelistedDomains = null;
-    locals.buildNumber = "2.0.0";
+    locals.buildNumber = process.env.APP_VERSION;
     locals.apiCacheTtl = "5";
     locals.cloudStorageUrls = null;
     locals.userUploadRefLink = null;

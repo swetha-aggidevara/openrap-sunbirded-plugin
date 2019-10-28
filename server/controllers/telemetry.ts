@@ -9,9 +9,11 @@ import { containerAPI } from "OpenRAP/dist/api";
 export default class Telemetry {
   @Inject
   private databaseSdk: DatabaseSDK;
+  private telemetrySDK;
 
   constructor(manifest: Manifest) {
     this.databaseSdk.initialize(manifest.id);
+    this.telemetrySDK = containerAPI.getTelemetrySDKInstance();
   }
 
   addEvents(req, res) {
@@ -26,12 +28,11 @@ export default class Telemetry {
       logger.debug(
         `ReqId = "${req.headers["X-msgid"]}": telemetry service is called to add telemetryEvents`
       );
-      const telemetrySDK = containerAPI.getTelemetrySDKInstance();
-      telemetrySDK
+      this.telemetrySDK
         .send(events)
         .then(data => {
           logger.info(
-            `ReqId = "${req.headers["X-msgid"]}": Telemetry events added successfully`
+            `ReqId = "${req.headers["X-msgid"]}": Telemetry events added successfully ${data}`
           );
           return res.send(Response.success("api.telemetry", {}, req));
         })
@@ -48,39 +49,6 @@ export default class Telemetry {
       );
       res.status(400);
       return res.send(Response.error("api.telemetry", 400));
-    }
-  }
-
-  registerDevice(req, res) {
-    logger.debug(
-      `ReqId = "${req.headers["X-msgid"]}": registerDevice method is called`
-    );
-    let deviceInfo = _.get(req, "body.request");
-    if (!_.isEmpty(deviceInfo)) {
-      // try to update the deviceInfo
-      logger.debug(
-        `ReqId = "${req.headers["X-msgid"]}": Register the deviceInfo in database`
-      );
-      this.databaseSdk
-        .upsert("config", "deviceInfo", deviceInfo)
-        .then(data => {
-          logger.info(
-            `ReqId = "${req.headers["X-msgid"]}": registered deviceInfo successfully`
-          );
-          return res.send(Response.success("api.device.registry", {}, req));
-        })
-        .catch(async error => {
-          logger.error(
-            `ReqId = "${req.headers["X-msgid"]}": Received error while updating the device info from db before inserting and and err.message: ${error.message}`
-          );
-          return res.send(Response.error("api.device.registry", 500));
-        });
-    } else {
-      logger.error(
-        `ReqId = "${req.headers["X-msgid"]}": Received err and err.res.status: 400`
-      );
-      res.status(400);
-      return res.send(Response.error("api.device.registry", 400));
     }
   }
 }
