@@ -48,7 +48,8 @@ export const addContentListener = (pluginId) => {
                     // Deleting content folder if exist. This is done as content folder is not getting updated after unzipping content with updates
                     await deleteContentFolder(file, fileSDK).catch(error => {
                         logger.error(`Received Error while getting content data from db where error = ${error}`);
-                    });                    
+                    });    
+
                     await fileSDK.unzip(path.join('ecars', file.file), path.join('content', fileName), false)
                     await fileSDK.remove(path.join('ecars', file.file));
                     let zipFilePath = glob.sync(path.join(fileSDK.getAbsPath('content'), fileName, '**', '*.zip'), {});
@@ -99,7 +100,6 @@ export const addContentListener = (pluginId) => {
                         await fileSDK.remove(path);
                     }
                     const desktopAppMetadata: IDesktopAppMetadata = {
-                        "ecarFile": file.file,  // relative to ecar folder
                         "addedUsing": IAddedUsingType.download,
                         "createdOn": Date.now(),
                         "updatedOn": Date.now()
