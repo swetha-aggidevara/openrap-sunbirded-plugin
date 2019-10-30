@@ -49,8 +49,8 @@ export const addContentListener = (pluginId) => {
                     await deleteContentFolder(file, fileSDK).catch(error => {
                         logger.error(`Received Error while getting content data from db where error = ${error}`);
                     });                    
-                    
                     await fileSDK.unzip(path.join('ecars', file.file), path.join('content', fileName), false)
+                    await fileSDK.remove(path.join('ecars', file.file));
                     let zipFilePath = glob.sync(path.join(fileSDK.getAbsPath('content'), fileName, '**', '*.zip'), {});
                     if (zipFilePath.length > 0) {
                         // unzip the file if we have zip file
@@ -79,7 +79,25 @@ export const addContentListener = (pluginId) => {
                         metaData.visibility = "Parent"
                     }
                     metaData.baseDir = `content/${fileName}`;
-
+                    let folderToDelete = [];
+                    if(!isCollection && metaData.appIcon){
+                        const appIconFileName = path.basename(metaData.appIcon);
+                        await fileSDK.move(path.join('content', fileName, metaData.appIcon), path.join('content', fileName, appIconFileName))
+                        folderToDelete.push(path.join('content', fileName, path.dirname(metaData.appIcon)))
+                        metaData.appIcon = `content/${fileName}/${appIconFileName}`;
+                    } else {
+                        metaData.appIcon = `content/${fileName}/${metaData.appIcon}`;
+                    }
+                    if(metaData.artifactUrl && path.extname(metaData.artifactUrl) && path.extname(metaData.artifactUrl) !== '.zip'){
+                        const artifactName = path.basename(metaData.artifactUrl);
+                        await fileSDK.move(path.join('content', fileName, metaData.artifactUrl), path.join('content', fileName, artifactName))
+                        folderToDelete.push(path.join('content', fileName, path.dirname(metaData.artifactUrl)))
+                    }
+                    folderToDelete = _.union(folderToDelete);
+                    for(const path of folderToDelete){
+                        console.log('-----------deleting path------------------', path);
+                        await fileSDK.remove(path);
+                    }
                     const desktopAppMetadata: IDesktopAppMetadata = {
                         "ecarFile": file.file,  // relative to ecar folder
                         "addedUsing": IAddedUsingType.download,
@@ -87,7 +105,6 @@ export const addContentListener = (pluginId) => {
                         "updatedOn": Date.now()
                     }
                     metaData.desktopAppMetadata = desktopAppMetadata;
-                    metaData.appIcon = metaData.appIcon ? `content/${fileName}/${metaData.appIcon}` : metaData.appIcon;
                     //insert metadata to content database
                     // TODO: before insertion check if the first object is type of collection then prepare the collection and insert 
 
