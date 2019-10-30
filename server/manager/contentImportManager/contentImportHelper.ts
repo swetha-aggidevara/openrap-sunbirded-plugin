@@ -35,7 +35,7 @@ const syncCloser = (initialProgress, percentage, totalSize = contentImportData.c
 
 const copyEcar = async () => {
   try {
-    console.info(contentImportData._id, 'copping ecar from src location to ecar folder', contentImportData.ecarSourcePath, ecarFolder);
+    process.send({message: "LOG", logType: "info", logBody: [contentImportData._id, 'copping ecar from src location to ecar folder', contentImportData.ecarSourcePath, ecarFolder] });
     const syncFunc = syncCloser(ImportProgress.COPY_ECAR, 25);
     const toStream = fs.createWriteStream(path.join(ecarFolder, contentImportData._id + '.ecar'));
     const fromStream = fs.createReadStream(contentImportData.ecarSourcePath);
@@ -132,11 +132,11 @@ const extractEcar = async () => {
       }
     }
     syncFunc().unsubscribe();
-    console.info(contentImportData._id, 'ecar extracted')
+    process.send({message: "LOG", logType: "info", logBody: [contentImportData._id, 'ecar extracted']})
     await unzipArtifacts(artifactToBeUnzipped, artifactToBeUnzippedSize).catch(handelError('EXTRACT_ARTIFACTS'));
     removeFile(path.join('ecars', contentImportData._id + '.ecar'));
     removeFile(path.join('content', contentImportData._id));
-    console.info(contentImportData._id, 'artifacts unzipped')
+    process.send({message: "LOG", logType: "info", logBody: [contentImportData._id, 'artifacts unzipped']})
     contentImportData.progress = ImportProgress.PROCESS_CONTENTS;
     sendMessage(ImportSteps.extractEcar)
   } catch (err) {
@@ -147,10 +147,11 @@ const extractEcar = async () => {
 }
 const removeFile = (location) => {
   fileSDK.remove(location)
-      .catch(err => console.log('error while deleting ecar folder', location))
+    .catch(err => process.send({message: "LOG", logType: "error", logBody: [contentImportData._id, 'error while deleting ecar folder', location]}))
 }
 const unzipFile = async (src, dest = path.dirname(src)) => {
-  await fileSDK.unzip(src, dest, false).catch(err => console.log('error while unzip file', src))
+  await fileSDK.unzip(src, dest, false)
+    .catch(err => process.send({message: "LOG", logType: "error", logBody: [contentImportData._id, 'error while unzip file', src]}))
 
 }
 const unzipArtifacts = async (artifactToBeUnzipped = [], artifactToBeUnzippedSize) => {
