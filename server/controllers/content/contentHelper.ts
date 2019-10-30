@@ -79,6 +79,7 @@ export const addContentListener = (pluginId) => {
                         metaData.visibility = "Parent"
                     }
                     metaData.baseDir = `content/${fileName}`;
+
                     let folderToDelete = [];
                     if(!isCollection && metaData.appIcon){
                         const appIconFileName = path.basename(metaData.appIcon);
@@ -95,7 +96,6 @@ export const addContentListener = (pluginId) => {
                     }
                     folderToDelete = _.union(folderToDelete);
                     for(const path of folderToDelete){
-                        console.log('-----------deleting path------------------', path);
                         await fileSDK.remove(path);
                     }
                     const desktopAppMetadata: IDesktopAppMetadata = {
