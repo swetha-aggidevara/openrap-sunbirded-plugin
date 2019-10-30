@@ -335,11 +335,12 @@ export default class ContentDownload {
             }
         })()
     }
+    // TODO:Query needs to be optimized
     public async listContentImport() {
         const importJobs = await this.databaseSdk.find('content_manager', {
             "selector": {
                 $or: [
-                    {   
+                    {
                         type: IAddedUsingType.import,
                         status: {
                             "$in": [ImportStatus.inProgress, ImportStatus.inQueue, ImportStatus.reconcile]

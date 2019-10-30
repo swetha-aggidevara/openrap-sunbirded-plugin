@@ -35,13 +35,16 @@ export class ContentImportManager {
   then checkImportQueue will be called, checkImportQueue will pick RECONCILE on priority and completes import task the task
   */
   public async reconcile() {
-    let inProgressJob = await this.dbSDK.find('content_manager', {
+    let inProgressJob = await this.dbSDK.find('content_manager', { // TODO:Query needs to be optimized
       "selector": {
         type: IAddedUsingType.import,
         status: {
           "$in": [ImportStatus.inProgress]
         }
       }
+    }).catch(err => { 
+      console.log('reconcile error while fetching inProgress content from DB', err.message);
+      return {docs: []}
     });
     console.info('list of inProgress jobs found while reconcile', inProgressJob.docs.length);
     if(inProgressJob.docs.length){
@@ -49,7 +52,10 @@ export class ContentImportManager {
         job.status = ImportStatus.reconcile;
         return job;
       })
-      await this.dbSDK.bulk('content_manager', updateQuery);
+      await this.dbSDK.bulk('content_manager', updateQuery)
+      .catch(err => {
+        console.log('reconcile error while updating status to DB', err.message);
+      });
     }
     this.checkImportQueue()
   }
@@ -69,7 +75,6 @@ export class ContentImportManager {
     console.info('after unique check', ecarPaths);
     if (!ecarPaths || !ecarPaths.length) {
       console.debug('no unique ecar found, exiting registerImportJob');
-      // return [];
       throw {
         errCode: "ECARS_ADDED_ALREADY",
         errMessage: "All ecar are added to content manager"
@@ -99,20 +104,24 @@ export class ContentImportManager {
   }
 
   private async checkImportQueue(status: Array<ImportStatus> = [ImportStatus.reconcile, ImportStatus.resume, ImportStatus.inQueue]) {
-    let { docs } = await this.dbSDK.find('content_manager', {
+    let dbResponse = await this.dbSDK.find('content_manager', { // TODO:Query needs to be optimized
       "selector": {
         type: IAddedUsingType.import,
         status: {
           "$in": status
         }
-      }
+      },
+      sort: ['status']
+    }).catch(err => {
+      console.log('Error while fetching queued jobs', err);
+      return { docs:[]}
     });
     if (this.runningImportJobs.length >= maxRunningImportJobs) {
       console.debug('no slot available to import, exiting');
       return;
     }
-    console.info('-------------list of queued jobs-------------', docs);
-    const queuedJobs: Array<IContentImport> = docs;
+    console.info('-------------list of queued jobs-------------', dbResponse);
+    const queuedJobs: Array<IContentImport> = dbResponse.docs;
     if (!queuedJobs.length) {
       console.debug('no queued jobs in db, exiting');
       return;
@@ -329,6 +338,8 @@ class ImportEcar {
     } catch (err) {
       console.error(this.contentImportData._id, 'Error while processContents for ', err);
       this.contentImportData.status = ImportStatus.failed;
+      this.contentImportData.failedCode = err.errCode || "CONTENT_SAVE_FAILED";
+      this.contentImportData.failedReason = err.errMessage;
       await this.syncStatusToDb();
       this.cb('ERROR', this.contentImportData);
       this.cleanUpFolders();
@@ -435,6 +446,8 @@ class ImportEcar {
   async handleUnexpectedChildProcessExit(code, signal){
     console.error('Unexpected exit of child process for importId', this.contentImportData._id, 'with signal and code', code, signal);
     this.contentImportData.status = ImportStatus.failed; // this line should not be removed
+    this.contentImportData.failedCode = "WORKER_UNHANDLED_EXCEPTION";
+    this.contentImportData.failedReason = "Import Worker exited while processing ECar";
     await this.syncStatusToDb();
     this.cleanUpFolders();
   }
@@ -455,7 +468,7 @@ class ImportEcar {
     console.info(this.contentImportData._id, 'progress with import step', this.contentImportData.progress, this.contentImportData.importStep);
     this.contentImportData.progress > 100 ? 99: this.contentImportData.progress;
     this.contentImportData.updatedOn = Date.now();
-    let dbResponse = await this.dbSDK.update('content_manager', this.contentImportData._id, this.contentImportData)
+    let dbResponse = await this.dbSDK.update('content_manager', this.contentImportData._id, this.contentImportData) // TODO: Revision and compaction to be handled
     .catch(async err => {
       console.error('syncStatusToDb error for', this.contentImportData._id, 'with status and code', err.status, err.name)
       if(err.status === 409 && err.name === 'conflict'){

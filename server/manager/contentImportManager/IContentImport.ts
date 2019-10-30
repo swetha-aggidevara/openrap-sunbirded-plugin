@@ -13,17 +13,18 @@ export enum ImportProgress {
   "PROCESS_CONTENTS" = 99,
   "COMPLETE" = 100
 }
+// Caution: reordering the enum might break the import flow
 export enum ImportStatus {
-  reconcile = "RECONCILE",
-  inQueue = "IN_QUEUE",
-  resume = "RESUME",
-  inProgress = "IN_PROGRESS",
-  paused = "PAUSED",
-  completed = "COMPLETED",
-  failed = "FAILED",
-  canceled = "CANCELED",
-  canceling = "CANCELING",
-  pausing = "PAUSING"
+  reconcile,
+  resume,
+  inQueue,
+  inProgress,
+  pausing,
+  paused,
+  canceling,
+  canceled,
+  completed,
+  failed
 }
 
 export interface IContentImport {

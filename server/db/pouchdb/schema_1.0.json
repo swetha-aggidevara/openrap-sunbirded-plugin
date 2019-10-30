@@ -137,20 +137,32 @@
                 {
                     "index": {
                         "fields": [
-                            "createdOn"
-                        ]
-                    },
-                    "type": "json",
-                    "name": "createdOn"
+                            "status"
+                        ],
+                        "ddoc": "status",
+                        "name": "status"
+                    }
                 },
                 {
                     "index": {
                         "fields": [
+                            "type",
+                            "status",
+                            "updatedOn"
+                        ],
+                        "ddoc": "type_status_updatedOn",
+                        "name": "type_status_updatedOn"
+                    }
+                },
+                {
+                    "index": {
+                        "fields": [
+                            "type",
                             "status"
-                        ]
-                    },
-                    "type": "json",
-                    "name": "status"
+                        ],
+                        "ddoc": "type_status",
+                        "name": "type_status"
+                    }
                 }
             ]
         }
