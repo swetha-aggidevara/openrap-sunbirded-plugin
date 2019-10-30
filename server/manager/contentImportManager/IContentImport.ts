@@ -13,37 +13,57 @@ export enum ImportProgress {
   "PROCESS_CONTENTS" = 99,
   "COMPLETE" = 100
 }
+// Caution: reordering the enum might break the import flow
 export enum ImportStatus {
-  reconcile = "RECONCILE",
-  inQueue = "IN_QUEUE",
-  resume = "RESUME",
-  inProgress = "IN_PROGRESS",
-  paused = "PAUSED",
-  completed = "COMPLETED",
-  failed = "FAILED",
-  canceled = "CANCELED",
-  canceling = "CANCELING",
-  pausing = "PAUSING"
+  reconcile,
+  resume,
+  inQueue,
+  inProgress,
+  pausing,
+  paused,
+  canceling,
+  canceled,
+  completed,
+  failed
 }
 
 export interface IContentImport {
   _id: string;
   _rev?: string;
-  importStatus: ImportStatus;
-  createdOn: string | number;
-  ecarSourcePath: string;
+  status: ImportStatus;
+  type: string;
+  name: string;
+  createdOn: number;
+  updatedOn: number;
+  progress: number;
+  contentSize: number;
   contentId?: string;
   contentType?: string;
+  failedCode?: string;
+  failedReason?: string;
+  ecarSourcePath: string;
   importStep?: ImportSteps;
   extractedEcarEntries: Object;
   artifactUnzipped: Object;
-  failedReason?: string;
   childNodes?: Array<string>;
-  importProgress?: number;
-  ecarFileSize?: number;
 }
 export interface IContentManifest {
   archive: {
     items: Array<any>;
   };
+}
+export class ErrorObj {
+  constructor(public errCode: string, public errMessage: string){
+  }
+}
+export const getErrorObj = (error, errCode = "UNHANDLED_ERROR") => {
+  if(error instanceof ErrorObj){
+    return error;
+  }
+  return new ErrorObj(errCode, error.message);
+}
+export const handelError = (errCode) => {
+  return (error: Error) => {
+    throw getErrorObj(error, errCode);
+  }
 }

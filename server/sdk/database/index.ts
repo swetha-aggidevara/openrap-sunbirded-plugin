@@ -67,6 +67,10 @@ export default class DatabaseSDK {
         let db = frameworkAPI.getPouchDBInstance(this.pluginId, database);
         return db.allDocs(options);
     }
+    explain(database: string, options: Object) {
+        let db = frameworkAPI.getPouchDBInstance(this.pluginId, database);
+        return db.explain(options);
+    }
 
     async upsert(database: string, docId: string, doc: any) {
         logger.debug(`Upserting document with docId:${docId} in database: "${_.upperCase(database)}" `)

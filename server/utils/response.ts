@@ -21,7 +21,7 @@ export default class Response {
     return resObj;
   }
 
-  static error(id, responseCode, errmsg?) {
+  static error(id, responseCode, errmsg?, errCode?) {
     // prepare error response object
     let resObj = {};
     if (responseCode === 404) {
@@ -33,7 +33,7 @@ export default class Response {
           resmsgid: uuid.v4(),
           msgid: uuid.v4(),
           status: "failed",
-          err: "ERR_DATA_NOT_FOUND",
+          err: errCode || "ERR_DATA_NOT_FOUND",
           errmsg: errmsg || "Data not found"
         },
         responseCode: "RESOURCE_NOT_FOUND",
@@ -48,7 +48,7 @@ export default class Response {
           resmsgid: uuid.v4(),
           msgid: uuid.v4(),
           status: "failed",
-          err: "ERR_BAD_REQUEST",
+          err: errCode || "ERR_BAD_REQUEST",
           errmsg: errmsg || "Error while processing the request "
         },
         responseCode: "CLIENT_ERROR",
@@ -63,7 +63,7 @@ export default class Response {
           resmsgid: uuid.v4(),
           msgid: uuid.v4(),
           status: "failed",
-          err: "ERR_INTERNAL_SERVER_ERROR",
+          err: errCode || "ERR_INTERNAL_SERVER_ERROR",
           errmsg: errmsg || "Error while processing the request"
         },
         responseCode: "INTERNAL_SERVER_ERROR",
