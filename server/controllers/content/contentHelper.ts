@@ -82,13 +82,11 @@ export const addContentListener = (pluginId) => {
                     metaData.baseDir = `content/${fileName}`;
 
                     let folderToDelete = [];
-                    if(!isCollection && metaData.appIcon){
+                    if(metaData.appIcon){
                         const appIconFileName = path.basename(metaData.appIcon);
                         await fileSDK.move(path.join('content', fileName, metaData.appIcon), path.join('content', fileName, appIconFileName))
                         folderToDelete.push(path.join('content', fileName, path.dirname(metaData.appIcon)))
                         metaData.appIcon = `content/${fileName}/${appIconFileName}`;
-                    } else {
-                        metaData.appIcon = `content/${fileName}/${metaData.appIcon}`;
                     }
                     if(metaData.artifactUrl && path.extname(metaData.artifactUrl) && path.extname(metaData.artifactUrl) !== '.zip'){
                         const artifactName = path.basename(metaData.artifactUrl);
