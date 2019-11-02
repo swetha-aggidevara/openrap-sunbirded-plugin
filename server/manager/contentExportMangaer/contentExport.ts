@@ -1,4 +1,4 @@
-import * as  fs from 'fs';
+import * as fs from 'fs';
 import * as archiver from 'archiver';
 import * as path from 'path';
 import * as  _ from 'lodash';
@@ -40,16 +40,33 @@ class ExportContent {
       this.parentArchive.directory(src, dest);
     } else if (type === 'stream'){
       this.parentArchive.append(src, { name: dest });
+    } else if (type === 'createDir'){
+      dest = dest.endsWith('/') ? dest : dest + '/';
+      this.parentArchive.append(null, { name: dest});
     }
   }
   async loadContent(contentDetails, child){
+
     const baseDestPath = child ? contentDetails.identifier + '/' : '';
+    if(child){
+      console.log('-------dir name created----------', contentDetails.identifier);
+      this.archiveAppend('createDir', null, contentDetails.identifier);
+    }
     this.archiveAppend('path', path.join('content', contentDetails.identifier, 'manifest.json'), baseDestPath + 'manifest.json');
     if(contentDetails.appIcon){
+      if(path.dirname(contentDetails.appIcon) !== '.'){
+        console.log('-------dir name created----------', baseDestPath +  path.dirname(contentDetails.appIcon));
+        this.archiveAppend('createDir', null, baseDestPath +  path.dirname(contentDetails.appIcon));
+      }
       const appIconFileName = path.basename(contentDetails.appIcon);
       const appIcon = path.join('content', contentDetails.identifier, appIconFileName);
       this.archiveAppend('path', appIcon, baseDestPath + contentDetails.appIcon);
     }
+    // if(contentDetails.artifactUrl && path.dirname(contentDetails.artifactUrl) !== '.'){ // not needed as appIcon and artifact url will be in same folder
+    //   console.log('-------dir name created----------', baseDestPath +  path.dirname(contentDetails.artifactUrl));
+    //   this.archiveAppend('createDir', null, baseDestPath +  path.dirname(contentDetails.artifactUrl));
+    //   this.parentArchive.append(null, { name: baseDestPath +  path.dirname(contentDetails.artifactUrl) + '/'});
+    // }
     if(contentDetails.artifactUrl && path.extname(contentDetails.artifactUrl) && path.extname(contentDetails.artifactUrl) !== '.zip'){
       const artifactUrlName = path.basename(contentDetails.artifactUrl);
       const artifactUrlPath = path.join('content', contentDetails.identifier, artifactUrlName);
@@ -80,6 +97,10 @@ class ExportContent {
       const appIconFileName = path.basename(this.parentDetails.appIcon);
       const appIcon = path.join('content', this.parentDetails.identifier, appIconFileName);
       this.archiveAppend('path', appIcon, this.parentDetails.appIcon);
+      if(path.dirname(this.parentDetails.appIcon) !== '.'){
+        console.log('-------dir name created----------', path.dirname(this.parentDetails.appIcon));
+        this.archiveAppend('createDir', null, path.dirname(this.parentDetails.appIcon));
+      }
     }
     const collectionItems: any = await this.readDirectory(path.join('content', this.parentDetails.identifier));
     for(const items of collectionItems){
@@ -102,7 +123,6 @@ class ExportContent {
     let childNodes = _.filter(_.get(this.parentManifest, 'archive.items'),
         item => (item.mimeType !== 'application/vnd.ekstep.content-collection'))
         .map(item => item.identifier)
-        // childNodes = ['do_312694002009702400125', 'do_31274997498435993616910'];
     for(const child of childNodes){
       const childManifest = JSON.parse(fs.readFileSync(path.join(this.contentBaseFolder, child,  'manifest.json'), 'utf8'));
       const childDetails = _.get(childManifest, 'archive.items[0]');

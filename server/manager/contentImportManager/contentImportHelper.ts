@@ -127,6 +127,9 @@ const extractEcar = async () => {
             size: entry.compressedSize
           });
         }
+        // if(!entry.isDirectory){
+        //   await fileSDK.mkdir(path.join('content', contentImportData.contentId, path.dirname(entry.name)));
+        // }
         await extractFile(zipHandler, pathObj).catch(handelError('EXTRACT_ECAR_CONTENT'));
         contentImportData.extractedEcarEntries[entry.name] = true;
       }
