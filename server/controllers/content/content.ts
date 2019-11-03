@@ -15,6 +15,7 @@ import Hashids from "hashids";
 import { containerAPI } from "OpenRAP/dist/api";
 import * as TreeModel from "tree-model";
 import { HTTPService } from "@project-sunbird/ext-framework-server/services";
+import { ExportContent } from "../../manager/contentExportManager"
 
 export enum DOWNLOAD_STATUS {
     SUBMITTED = "DOWNLOADING",
@@ -255,168 +256,49 @@ export default class Content {
 
         return req.pipe(busboy);
     }
-
-    export(req: any, res: any): any {
-        logger.debug(`ReqId = "${req.headers['X-msgid']}": export method is called to export Content`);
-        (async () => {
-            try {
-                let id = req.params.id;
-                // get the data from content db
-                logger.debug(`ReqId = "${req.headers['X-msgid']}": Get Content: ${id} from ContentDB`)
-                let content = await this.databaseSdk.get('content', id);
-                logger.info(`ReqId = "${req.headers['X-msgid']}": Found the content: ${content.identifier} in ContentDb`);
-                logger.debug(`ReqId = "${req.headers['X-msgid']}": Checking the content is of type Collection or not`);
-                if (content.mimeType !== 'application/vnd.ekstep.content-collection') {
-                    logger.info(`ReqId = "${req.headers['X-msgid']}": Found the Content:${id} is not of type Collection`)
-                    let filePath = this.fileSDK.getAbsPath(
-                        path.join('ecars', content.desktopAppMetadata.ecarFile)
-                    );
-                    fs.stat(filePath, async err => {
-                        if (err) {
-                            logger.error(
-                                `ReqId = "${req.headers['X-msgid']}": ecar file not available while exporting for content ${id} and err.message: ${
-                                err.message
-                                }`
-                            );
-                            res.status(500);
-                            return res.send(Response.error('api.content.export', 500));
-                        } else {
-                            logger.info(`ReqId = "${req.headers['X-msgid']}": joining the ecars and temp for the content path`)
-                            await this.fileSDK.copy(
-                                path.join('ecars', content.desktopAppMetadata.ecarFile),
-                                path.join('temp', `${content.name}.ecar`)
-                            );
-                            logger.info(`ReqId = "${req.headers['X-msgid']}": joined ecars and temp for the content path`)
-                            logger.debug(`ReqId = "${req.headers['X-msgid']}": Has to call CleanUpExport to delete the Content after export`);
-                            this.cleanUpExports(path.join('temp', `${content.name}.ecar`), req.headers['X-msgid']);
-                            res.status(200);
-                            res.send(
-                                Response.success(`api.content.export`, {
-                                    response: {
-                                        url: `${req.protocol}://${req.get('host')}/temp/${
-                                            content.name
-                                            }.ecar`
-                                    }
-                                }, req)
-                            );
-                            logger.info(`ReqId = "${req.headers['X-msgid']}": Content:${id} Exported successfully`);
-                        }
-                    });
-                } else {
-                    logger.info(`ReqId = "${req.headers['X-msgid']}": Found content:${id} is of type Collection`);
-                    //     - get the spine ecar
-                    let collectionEcarPath = path.join(
-                        'ecars',
-                        content.desktopAppMetadata.ecarFile
-                    );
-                    //     - unzip to temp folder
-                    logger.info(`ReqId = "${req.headers['X-msgid']}": Unzipping the temp folder for Collection:${id}`);
-                    await this.fileSDK.mkdir('temp');
-                    let collectionFolderPath = await this.fileSDK.unzip(
-                        collectionEcarPath,
-                        'temp',
-                        true
-                    );
-                    logger.info(`ReqId = "${req.headers['X-msgid']}":  Reading the manifest file for Collection:${id}`)
-                    let manifest = await this.fileSDK.readJSON(
-                        path.join(collectionFolderPath, 'manifest.json')
-                    );
-                    // - read all childNodes and get non-collection items
-                    logger.info(`ReqId = "${req.headers['X-msgid']}": Reading all the childNodes and getting non-collection items`)
-                    let items = _.get(manifest, 'archive.items');
-                    let parent: any | undefined = _.find(items, i => {
-                        return (
-                            i.mimeType === 'application/vnd.ekstep.content-collection' &&
-                            i.visibility === 'Default'
-                        );
-                    });
-                    const childNodes = _.get(parent, 'childNodes');
-                    let collectionFolderRelativePath = path.join(
-                        'temp',
-                        path.parse(collectionEcarPath).name
-                    );
-                    logger.info(`ReqId = "${req.headers['X-msgid']}": Relativepath temp is added for the collection: ${id} `)
-                    if (!_.isEmpty(childNodes)) {
-                        logger.debug(`ReqId = "${req.headers['X-msgid']}": Find all the childnodes in ContentDB`)
-                        let { docs: childContents = [] } = await this.databaseSdk.find(
-                            'content',
+    async export(req: any, res: any): Promise<any> {
+        let id = req.params.id;
+        logger.debug(`ReqId = "${req.headers['X-msgid']}": Get Content: ${id} from ContentDB`)
+        let content = await this.databaseSdk.get('content', id);
+        let childNode = [];
+        if (content.mimeType === 'application/vnd.ekstep.content-collection') {
+            let dbChildResponse = await this.databaseSdk.find('content',
+                {
+                    selector: {
+                        $and: [
                             {
-                                selector: {
-                                    $and: [
-                                        {
-                                            _id: {
-                                                $in: childNodes
-                                            }
-                                        },
-                                        {
-                                            mimeType: {
-                                                $nin: ['application/vnd.ekstep.content-collection']
-                                            }
-                                        }
-                                    ]
+                                _id: {
+                                    $in: content.childNodes
+                                }
+                            },
+                            {
+                                mimeType: {
+                                    $nin: ['application/vnd.ekstep.content-collection']
                                 }
                             }
-                        );
-                        logger.info(`ReqId = "${req.headers['X-msgid']}": Found the childnodes in ContentDB`);
-                        for (let childContent of childContents) {
-                            let ecarPath = _.get(childContent, 'desktopAppMetadata.ecarFile');
-                            if (!_.isEmpty(ecarPath)) {
-                                let contentFolderPath = path.join(
-                                    collectionFolderRelativePath,
-                                    childContent.identifier
-                                );
-                                logger.info(`ReqId = "${req.headers['X-msgid']}": Deleting the folder in collection`);
-                                await this.fileSDK.remove(contentFolderPath).catch(error => {
-                                    logger.error(
-                                        `ReqId = "${req.headers['X-msgid']}": Received Error while deleting the folder in collection ${contentFolderPath} `
-                                    );
-                                });
-                                logger.info(`ReqId = "${req.headers['X-msgid']}": making a New Directory for all the Contents in Collection`);
-                                await this.fileSDK.mkdir(contentFolderPath);
-                                await this.fileSDK.unzip(
-                                    path.join('ecars', ecarPath),
-                                    contentFolderPath,
-                                    false
-                                );
-                            }
-                        }
+                        ]
                     }
-
-                    // - Zip the spine_folder and download
-                    logger.info(`ReqId = "${req.headers['X-msgid']}": Zipping the folder to download `)
-                    await this.fileSDK.zip(
-                        collectionFolderRelativePath,
-                        'temp',
-                        `${parent.name}.ecar`
-                    );
-                    logger.debug(`ReqId = "${req.headers['X-msgid']}": Calling cleanUpExports to delte the Collection before export`)
-                    this.cleanUpExports(path.join('temp', `${parent.name}.ecar`), req.headers['X-msgid']);
-                    res.status(200);
-                    res.send(
-                        Response.success(`api.content.export`, {
-                            response: {
-                                url:
-                                    req.protocol +
-                                    '://' +
-                                    req.get('host') +
-                                    '/temp/' +
-                                    `${parent.name}.ecar`
-                            }
-                        }, req)
-                    );
-                    logger.info(`ReqId = "${req.headers['X-msgid']}": Collection:${id} Exported successfully`)
                 }
-            } catch (error) {
-                logger.error(
-                    `ReqId = "${req.headers['X-msgid']}": Received error while processing the content export and err.message: ${
-                    error.message
-                    } `
-                );
+            );
+            childNode = dbChildResponse.docs;
+        }
+        const contentExport = new ExportContent(content, childNode);
+        contentExport.export((err, data) => {
+            if (err) {
                 res.status(500);
                 return res.send(Response.error('api.content.export', 500));
             }
-        })();
+            console.log('Ecar exported successfully', data);
+            this.cleanUpExports(path.join('temp', `${data.name}.ecar`), req.headers['X-msgid']);
+            res.status(200);
+            res.send(Response.success(`api.content.export`, {
+                    response: {
+                        url: req.protocol + '://' + req.get('host') + '/temp/' + `${data.name}.ecar`
+                    }
+                }, req));
+        });
     }
+
 
     /*
           This method will clear the exported files after 5 min from the time the file is created

@@ -3,35 +3,31 @@ import * as archiver from 'archiver';
 import * as path from 'path';
 import * as  _ from 'lodash';
 import * as fse from 'fs-extra';
-const createDirect = async (path) => {
-  if (!fs.existsSync(path)){
-    fs.mkdirSync(path);
-  }
-}
-createDirect('temp');
+import { manifest } from '../../manifest';
+import { containerAPI } from 'OpenRAP/dist/api';
+let fileSDK = containerAPI.getFileSDKInstance(manifest.id);
 
-class ExportContent {
-  tempBaseFolder = 'temp';
-  contentBaseFolder = 'content_1';
+export class ExportContent {
+  tempBaseFolder = fileSDK.getAbsPath('temp');
+  contentBaseFolder = fileSDK.getAbsPath('content');
   parentArchive;
   parentManifest;
-  parentDetails;
   ecarName;
   interval;
   corruptContents = [];
   startTime = Date.now();
   cb;
-  constructor(public contentId = 'do_31275124190583193617067' || 'do_31276383142505676814236'){
+  constructor(public parentDetails, childNodes){
     this.parentArchive = archiver('zip', { zlib: { level: 9 }});
   }
   join(...paths){
     return path.join(...paths);
   }
   public async export(cb){
+    await fileSDK.mkdir('temp');
     this.cb = cb;
     try {
-      this.parentManifest = await fse.readJson(this.join(this.contentBaseFolder, this.contentId,  'manifest.json'));
-      this.parentDetails = _.get(this.parentManifest, 'archive.items[0]');
+      this.parentManifest = await fse.readJson(this.join(this.contentBaseFolder, this.parentDetails.identifier,  'manifest.json'));
       this.ecarName =  this.parentDetails.name;
       console.log('--------exporting content of mimeType--------', this.parentDetails.mimeType);
       if (this.parentDetails.mimeType === 'application/vnd.ekstep.content-collection') {
@@ -173,7 +169,7 @@ class ExportContent {
   }
   async streamZip(){
     return new Promise((resolve, reject) => {
-      const ecarFilePath = this.join('temp', this.ecarName + '.zip');
+      const ecarFilePath = this.join(this.tempBaseFolder, this.ecarName + '.ecar');
       let output = fs.createWriteStream(ecarFilePath);
       output.on('close', () => {
         clearInterval(this.interval);
@@ -184,6 +180,7 @@ class ExportContent {
           ecarSize: this.parentArchive.pointer(),
           timeTaken: (Date.now() - this.startTime)/1000,
           skippedContent: this.corruptContents,
+          name: this.ecarName,
           ecarFilePath
         });
       });
@@ -209,13 +206,3 @@ class ExportContent {
     });
   }
 }
-
-const exportMan = new ExportContent();
-
-exportMan.export((err, suc) => {
-  if(err){
-    console.log('Export error: ', err.message);
-    return;
-  }
-  console.log('Ecar exported successfully', suc);
-});
