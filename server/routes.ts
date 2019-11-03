@@ -543,9 +543,7 @@ export class Router {
         content.import(req, res);
       }
     );
-    app.get("/api/content/v1/export/:id", (req, res) => {
-      content.export(req, res);
-    });
+    app.get("/api/content/v1/export/:id", this.setConnectionTimeout(1200000), content.export.bind(content));
 
     let contentDownload = new ContentDownload(manifest);
     app.post("/api/content/v1/download/list", (req, res) => {
