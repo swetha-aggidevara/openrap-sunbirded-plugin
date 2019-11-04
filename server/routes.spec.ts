@@ -4,12 +4,12 @@ import * as _ from "lodash";
 import * as supertest from 'supertest';
 import { ConnectToServer } from './test_data/routes.test.server';
 import { expect } from 'chai';
-import { telemetry_v1, telemetry_v3, registerDevice, error_telemetry_v1, error_telemetry_v3 } from './test_data/routes.spec.data';
-
-
+import { telemetry_v1, telemetry_v3, error_telemetry_v1, error_telemetry_v3 } from './test_data/routes.spec.data';
 const initialzeEnv = new InitializeEnv();
 let server = new ConnectToServer();
 let app;
+let importId;
+
 initialzeEnv.init();
 
 before('StartServer', async () => {
@@ -32,7 +32,7 @@ describe('All', () => {
             .expect(200)
             .end((err, res) => {
                 if (res.statusCode >= 500) { logger.error(err); return done(); }
-                if (err && res.statusCode >= 400) { expect.fail(); return done(); };
+                if (err && res.statusCode >= 400) {  return done(); };
                 done();
             });
     }).timeout(20000);
@@ -48,7 +48,7 @@ describe('Test Resourcebundle', () => {
             .expect(200)
             .end((err, res) => {
                 if (res.statusCode >= 500) { logger.error(err); return done(); }
-                if (err && res.statusCode >= 400) { expect.fail(); return done(); };
+                if (err && res.statusCode >= 400) {  return done(); };
                 expect(res.body.responseCode).to.equal('OK');
                 expect(res.body.id).to.equal('api.resoucebundles.read').to.be.a('string');
                 expect(res.body.ver).to.equal('1.0').to.be.a('string');
@@ -65,7 +65,7 @@ describe('Test Resourcebundle', () => {
             .expect(200)
             .end((err, res) => {
                 if (res.statusCode >= 500) { logger.error(err); return done(); }
-                if (err && res.statusCode >= 400) { expect.fail(); return done(); };
+                if (err && res.statusCode >= 400) {  return done(); };
                 expect(res.body.responseCode).to.equal('OK');
                 expect(res.body.id).to.equal('api.resoucebundles.read').to.be.a('string');
                 expect(res.body.ver).to.equal('1.0').to.be.a('string');
@@ -82,7 +82,7 @@ describe('Test Resourcebundle', () => {
             .expect(404)
             .end((err, res) => {
                 if (res.statusCode >= 500) { logger.error(err); return done(); }
-                if (err && res.statusCode >= 400) { expect.fail(); return done(); };
+                if (err && res.statusCode >= 400) {  return done(); };
                 expect(res.body.responseCode).to.equal('RESOURCE_NOT_FOUND');
                 expect(res.body.id).to.equal('api.resoucebundles.read').to.be.a('string');
                 expect(res.body.ver).to.equal('1.0').to.be.a('string');
@@ -101,7 +101,7 @@ describe('Test Organisation with and without referrer', () => {
             .expect(200)
             .end((err, res) => {
                 if (res.statusCode >= 500) { logger.error(err); return done(); }
-                if (err && res.statusCode >= 400) { expect.fail(); return done(); };
+                if (err && res.statusCode >= 400) {  return done(); };
                 expect(res.body.responseCode).to.equal('OK');
                 expect(res.body.id).to.equal('api.org.search').to.be.a('string');
                 expect(res.body.ver).to.equal('1.0').to.be.a('string');
@@ -120,7 +120,7 @@ describe('Test Organisation with and without referrer', () => {
             .expect(200)
             .end((err, res) => {
                 if (res.statusCode >= 500) { logger.error(err); return done(); }
-                if (err && res.statusCode >= 400) { expect.fail(); return done(); };
+                if (err && res.statusCode >= 400) {  return done(); };
                 expect(res.body.responseCode).to.equal('OK');
                 expect(res.body.id).to.equal('api.org.search').to.be.a('string');
                 expect(res.body.ver).to.equal('v1').to.be.a('string');
@@ -138,7 +138,7 @@ describe('Test Organisation with and without referrer', () => {
             .expect(500)
             .end((err, res) => {
                 if (res.statusCode >= 500) { logger.error(err); return done(); }
-                if (err && res.statusCode >= 400) { expect.fail(); return done(); };
+                if (err && res.statusCode >= 400) {  return done(); };
                 expect(res.body.responseCode).to.equal('OK');
                 expect(res.body.id).to.equal('api.org.search').to.be.a('string');
                 expect(res.body.ver).to.equal('1.0').to.be.a('string');
@@ -157,7 +157,7 @@ describe('Test Form with and without referrer', () => {
             .expect(200)
             .end((err, res) => {
                 if (res.statusCode >= 500) { logger.error(err); return done(); }
-                if (err && res.statusCode >= 400) { expect.fail(); return done(); };
+                if (err && res.statusCode >= 400) {  return done(); };
                 expect(res.body.responseCode).to.equal('OK');
                 expect(res.body.id).to.equal('api.form.read').to.be.a('string');
                 expect(res.body.ver).to.equal('1.0').to.be.a('string');
@@ -177,7 +177,7 @@ describe('Test Form with and without referrer', () => {
             .expect(200)
             .end((err, res) => {
                 if (res.statusCode >= 500) { logger.error(err); return done(); }
-                if (err && res.statusCode >= 400) { expect.fail(); return done(); };
+                if (err && res.statusCode >= 400) {  return done(); };
                 expect(res.body.responseCode).to.equal('OK');
                 expect(res.body.id).to.equal('api.form.read').to.be.a('string');
                 expect(res.body.ver).to.equal('1.0').to.be.a('string');
@@ -195,7 +195,7 @@ describe('Test Form with and without referrer', () => {
             .expect(404)
             .end((err, res) => {
                 if (res.statusCode >= 500) { logger.error(err); return done(); }
-                if (err && res.statusCode >= 400) { expect.fail(); return done(); };
+                if (err && res.statusCode >= 400) {  return done(); };
                 expect(res.body.responseCode).to.equal('RESOURCE_NOT_FOUND');
                 expect(res.body.id).to.equal('api.form.read').to.be.a('string');
                 expect(res.body.ver).to.equal('1.0').to.be.a('string');
@@ -213,7 +213,7 @@ describe('Test Channel with and without referrer', () => {
             .expect(200)
             .end((err, res) => {
                 if (res.statusCode >= 500) { logger.error(err); return done(); }
-                if (err && res.statusCode >= 400) { expect.fail(); return done(); };
+                if (err && res.statusCode >= 400) {  return done(); };
                 expect(res.body.responseCode).to.equal('OK');
                 expect(res.body.id).to.equal('api.channel.read').to.be.a('string');
                 expect(res.body.ver).to.equal('1.0').to.be.a('string');
@@ -231,7 +231,7 @@ describe('Test Channel with and without referrer', () => {
             .expect(200)
             .end((err, res) => {
                 if (res.statusCode >= 500) { logger.error(err); return done(); }
-                if (err && res.statusCode >= 400) { expect.fail(); return done(); };
+                if (err && res.statusCode >= 400) {  return done(); };
                 expect(res.body.id).to.equal('api.channel.read').to.be.a('string');
                 expect(res.body.ver).to.equal('1.0').to.be.a('string');
                 expect(res.body.result.channel.identifier).to.equal('505c7c48ac6dc1edc9b08f21db5a571d');
@@ -246,7 +246,7 @@ describe('Test Channel with and without referrer', () => {
             .expect(404)
             .end((err, res) => {
                 if (res.statusCode >= 500) { logger.error(err); return done(); }
-                if (err && res.statusCode >= 400) { expect.fail(); return done(); };
+                if (err && res.statusCode >= 400) {  return done(); };
                 expect(res.body.responseCode).to.equal('RESOURCE_NOT_FOUND');
                 expect(res.body.id).to.equal('api.channel.read').to.be.a('string');
                 expect(res.body.ver).to.equal('1.0').to.be.a('string');
@@ -265,7 +265,7 @@ describe('Test Framework with and without referrer', () => {
             .expect(200)
             .end((err, res) => {
                 if (res.statusCode >= 500) { logger.error(err); return done(); }
-                if (err && res.statusCode >= 400) { expect.fail(); return done(); };
+                if (err && res.statusCode >= 400) {  return done(); };
                 expect(res.body.responseCode).to.equal('OK');
                 expect(res.body.id).to.equal('api.framework.read').to.be.a('string');
                 expect(res.body.ver).to.equal('1.0').to.be.a('string');
@@ -281,7 +281,7 @@ describe('Test Framework with and without referrer', () => {
             .expect(200)
             .end((err, res) => {
                 if (res.statusCode >= 500) { logger.error(err); return done(); }
-                if (err && res.statusCode >= 400) { expect.fail(); return done(); };
+                if (err && res.statusCode >= 400) {  return done(); };
                 expect(res.body.responseCode).to.equal('OK');
                 expect(res.body.id).to.equal('api.framework.read').to.be.a('string');
                 expect(res.body.ver).to.equal('1.0').to.be.a('string');
@@ -296,7 +296,7 @@ describe('Test Framework with and without referrer', () => {
             .expect(404)
             .end((err, res) => {
                 if (res.statusCode >= 500) { logger.error(err); return done(); }
-                if (err && res.statusCode >= 400) { expect.fail(); return done(); };
+                if (err && res.statusCode >= 400) {  return done(); };
                 expect(res.body.responseCode).to.equal('RESOURCE_NOT_FOUND');
                 expect(res.body.id).to.equal('api.framework.read').to.be.a('string');
                 expect(res.body.ver).to.equal('1.0').to.be.a('string');
@@ -315,7 +315,7 @@ describe('Test Tenant with and without referrer', () => {
             .expect(200)
             .end((err, res) => {
                 if (res.statusCode >= 500) { logger.error(err); return done(); }
-                if (err && res.statusCode >= 400) { expect.fail(); return done(); };
+                if (err && res.statusCode >= 400) {  return done(); };
                 expect(res.body.responseCode).to.equal('OK');
                 expect(res.body.id).to.equal('api.tenant.info').to.be.a('string');
                 expect(res.body.ver).to.equal('1.0').to.be.a('string');
@@ -333,7 +333,7 @@ describe('Test Tenant with and without referrer', () => {
             .expect(200)
             .end((err, res) => {
                 if (res.statusCode >= 500) { logger.error(err); return done(); }
-                if (err && res.statusCode >= 400) { expect.fail(); return done(); };
+                if (err && res.statusCode >= 400) {  return done(); };
                 expect(res.body.responseCode).to.equal('OK');
                 expect(res.body.id).to.equal('api.tenant.info').to.be.a('string');
                 expect(res.body.ver).to.equal('1.0').to.be.a('string');
@@ -348,23 +348,6 @@ describe('Test Tenant with and without referrer', () => {
 
 describe('Test Telemetry', () => {
 
-    it('#Register Device', (done) => {
-        supertest(app)
-            .post('/api/v1/device/registry/3075dfa43b760f0ce8c21e52762d2040')
-            .send(registerDevice)
-            .expect(200)
-            .end((err, res) => {
-
-                if (res.statusCode >= 500) { logger.error(err); return done(); }
-                if (err && res.statusCode >= 400) { expect.fail(); return done(); };
-                expect(res.body.responseCode).to.equal('OK');
-                expect(res.body.id).to.equal('api.device.registry').to.be.a('string');
-                expect(res.body.ver).to.equal('1.0').to.be.a('string');
-                done();
-
-            });
-    });
-
     it('#add v1 Telemetry Events', (done) => {
         supertest(app)
             .post('/content/data/v1/telemetry')
@@ -372,7 +355,7 @@ describe('Test Telemetry', () => {
             .expect(200)
             .end((err, res) => {
                 if (res.statusCode >= 500) { logger.error(err); return done(); }
-                if (err && res.statusCode >= 400) { expect.fail(); return done(); };
+                if (err && res.statusCode >= 400) {  return done(); };
                 expect(res.body.responseCode).to.equal('OK');
 
                 expect(res.body.id).to.equal('api.telemetry').to.be.a('string');
@@ -389,25 +372,9 @@ describe('Test Telemetry', () => {
             .expect(200)
             .end((err, res) => {
                 if (res.statusCode >= 500) { logger.error(err); return done(); }
-                if (err && res.statusCode >= 400) { expect.fail(); return done(); };
+                if (err && res.statusCode >= 400) {  return done(); };
                 expect(res.body.responseCode).to.equal('OK');
                 expect(res.body.id).to.equal('api.telemetry').to.be.a('string');
-                expect(res.body.ver).to.equal('1.0').to.be.a('string');
-                done();
-
-            });
-    });
-
-    it('#register device (ERROR)', (done) => {
-        supertest(app)
-            .post('/api/v1/device/registry/3075dfa43b760f0ce8c21e52762d2040')
-            .send({})
-            .expect(400)
-            .end((err, res) => {
-                if (res.statusCode >= 500) { logger.error(err); return done(); }
-                if (err && res.statusCode >= 400) { expect.fail(); return done(); };
-                expect(res.body.responseCode).to.equal('CLIENT_ERROR');
-                expect(res.body.id).to.equal('api.device.registry').to.be.a('string');
                 expect(res.body.ver).to.equal('1.0').to.be.a('string');
                 done();
 
@@ -420,9 +387,9 @@ describe('Test Telemetry', () => {
             .send(error_telemetry_v1)
             .expect(400)
             .end((err, res) => {
-                
+
                 if (res.statusCode >= 500) { logger.error(err); return done(); }
-                if (err && res.statusCode >= 400) { expect.fail(); return done(); };
+                if (err && res.statusCode >= 400) {  return done(); };
                 expect(res.body.id).to.equal('api.telemetry').to.be.a('string');
                 expect(res.body.ver).to.equal('1.0').to.be.a('string');
                 done();
@@ -437,7 +404,7 @@ describe('Test Telemetry', () => {
             .end((err, res) => {
                 
                 if (res.statusCode >= 500) { logger.error(err); return done(); }
-                if (err && res.statusCode >= 400) { expect.fail(); return done(); };
+                if (err && res.statusCode >= 400) {  return done(); };
                 expect(res.body.id).to.equal('api.telemetry').to.be.a('string');
                 expect(res.body.ver).to.equal('1.0').to.be.a('string');
                 done();
@@ -454,7 +421,7 @@ describe('Test Page assemble with and without referrer', () => {
             .expect(200)
             .end((err, res) => {
                 if (res.statusCode >= 500) { logger.error(err); return done(); }
-                if (err && res.statusCode >= 400) { expect.fail(); return done(); };
+                if (err && res.statusCode >= 400) {  return done(); };
                 expect(res.body.id).to.equal('api.page.assemble').to.be.a('string');
                 expect(res.body.ver).to.equal('1.0').to.be.a('string');
                 expect(res.body.result.response.id).to.be.a('string');
@@ -471,7 +438,7 @@ describe('Test Page assemble with and without referrer', () => {
             .expect(200)
             .end((err, res) => {
                 if (res.statusCode >= 500) { logger.error(err); return done(); }
-                if (err && res.statusCode >= 400) { expect.fail(); return done(); };
+                if (err && res.statusCode >= 400) {  return done(); };
                 expect(res.body.responseCode).to.equal('OK');
                 expect(res.body.id).to.equal('api.page.assemble').to.be.a('string');
                 expect(res.body.ver).to.equal('v1').to.be.a('string');
@@ -489,7 +456,7 @@ describe('Test Page assemble with and without referrer', () => {
             .expect(400)
             .end((err, res) => {
                 if (res.statusCode >= 500) { logger.error(err); return done(); }
-                if (err && res.statusCode >= 400) { expect.fail(); return done(); };
+                if (err && res.statusCode >= 400) {  return done(); };
                 expect(res.body.responseCode).to.equal('CLIENT_ERROR');
                 expect(res.body.id).to.equal('api.page.assemble').to.be.a('string');
                 expect(res.body.ver).to.equal('v1').to.be.a('string');
@@ -505,7 +472,7 @@ describe('Test Page assemble with and without referrer', () => {
             .end((err, res) => {
                 
                 if (res.statusCode >= 500) { logger.error(err); return done(); }
-                if (err && res.statusCode >= 400) { expect.fail(); return done(); };
+                if (err && res.statusCode >= 400) {  return done(); };
                 expect(res.body.id).to.equal('api.page.assemble').to.be.a('string');
                 expect(res.body.ver).to.equal('1.0').to.be.a('string');
                 expect(res.body.result.response.id).to.be.a('string');
@@ -517,18 +484,226 @@ describe('Test Page assemble with and without referrer', () => {
     it('#Page assemble  Name (ERROR)', (done) => {
         supertest(app)
             .post('/api/data/v1/page/assemble')
-            .send({"request": {"source":"web","name":"Explorees"}})
+            .send({"request": {"(source)":"web","name":"EXPLORE_PAGE"}})
             .expect(404)
             .end((err, res) => {
                 
                 if (res.statusCode >= 500) { logger.error(err); return done(); }
-                if (err && res.statusCode >= 400) { expect.fail(); return done(); };
+                if (err && res.statusCode >= 400) {  return done(); };
                 expect(res.body.id).to.equal('api.page.assemble').to.be.a('string');
                 expect(res.body.ver).to.equal('1.0').to.be.a('string');
                 done();
             });
     });
 
+});
+
+describe('Test Import Content/Collection', () => { 
+
+    it('#Import Content', (done) => {
+        let file_path = `${__dirname}/test_data/to_import_contents/TEST.ecar`, boundary = Math.random();
+        let req = supertest(app).post('/api/content/v1/import')
+        req.set('Content-Type', 'multipart/form-data; boundary=' + boundary)
+        req.attach('file', file_path)
+        req.expect(200)
+        req.end((err, res) => {
+            if (res.statusCode >= 500) { logger.error(err); return done(); }
+            if (err && res.statusCode >= 400) {  return done(); };
+            expect(res.body.success).to.be.true;
+            expect(res.body.content.name).to.be.a('string');
+            expect(res.body.content.name).to.be.a('string').to.equal('TEST');
+            expect(res.body.content.pkgVersion).to.be.a('number');
+            expect(res.body.content.identifier).to.be.a('string');
+            done();
+        });
+    }).timeout(100000);
+
+    it('#Import Collection', (done) => {
+        let file_path = `${__dirname}/test_data/to_import_contents/25th Sept Book.ecar`, boundary = Math.random();
+        let req = supertest(app).post('/api/content/v1/import')
+        req.set('Content-Type', 'multipart/form-data; boundary=' + boundary)
+        req.attach('file', file_path)
+        req.expect(200)
+        req.end((err, res) => {
+            if (res.statusCode >= 500) { logger.error(err); return done(); }
+            if (err && res.statusCode >= 400) {  return done(); };
+            expect(res.body.success).to.be.true;
+            expect(res.body.content.name).to.be.a('string');
+            expect(res.body.content.name).to.be.a('string').to.equal('25th Sept Book');
+            expect(res.body.content.pkgVersion).to.be.a('number');
+            expect(res.body.content.identifier).to.be.a('string');
+            done();
+        });
+    }).timeout(200000);
+
+    it('#Import v2 collection', done => {
+        let file_path = `${__dirname}/test_data/to_import_contents/Maths_VI6.ecar`;
+        let req = supertest(app).post('/api/content/v2/import');
+        req.send([file_path]);
+        req.expect(200);
+        req.end((err, res) => {
+            if (res.statusCode >= 500) {
+                logger.error(err);
+                return done();
+            }
+            if (err && res.statusCode >= 400) {
+                return done();
+            }
+            importId = res.body.result.importedJobIds;
+            expect(res.body.id).to.equal('api.content.import').to.be.a('string');
+            expect(res.body.ver).to.equal('1.0').to.be.a('string');
+            expect(res.body.result.importedJobIds).to.be.an('array');
+            done();
+        });
+    }).timeout(200000);
+    
+    it('#Import v2 collection2', done => {
+        let file_path = `${__dirname}/test_data/to_import_contents/TextBookTest.ecar`;
+        let req = supertest(app).post('/api/content/v2/import');
+        req.send([file_path]);
+        req.expect(200);
+        req.end((err, res) => {
+            if (res.statusCode >= 500) {
+                logger.error(err);
+                return done();
+            }
+            if (err && res.statusCode >= 400) {
+                return done();
+            }
+            expect(res.body.id).to.equal('api.content.import').to.be.a('string');
+            expect(res.body.ver).to.equal('1.0').to.be.a('string');
+            expect(res.body.result.importedJobIds).to.be.an('array');
+            done();
+        });
+    }).timeout(200000);
+
+    it('#Import v2 collection cancel', done => {
+        let req = supertest(app).post(`/api/content/v2/import/cancel/${importId[0]}`);
+        req.send({});
+        req.expect(200);
+        req.end((err, res) => {
+            if (res.statusCode >= 500) {
+                logger.error(err);
+                return done();
+            }
+            if (err && res.statusCode >= 400) {
+                return done();
+            }
+            expect(res.body.id).to.equal('api.content.import').to.be.a('string');
+            expect(res.body.ver).to.equal('1.0').to.be.a('string');
+            expect(res.body.params.status).to.be.a('string');
+            expect(res.body.params.status).to.equal('successful');
+            expect(res.body.result).to.be.an('object');
+            done();
+        });
+    }).timeout(200000);
+
+    it('#Import v2 collection import again', done => {
+        let file_path = `${__dirname}/test_data/to_import_contents/25th Sept Book.ecar`;
+        let req = supertest(app).post('/api/content/v2/import');
+        req.send([file_path]);
+        req.expect(200);
+        req.end((err, res) => {
+            if (res.statusCode >= 500) {
+                logger.error(err);
+                return done();
+            }
+            if (err && res.statusCode >= 400) {
+                return done();
+            }
+            importId = res.body.result.importedJobIds;
+            expect(res.body.id).to.equal('api.content.import').to.be.a('string');
+            expect(res.body.ver).to.equal('1.0').to.be.a('string');
+            expect(res.body.result.importedJobIds).to.be.an('array');
+            done();
+        });
+    }).timeout(200000);
+
+    it('#Import v2 collection pause', done => {
+        let req = supertest(app).post(`/api/content/v2/import/pause/${importId[0]}`);
+        req.send({});
+        req.expect(200);
+        req.end((err, res) => {
+            if (res.statusCode >= 500) {
+                logger.error(err);
+                return done();
+            }
+            if (err && res.statusCode >= 400) {
+                return done();
+            }
+                expect(res.body.id).to.equal('api.content.import').to.be.a('string');
+            expect(res.body.ver).to.equal('1.0').to.be.a('string');
+            expect(res.body.params.status).to.be.a('string');
+            expect(res.body.result).to.be.an('object');
+            done();
+        });
+    }).timeout(200000);
+
+    it('#Import v2 collection resume', done => {
+        let req = supertest(app).post(`/api/content/v2/import/resume/${importId[0]}`);
+        req.send({});
+        req.expect(200);
+        req.end((err, res) => {
+            if (res.statusCode >= 500) {
+                logger.error(err);
+                return done();
+            }
+            if (err && res.statusCode >= 400) {
+                return done();
+            }
+            expect(res.body.id).to.equal('api.content.import').to.be.a('string');
+            expect(res.body.ver).to.equal('1.0').to.be.a('string'); 
+            expect(res.body.params.status).to.be.a('string');
+            expect(res.body.result).to.be.an('object');
+            done();
+        });
+    }).timeout(200000);
+
+    it('#Import v2 collection pause (ERROR)', done => {
+        
+        let req = supertest(app).post(`/api/content/v2/import/pause/645764546776`);
+        req.send({});
+        req.expect(500);
+        req.end((err, res) => {
+            expect(res.body.id).to.equal('api.content.import').to.be.a('string');
+            expect(res.body.ver).to.equal('1.0').to.be.a('string');
+            expect(res.body.params.status).to.be.a('string');
+            expect(res.body.params.status).to.equal('failed');
+            expect(res.body.result).to.be.an('object');
+            expect(res.body.params.errmsg).to.contain('Error while processing the request');
+            done();
+        });
+    }).timeout(200000);
+
+    it('#Import v2 collection resume (ERROR)', done => {
+        let req = supertest(app).post(`/api/content/v2/import/resume/645764546776`);
+        req.send({});
+        req.expect(500);
+        req.end((err, res) => {
+            expect(res.body.id).to.equal('api.content.import').to.be.a('string');
+            expect(res.body.ver).to.equal('1.0').to.be.a('string');
+            expect(res.body.params.status).to.be.a('string');
+            expect(res.body.params.status).to.equal('failed');
+            expect(res.body.result).to.be.an('object');
+            expect(res.body.params.errmsg).to.contain('Error while processing the request');
+            done();
+        });
+    }).timeout(200000);
+
+    it('#Import v2 collection cancel (ERROR)', done => {
+        let req = supertest(app).post(`/api/content/v2/import/cancel/645764546776`);
+        req.send({});
+        req.expect(500);
+        req.end((err, res) => {
+            expect(res.body.id).to.equal('api.content.import').to.be.a('string');
+            expect(res.body.ver).to.equal('1.0').to.be.a('string');
+            expect(res.body.params.status).to.be.a('string');
+            expect(res.body.params.status).to.equal('failed');
+            expect(res.body.result).to.be.an('object');
+            expect(res.body.params.errmsg).to.contain('Error while processing the request');
+            done();
+        });
+    }).timeout(200000);
 });
 
 describe('Test Download Content', () => {
@@ -539,7 +714,7 @@ describe('Test Download Content', () => {
             .expect(200)
             .end((err, res) => {
                 if (res.statusCode >= 500) { logger.error(err); return done(); }
-                if (err && res.statusCode >= 400) { expect.fail(); return done(); };
+                if (err && res.statusCode >= 400) {  return done(); };
                 expect(res.body.responseCode).to.equal('OK');
                 expect(res.body.id).to.equal('api.content.download').to.be.a('string');
                 expect(res.body.ver).to.equal('1.0').to.be.a('string');
@@ -554,7 +729,7 @@ describe('Test Download Content', () => {
             .expect(200)
             .end((err, res) => {
                 if (res.statusCode >= 500) { logger.error(err); return done(); }
-                if (err && res.statusCode >= 400) { expect.fail(); return done(); };
+                if (err && res.statusCode >= 400) {  return done(); };
                 expect(res.body.responseCode).to.equal('OK');
                 expect(res.body.id).to.equal('api.content.download').to.be.a('string');
                 expect(res.body.ver).to.equal('1.0').to.be.a('string');
@@ -571,7 +746,7 @@ describe('Test Download Content', () => {
                 .expect(200)
                 .end((err, res) => {
                     if (res.statusCode >= 500) { logger.error(err); return done(); }
-                    if (err && res.statusCode >= 400) { expect.fail(); return done(); };
+                    if (err && res.statusCode >= 400) {  return done(); };
                     logger.info(`submitted: ${res.body.result.response.downloads.submitted.length}`)
                     logger.info(`inprogress: ${res.body.result.response.downloads.inprogress.length}`)
                     if (res.body.result.response.downloads.submitted.length === 0 &&
@@ -591,7 +766,7 @@ describe('Test Download Content', () => {
                     };
                 });
         }, 2000);
-    }).timeout(200000);
+    }).timeout(210000);
 
     it('#Download Content (ERROR)', (done) => {
         supertest(app)
@@ -601,7 +776,7 @@ describe('Test Download Content', () => {
             .end((err, res) => {
                 
                 if (res.statusCode >= 500) { logger.error(err); return done(); }
-                if (err && res.statusCode >= 400) { expect.fail(); return done(); };
+                if (err && res.statusCode >= 400) {  return done(); };
                 expect(res.body.responseCode).to.equal('INTERNAL_SERVER_ERROR');
                 expect(res.body.id).to.equal('api.content.download').to.be.a('string');
                 expect(res.body.ver).to.equal('1.0').to.be.a('string');
@@ -619,7 +794,7 @@ describe('Test Content search with and without referrer', () => {
             .expect(200)
             .end((err, res) => {
                 if (res.statusCode >= 500) { logger.error(err); return done(); }
-                if (err && res.statusCode >= 400) { expect.fail(); return done(); };
+                if (err && res.statusCode >= 400) {  return done(); };
                 expect(res.body.id).to.equal('api.content.search').to.be.a('string');
                 expect(res.body.ver).to.equal('1.0').to.be.a('string');
                 expect(res.body.result).to.have.property('content');
@@ -635,7 +810,7 @@ describe('Test Content search with and without referrer', () => {
             .expect(200)
             .end((err, res) => {
                 if (res.statusCode >= 500) { logger.error(err); return done(); }
-                if (err && res.statusCode >= 400) { expect.fail(); return done(); };
+                if (err && res.statusCode >= 400) {  return done(); };
                 expect(res.body.id).to.equal('api.content.search').to.be.a('string');
                 expect(res.body.ver).to.equal('1.0').to.be.a('string');
                 expect(res.body.result).to.have.property('content');
@@ -652,7 +827,7 @@ describe('Test Content search with and without referrer', () => {
             .expect(400)
             .end((err, res) => {
                 if (res.statusCode >= 500) { logger.error(err); return done(); }
-                if (err && res.statusCode >= 400) { expect.fail(); return done(); };
+                if (err && res.statusCode >= 400) {  return done(); };
                 expect(res.body.id).to.equal('api.content.search').to.be.a('string');
                 expect(res.body.ver).to.equal('1.0').to.be.a('string');
                 done();
@@ -666,7 +841,7 @@ describe('Test Content search with and without referrer', () => {
             .expect(200)
             .end((err, res) => {
                 if (res.statusCode >= 500) { logger.error(err); return done(); }
-                if (err && res.statusCode >= 400) { expect.fail(); return done(); };  
+                if (err && res.statusCode >= 400) {  return done(); };  
                 expect(res.body.id).to.equal('api.content.search').to.be.a('string');
                 expect(res.body.ver).to.equal('1.0').to.be.a('string');
                 expect(res.body.result).to.have.property('content');
@@ -681,68 +856,10 @@ describe('Test Content search with and without referrer', () => {
             .expect(200)
             .end((err, res) => {
                 if (res.statusCode >= 500) { logger.error(err); return done(); }
-                if (err && res.statusCode >= 400) { expect.fail(); return done(); };
+                if (err && res.statusCode >= 400) {  return done(); };
                 done();
             });
     });
-});
-
-
-describe('Test Import Content/Collection', () => {
-    it('#Import Content', (done) => {
-        let file_path = `${__dirname}/test_data/to_import_contents/The Squirrel.ecar`, boundary = Math.random();
-        let req = supertest(app).post('/api/content/v1/import')
-        req.set('Content-Type', 'multipart/form-data; boundary=' + boundary)
-        req.attach('file', file_path)
-        req.expect(200)
-        req.end((err, res) => {
-            if (res.statusCode >= 500) { logger.error(err); return done(); }
-            if (err && res.statusCode >= 400) { expect.fail(); return done(); };
-            expect(res.body.success).to.be.true;
-            expect(res.body.content.name).to.be.a('string');
-            expect(res.body.content.name).to.be.a('string').to.equal('The Squirrel');
-            expect(res.body.content.pkgVersion).to.be.a('number');
-            expect(res.body.content.identifier).to.be.a('string');
-            done();
-        });
-    }).timeout(100000);
-
-    it('#Import Content', (done) => {
-        let file_path = `${__dirname}/test_data/to_import_contents/TEST.ecar`, boundary = Math.random();
-        let req = supertest(app).post('/api/content/v1/import')
-        req.set('Content-Type', 'multipart/form-data; boundary=' + boundary)
-        req.attach('file', file_path)
-        req.expect(200)
-        req.end((err, res) => {
-            if (res.statusCode >= 500) { logger.error(err); return done(); }
-            if (err && res.statusCode >= 400) { expect.fail(); return done(); };
-            expect(res.body.success).to.be.true;
-            expect(res.body.content.name).to.be.a('string');
-            expect(res.body.content.name).to.be.a('string').to.equal('TEST');
-            expect(res.body.content.pkgVersion).to.be.a('number');
-            expect(res.body.content.identifier).to.be.a('string');
-            done();
-        });
-    }).timeout(100000);
-
-    it('#Import Collection', (done) => {
-        let file_path = `${__dirname}/test_data/to_import_contents/TextBookTest.ecar`, boundary = Math.random();
-        let req = supertest(app).post('/api/content/v1/import')
-        req.set('Content-Type', 'multipart/form-data; boundary=' + boundary)
-        req.attach('file', file_path)
-        req.expect(200)
-        req.end((err, res) => {
-            if (res.statusCode >= 500) { logger.error(err); return done(); }
-            if (err && res.statusCode >= 400) { expect.fail(); return done(); };
-            expect(res.body.success).to.be.true;
-            expect(res.body.content.name).to.be.a('string');
-            expect(res.body.content.name).to.be.a('string').to.equal('TextBookTest');
-            expect(res.body.content.pkgVersion).to.be.a('number');
-            expect(res.body.content.identifier).to.be.a('string');
-            done();
-        });
-    }).timeout(20000);
-
 });
 
 describe('Test Read Content/Collection with and without referrer', () => {
@@ -753,7 +870,7 @@ describe('Test Read Content/Collection with and without referrer', () => {
             .expect(200)
             .end((err, res) => {
                 if (res.statusCode >= 500) { logger.error(err); return done(); }
-                if (err && res.statusCode >= 400) { expect.fail(); return done(); };
+                if (err && res.statusCode >= 400) {  return done(); };
                 expect(res.body.responseCode).to.equal('OK');
                 expect(res.body.id).to.equal('api.content.read').to.be.a('string');
                 expect(res.body.ver).to.equal('1.0').to.be.a('string');
@@ -770,7 +887,7 @@ describe('Test Read Content/Collection with and without referrer', () => {
             .expect(200)
             .end((err, res) => {
                 if (res.statusCode >= 500) { logger.error(err); return done(); }
-                if (err && res.statusCode >= 400) { expect.fail(); return done(); };
+                if (err && res.statusCode >= 400) { return done(); };
                 expect(res.body.responseCode).to.equal('OK');
                 expect(res.body.id).to.equal('api.content.read').to.be.a('string');
                 expect(res.body.ver).to.equal('1.0').to.be.a('string');
@@ -786,7 +903,7 @@ describe('Test Read Content/Collection with and without referrer', () => {
             .expect(200)
             .end((err, res) => {
                 if (res.statusCode >= 500) { logger.error(err); return done(); }
-                if (err && res.statusCode >= 400) { expect.fail(); return done(); };
+                if (err && res.statusCode >= 400) { return done(); };
                 expect(res.body.responseCode).to.equal('OK');
                 expect(res.body.id).to.equal('api.content.read').to.be.a('string');
                 expect(res.body.ver).to.equal('1.0').to.be.a('string');
@@ -804,7 +921,7 @@ describe('Test Read Content/Collection with and without referrer', () => {
             .expect(200)
             .end((err, res) => {
                 if (res.statusCode >= 500) { logger.error(err); return done(); }
-                if (err && res.statusCode >= 400) { expect.fail(); return done(); };
+                if (err && res.statusCode >= 400) {  return done(); };
                 expect(res.body.responseCode).to.equal('OK');
                 expect(res.body.id).to.equal('api.content.read').to.be.a('string');
                 expect(res.body.ver).to.equal('1.0').to.be.a('string');
@@ -819,7 +936,7 @@ describe('Test Read Content/Collection with and without referrer', () => {
             .set('Content-Type', 'application/javascript; charset=UTF-8')
             .end((err, res) => {
                 if (res.statusCode >= 500) { logger.error(err); return done(); }
-                if (err && res.statusCode >= 400) { expect.fail(); return done(); };
+                if (err && res.statusCode >= 400) {  return done(); };
                 done();
             });
     });
@@ -830,7 +947,7 @@ describe('Test Read Content/Collection with and without referrer', () => {
             .expect(200)
             .end((err, res) => {
                 if (res.statusCode >= 500) { logger.error(err); return done(); }
-                if (err && res.statusCode >= 400) { expect.fail(); return done(); };
+                if (err && res.statusCode >= 400) {  return done(); };
                 expect(res.body.responseCode).to.equal('OK'); 
                 expect(res.body.id).to.equal('api.content.read').to.be.a('string');
                 expect(res.body.ver).to.equal('1.0').to.be.a('string');
@@ -847,7 +964,7 @@ describe('Test Read Content/Collection with and without referrer', () => {
             .expect(200)
             .end((err, res) => {
                 if (res.statusCode >= 500) { logger.error(err); return done(); }
-                if (err && res.statusCode >= 400) { expect.fail(); return done(); };
+                if (err && res.statusCode >= 400) {  return done(); };
                 expect(res.body.responseCode).to.equal('OK');
                 expect(res.body.id).to.equal('api.course.hierarchy').to.be.a('string');
                 expect(res.body.ver).to.equal('1.0').to.be.a('string');
@@ -863,7 +980,7 @@ describe('Test Read Content/Collection with and without referrer', () => {
             .expect(404)
             .end((err, res) => {
                 if (res.statusCode >= 500) { logger.error(err); return done(); }
-                if (err && res.statusCode >= 400) { expect.fail(); return done(); };
+                if (err && res.statusCode >= 400) {  return done(); };
                 expect(res.body.id).to.equal('api.content.read').to.be.a('string');
                 expect(res.body.ver).to.equal('1.0').to.be.a('string');
                 done();
@@ -877,7 +994,7 @@ describe('Test Read Content/Collection with and without referrer', () => {
             .expect(404)
             .end((err, res) => {
                 if (res.statusCode >= 500) { logger.error(err); return done(); }
-                if (err && res.statusCode >= 400) { expect.fail(); return done(); };
+                if (err && res.statusCode >= 400) {  return done(); };
                 expect(res.body.id).to.equal('api.course.hierarchy').to.be.a('string');
                 expect(res.body.ver).to.equal('1.0').to.be.a('string');
                 done();
@@ -891,7 +1008,7 @@ describe('Test Read Content/Collection with and without referrer', () => {
             .expect(404)
             .end((err, res) => {
                 if (res.statusCode >= 500) { logger.error(err); return done(); }
-                if (err && res.statusCode >= 400) { expect.fail(); return done(); };
+                if (err && res.statusCode >= 400) {  return done(); };
                 expect(res.body.id).to.equal('api.content.read').to.be.a('string');
                 expect(res.body.ver).to.equal('1.0').to.be.a('string');
                 done();
@@ -899,7 +1016,90 @@ describe('Test Read Content/Collection with and without referrer', () => {
     });
 });
 
+describe('Update content', () => {
+ it('#update content', (done) => {
+    supertest(app)
+    .post('/api/content/v1/update/do_112832394979106816112')
+    .send({})
+    .expect(200)
+    .end((err, res) => {
+        if (res.statusCode >= 500) { logger.error(err); return done(); }
+        if (err && res.statusCode >= 400) { return done(); };
+        expect(res.body.id).to.equal('api.content.update').to.be.a('string');
+        expect(res.body.params.status).to.equal('successful');
+        expect(res.body.ver).to.equal('1.0').to.be.a('string');
+        expect(res.body.result).to.be.a('string');
+        done();
+    });
+ });
+
+ it('#update collection', (done) => {
+    supertest(app)
+    .post('/api/content/v1/update/do_112835337547972608153')
+    .send({})
+    .expect(200)
+    .end((err, res) => {
+        if (res.statusCode >= 500) { logger.error(err); return done(); }
+        if (err && res.statusCode >= 400) { return done(); };
+        expect(res.body.id).to.equal('api.content.update').to.be.a('string');
+        expect(res.body.params.status).to.equal('successful');
+        expect(res.body.ver).to.equal('1.0').to.be.a('string');
+        expect(res.body.result).to.be.a('string');
+        done();
+    });
+ });
+
+ it('#update content inside collection', (done) => {
+    supertest(app)
+    .post('/api/content/v1/update/do_112832394979106816112')
+    .send({request: {parentId: 'do_112835337547972608153' }})
+    .expect(200)
+    .end((err, res) => {
+        if (res.statusCode >= 500) { logger.error(err); return done(); }
+        if (err && res.statusCode >= 400) { return done(); };
+        expect(res.body.id).to.equal('api.content.update').to.be.a('string');
+        expect(res.body.params.status).to.equal('successful');
+        expect(res.body.ver).to.equal('1.0').to.be.a('string');
+        expect(res.body.result).to.be.a('string');
+        done();
+    });
+ });
+
+
+ it('#update content (Not Updated)', (done) => {
+    supertest(app)
+    .post('/api/content/v1/update/do_11275905761520025614')
+    .send({})
+    .expect(200)
+    .end((err, res) => {
+        if (res.statusCode >= 500) { logger.error(err); return done(); }
+        if (err && res.statusCode >= 400) { return done(); };
+        expect(res.body.id).to.equal('api.content.update').to.be.a('string');
+        expect(res.body.params.status).to.equal('failed');
+        expect(res.body.ver).to.equal('1.0').to.be.a('string');
+        expect(res.body.params.errmsg).to.equal('Update not available');
+        done();
+    });
+ });
+
+ it('#update content (ERROR)', (done) => {
+    supertest(app)
+    .post('/api/content/v1/update/do_112832394979106')
+    .send({})
+    .expect(200)
+    .end((err, res) => {
+        expect(res.body.id).to.equal('api.content.update').to.be.a('string');
+        expect(res.body.params.status).to.equal('failed');
+        expect(res.body.result).to.be.an('object');
+        expect(res.body.responseCode).to.equal('RESOURCE_NOT_FOUND');
+        done();
+    });
+ });
+
+});
+
 describe('Test Export Content/Collection', () => {
+
     it('#Export Content', (done) => {
         supertest(app)
             .get('/api/content/v1/export/KP_FT_1564394134764')
@@ -908,7 +1108,7 @@ describe('Test Export Content/Collection', () => {
             .expect(200)
             .end((err, res) => {
                 if (res.statusCode >= 500) { logger.error(err); return done(); }
-                if (err && res.statusCode >= 400) { expect.fail(); return done(); };
+                if (err && res.statusCode >= 400) {  return done(); };
                 expect(res.body.responseCode).to.equal('OK');
                 expect(res.body.id).to.equal('api.content.export').to.be.a('string');
                 expect(res.body.ver).to.equal('1.0').to.be.a('string');
@@ -917,6 +1117,7 @@ describe('Test Export Content/Collection', () => {
 
             });
     }).timeout(100000);
+
     it('#Export Collection', (done) => {
         supertest(app)
             .get('/api/content/v1/export/KP_FT_1563858046256')
@@ -925,7 +1126,7 @@ describe('Test Export Content/Collection', () => {
             .expect(200)
             .end((err, res) => {
                 if (res.statusCode >= 500) { logger.error(err); return done(); }
-                if (err && res.statusCode >= 400) { expect.fail(); return done(); };
+                if (err && res.statusCode >= 400) {  return done(); };
                 expect(res.body.responseCode).to.equal('OK');
                 expect(res.body.id).to.equal('api.content.export').to.be.a('string');
                 expect(res.body.ver).to.equal('1.0').to.be.a('string');
@@ -943,7 +1144,7 @@ describe('Test Export Content/Collection', () => {
             .expect(500)
             .end((err, res) => {
                 if (res.statusCode >= 500) { logger.error(err); return done(); }
-                if (err && res.statusCode >= 400) { expect.fail(); return done(); };
+                if (err && res.statusCode >= 400) {  return done(); };
                 expect(res.body.responseCode).to.equal('INTERNAL_SERVER_ERROR');
                 expect(res.body.id).to.equal('api.content.export').to.be.a('string');
                 expect(res.body.ver).to.equal('1.0').to.be.a('string');
@@ -951,6 +1152,43 @@ describe('Test Export Content/Collection', () => {
 
             });
     }).timeout(100000);
+});
+
+describe.skip('App Update', () => {
+
+    it('#app update', (done) => {
+        process.env.APP_VERSION = '1.0.0';
+        supertest(app)
+            .get('/api/desktop/v1/update')
+            .expect(200)
+            .end((err, res) => {
+                if (res.statusCode >= 500) { logger.error(err); return done(); }
+                if (err && res.statusCode >= 400) {  return done(); };  
+                expect(res.body.params.status).to.equal('successful');
+                expect(res.body.id).to.equal('api.desktop.update').to.be.a('string');
+                expect(res.body.ver).to.equal('1.0').to.be.a('string');
+                expect(res.body.result.updateAvailable).to.be.true;
+                expect(res.body.result.version).not.to.be.empty;
+                expect(res.body.result.url).not.to.be.empty;
+                done();
+            });
+    });
+
+    it('#app not update', (done) => { 
+        process.env.APP_VERSION = '1.0.2';   
+        supertest(app)
+            .get('/api/desktop/v1/update')
+            .expect(200)
+            .end((err, res) => {
+                if (res.statusCode >= 500) { logger.error(err); return done(); }
+                if (err && res.statusCode >= 400) {  return done(); };  
+                expect(res.body.params.status).to.equal('successful');
+                expect(res.body.id).to.equal('api.desktop.update').to.be.a('string');
+                expect(res.body.ver).to.equal('1.0').to.be.a('string');
+                expect(res.body.result.updateAvailable).to.be.false;
+                done();
+            });
+    });
 });
 
 after('Disconnect Server', (done) => {
