@@ -288,7 +288,6 @@ export default class Content {
                 res.status(500);
                 return res.send(Response.error('api.content.export', 500));
             }
-            console.log('Ecar exported successfully', data);
             this.cleanUpExports(path.join('temp', `${data.name}.ecar`), req.headers['X-msgid']);
             res.status(200);
             res.send(Response.success(`api.content.export`, {

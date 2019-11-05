@@ -1,5 +1,4 @@
 import * as fs from 'fs';
-import * as archiver from 'archiver';
 import * as path from 'path';
 import * as  _ from 'lodash';
 import * as fse from 'fs-extra';
@@ -19,7 +18,7 @@ export class ExportContent {
   cb;
   parentDetails;
   constructor(public dbParentDetails, dbChildNodes){
-    this.parentArchive = archiver('zip', { zlib: { level: 9 }});
+    this.parentArchive = fileSDK.archiver();
   }
   join(...paths){
     return path.join(...paths);
@@ -28,7 +27,7 @@ export class ExportContent {
     await fileSDK.mkdir('temp');
     this.cb = cb;
     try {
-      this.parentManifest = await fse.readJson(this.join(this.contentBaseFolder, this.dbParentDetails.identifier,  'manifest.json'));
+      this.parentManifest = await fileSDK.readJSON(this.join(this.contentBaseFolder, this.dbParentDetails.identifier,  'manifest.json'));
       this.parentDetails = _.get(this.parentManifest, 'archive.items[0]');
       this.ecarName =  this.parentDetails.name;
       logger.info('Export content mimeType', this.parentDetails.mimeType);
@@ -110,7 +109,7 @@ export class ExportContent {
   }
   async loadZipContent(contentDetails, child){
     const baseDestPath = child ? contentDetails.identifier + '/' : '';
-    const childArchive = archiver('zip', { zlib: { level: 9 }});
+    const childArchive = fileSDK.archiver();
     const toBeZipped: any = await this.readDirectory(this.join(this.contentBaseFolder, contentDetails.identifier));
     for(const items of toBeZipped){
       if((!contentDetails.appIcon || !contentDetails.appIcon.includes(items)) && items !== 'manifest.json'){
@@ -149,7 +148,7 @@ export class ExportContent {
         item => (item.mimeType !== 'application/vnd.ekstep.content-collection'))
         .map(item => item.identifier)
     for(const child of childNodes){
-      const childManifest = await fse.readJson(this.join(this.contentBaseFolder, child,  'manifest.json'))
+      const childManifest = await fileSDK.readJSON(this.join(this.contentBaseFolder, child,  'manifest.json'))
       .catch(err => {
         logger.error('Got error while reading content', child, 'for import of', this.parentDetails.identifier);
         this.corruptContents.push({ id: child, reason: 'MANIFEST_MISSING'});
