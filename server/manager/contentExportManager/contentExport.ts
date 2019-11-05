@@ -17,7 +17,8 @@ export class ExportContent {
   corruptContents = [];
   startTime = Date.now();
   cb;
-  constructor(public parentDetails, childNodes){
+  parentDetails;
+  constructor(public dbParentDetails, dbChildNodes){
     this.parentArchive = archiver('zip', { zlib: { level: 9 }});
   }
   join(...paths){
@@ -27,7 +28,8 @@ export class ExportContent {
     await fileSDK.mkdir('temp');
     this.cb = cb;
     try {
-      this.parentManifest = await fse.readJson(this.join(this.contentBaseFolder, this.parentDetails.identifier,  'manifest.json'));
+      this.parentManifest = await fse.readJson(this.join(this.contentBaseFolder, this.dbParentDetails.identifier,  'manifest.json'));
+      this.parentDetails = _.get(this.parentManifest, 'archive.items[0]');
       this.ecarName =  this.parentDetails.name;
       console.log('--------exporting content of mimeType--------', this.parentDetails.mimeType);
       if (this.parentDetails.mimeType === 'application/vnd.ekstep.content-collection') {
@@ -45,6 +47,7 @@ export class ExportContent {
   }
   archiveAppend(type, src, dest){
     console.log(`Adding ${src} of type ${type} to dest folder ${dest}`);
+    console.log('');
     if(type === 'path'){
       this.parentArchive.append(fs.createReadStream(src), { name: dest });
     } else if (type === 'directory'){
@@ -94,11 +97,11 @@ export class ExportContent {
       const appIcon = this.join(this.contentBaseFolder, contentDetails.identifier, appIconFileName);
       this.archiveAppend('path', appIcon, baseDestPath + contentDetails.appIcon);
     }
-    // if(contentDetails.artifactUrl && path.dirname(contentDetails.artifactUrl) !== '.'){ // not needed as appIcon and artifact url will be in same folder
-    //   console.log('-------dir name created----------', baseDestPath +  path.dirname(contentDetails.artifactUrl));
-    //   this.archiveAppend('createDir', null, baseDestPath +  path.dirname(contentDetails.artifactUrl));
-    //   this.parentArchive.append(null, { name: baseDestPath +  path.dirname(contentDetails.artifactUrl) + '/'});
-    // }
+    if(contentDetails.artifactUrl && path.extname(contentDetails.artifactUrl)){ // not needed as appIcon and artifact url will be in same folder
+      console.log('-------dir name created----------', baseDestPath +  path.dirname(contentDetails.artifactUrl));
+      this.archiveAppend('createDir', null, baseDestPath +  path.dirname(contentDetails.artifactUrl));
+      this.parentArchive.append(null, { name: baseDestPath +  path.dirname(contentDetails.artifactUrl) + '/'});
+    }
     if(contentDetails.artifactUrl && path.extname(contentDetails.artifactUrl) && path.extname(contentDetails.artifactUrl) !== '.zip'){
       const artifactUrlName = path.basename(contentDetails.artifactUrl);
       const artifactUrlPath = this.join(this.contentBaseFolder, contentDetails.identifier, artifactUrlName);
@@ -113,7 +116,7 @@ export class ExportContent {
     const toBeZipped: any = await this.readDirectory(this.join(this.contentBaseFolder, contentDetails.identifier));
     for(const items of toBeZipped){
       console.log('--------------loadZipContent------------', items)
-      if(!contentDetails.appIcon.includes(items) && items !== 'manifest.json'){
+      if((!contentDetails.appIcon || !contentDetails.appIcon.includes(items)) && items !== 'manifest.json'){
         if(path.extname(items)){
           childArchive.append(fs.createReadStream(this.join(this.contentBaseFolder, contentDetails.identifier, items)), { name: items });
         } else {
@@ -128,21 +131,16 @@ export class ExportContent {
     if(this.parentDetails.appIcon){
       const appIconFileName = path.basename(this.parentDetails.appIcon);
       const appIcon = this.join(this.contentBaseFolder, this.parentDetails.identifier, appIconFileName);
-      this.archiveAppend('path', appIcon, this.parentDetails.appIcon);
       if(path.dirname(this.parentDetails.appIcon) !== '.'){
         console.log('-------dir name created----------', path.dirname(this.parentDetails.appIcon));
         this.archiveAppend('createDir', null, path.dirname(this.parentDetails.appIcon));
       }
+      this.archiveAppend('path', appIcon, this.parentDetails.appIcon);
     }
-    const collectionItems: any = await this.readDirectory(this.join(this.contentBaseFolder, this.parentDetails.identifier));
-    for(const items of collectionItems){
-      if(!this.parentDetails.appIcon.includes(items)){
-        if(path.extname(items)){
-          this.archiveAppend('path', this.join(this.contentBaseFolder, this.parentDetails.identifier, items), items);
-        } else {
-          this.archiveAppend('directory', this.join(this.contentBaseFolder, this.parentDetails.identifier, items), items);
-        }
-      }
+    this.archiveAppend('path', this.join(this.contentBaseFolder, this.parentDetails.identifier, 'manifest.json'), 'manifest.json');
+    const exist = await fse.pathExists(this.join(this.contentBaseFolder, this.parentDetails.identifier, 'hierarchy.json'));
+    if(exist){
+      this.archiveAppend('path', this.join(this.contentBaseFolder, this.parentDetails.identifier, 'hierarchy.json'), 'hierarchy.json');
     }
     await this.loadChildNodes();
   }
@@ -156,6 +154,7 @@ export class ExportContent {
         item => (item.mimeType !== 'application/vnd.ekstep.content-collection'))
         .map(item => item.identifier)
     for(const child of childNodes){
+      console.log('-------------------loading child content-------------------', child);
       const childManifest = await fse.readJson(this.join(this.contentBaseFolder, child,  'manifest.json'))
       .catch(err => {
         console.log('got error while reading content', child);

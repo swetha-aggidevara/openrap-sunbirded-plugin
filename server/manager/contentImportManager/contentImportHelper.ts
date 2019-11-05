@@ -127,9 +127,6 @@ const extractEcar = async () => {
             size: entry.compressedSize
           });
         }
-        // if(!entry.isDirectory){
-        //   await fileSDK.mkdir(path.join('content', contentImportData.contentId, path.dirname(entry.name)));
-        // }
         await extractFile(zipHandler, pathObj).catch(handelError('EXTRACT_ECAR_CONTENT'));
         contentImportData.extractedEcarEntries[entry.name] = true;
       }
@@ -200,7 +197,14 @@ const getDestFilePath = (entry, id, contentMap = {}) => {
 const extractFile = (zipHandler, pathDetails) => {
   return new Promise(async (resolve, reject) => {
     if (pathDetails.isDirectory) {
-      return await fileSDK.mkdir(pathDetails.destRelativePath).then(() => resolve()).catch(reject)
+      return await fileSDK.mkdir(pathDetails.destRelativePath).then(() => resolve()).catch((err) => {
+        console.log('--------mkdir error--------', err, err.code);
+        if(err.code === 'EEXIST'){
+          resolve()
+        } else {
+          reject(err);
+        }
+      });
     }
     zipHandler.extract(pathDetails.src, pathDetails.dest, (err, count) => {
       if (err) {
