@@ -14,7 +14,6 @@ export class ExportContent {
   parentArchive;
   parentManifest;
   ecarName;
-  interval;
   corruptContents = [];
   startTime = Date.now();
   cb;
@@ -38,7 +37,7 @@ export class ExportContent {
       } else {
         await this.loadContent(this.parentDetails, false);
       }
-      this.interval = setInterval(() => logger.log(this.parentArchive.pointer(), this.parentArchive._entriesCount, this.parentArchive._entriesProcessedCount), 1000);
+      // this.interval = setInterval(() => logger.log(this.parentArchive.pointer(), this.parentArchive._entriesCount, this.parentArchive._entriesProcessedCount), 1000);
       const data = await this.streamZip();
       this.cb(null, data);
     } catch(error) {
@@ -166,7 +165,6 @@ export class ExportContent {
       const ecarFilePath = this.join(this.tempBaseFolder, this.ecarName + '.ecar');
       let output = fs.createWriteStream(ecarFilePath);
       output.on('close', () => {
-        clearInterval(this.interval);
         logger.info(this.parentDetails.identifier, 'Exported successfully with', this.parentArchive.pointer() + ' total bytes zipped');
         logger.info('Took ', (Date.now() - this.startTime)/1000, 'seconds');
         logger.info('Skipped corrupt content', this.corruptContents);
