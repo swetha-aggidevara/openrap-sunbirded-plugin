@@ -92,6 +92,8 @@ export const addContentListener = (pluginId) => {
                         const artifactName = path.basename(metaData.artifactUrl);
                         await fileSDK.move(path.join('content', fileName, metaData.artifactUrl), path.join('content', fileName, artifactName))
                         folderToDelete.push(path.join('content', fileName, path.dirname(metaData.artifactUrl)))
+                    } else if(metaData.artifactUrl && path.extname(metaData.artifactUrl) && path.extname(metaData.artifactUrl) === '.zip'){
+                        folderToDelete.push(path.join('content', fileName, path.dirname(metaData.artifactUrl)))
                     }
                     folderToDelete = _.union(folderToDelete);
                     for(const path of folderToDelete){
