@@ -8,7 +8,6 @@ import * as Busboy from "busboy";
 import * as fs from "fs";
 import { logger } from "@project-sunbird/ext-framework-server/logger";
 import * as path from "path";
-import ContentManager from "../../manager/ContentManager";
 import { ContentImportManager } from "../../manager/contentImportManager"
 import * as uuid from "uuid";
 import Hashids from "hashids";
@@ -32,9 +31,6 @@ export default class Content {
     private databaseSdk: DatabaseSDK;
 
     @Inject
-    private contentManager: ContentManager;
-
-    @Inject
     private contentImportManager: ContentImportManager;
 
     private fileSDK;
@@ -42,11 +38,6 @@ export default class Content {
     constructor(manifest: Manifest) {
         this.databaseSdk.initialize(manifest.id);
         this.fileSDK = containerAPI.getFileSDKInstance(manifest.id);
-        this.contentManager.initialize(
-            manifest.id,
-            this.fileSDK.getAbsPath(this.contentsFilesPath),
-            this.fileSDK.getAbsPath(this.ecarsFolderPath)
-        );
         this.contentImportManager.initialize(
             manifest.id,
             this.fileSDK.getAbsPath(this.contentsFilesPath),
@@ -174,7 +165,7 @@ export default class Content {
             });
     }
 
-    async importV2(req: any, res: any) {
+    async import(req: any, res: any) {
         const ecarFilePaths = req.body
         if (!ecarFilePaths) {
             return res.status(400).send(Response.error(`api.content.import`, 400, "MISSING_ECAR_PATH"));
@@ -219,43 +210,6 @@ export default class Content {
         });;
     }
 
-    import(req: any, res: any): any {
-        logger.debug(`ReqId = "${req.headers['X-msgid']}": Import method is called to import content`);
-        let downloadsPath = this.fileSDK.getAbsPath(this.ecarsFolderPath);
-        let busboy = new Busboy({ headers: req.headers });
-        logger.info(`ReqId = "${req.headers['X-msgid']}": Path to import Content: ${downloadsPath}`)
-        busboy.on('file', (fieldname, file, filename, encoding, mimetype) => {
-            // since file name's are having spaces we will generate uniq string as filename
-            logger.info(`ReqId = "${req.headers['X-msgid']}": Generating UniqFileName for the requested file: ${filename}`)
-            let hash = new Hashids(uuid.v4(), 25);
-            let uniqFileName = hash.encode(1).toLowerCase() + path.extname(filename);
-            logger.info(`ReqId = "${req.headers['X-msgid']}": UniqFileName: ${uniqFileName} is generated for File: ${filename} `);
-            let filePath = path.join(downloadsPath, uniqFileName);
-            req.fileName = uniqFileName;
-            req.filePath = filePath;
-            logger.info(`ReqId = "${req.headers['X-msgid']}": Uploading of file  ${filePath} started`);
-            file.pipe(fs.createWriteStream(filePath));
-        });
-        busboy.on('finish', () => {
-            logger.info(`ReqId = "${req.headers['X-msgid']}": Upload complete of the file ${req.filePath}`);
-            logger.debug(`ReqId = "${req.headers['X-msgid']}": File extraction is starting for the file ${req.fileName}`);
-            this.contentManager
-                .startImport(req)
-                .then(data => {
-                    logger.info(`ReqId = "${req.headers['X-msgid']}": File extraction successful for file ${req.filePath}`);
-                    res.send({ success: true, content: data });
-                })
-                .catch(error => {
-                    logger.error(
-                        `ReqId = "${req.headers['X-msgid']}": Error while file extraction  of file ${req.filePath}`,
-                        error
-                    );
-                    res.send({ error: true });
-                });
-        });
-
-        return req.pipe(busboy);
-    }
     async export(req: any, res: any): Promise<any> {
         let id = req.params.id;
         logger.debug(`ReqId = "${req.headers['X-msgid']}": Get Content: ${id} from ContentDB`)
