@@ -6,6 +6,7 @@ import * as fse from 'fs-extra';
 import { manifest } from '../../manifest';
 import { containerAPI } from 'OpenRAP/dist/api';
 let fileSDK = containerAPI.getFileSDKInstance(manifest.id);
+import { logger } from '@project-sunbird/ext-framework-server/logger';
 
 export class ExportContent {
   tempBaseFolder = fileSDK.getAbsPath('temp');
@@ -31,23 +32,22 @@ export class ExportContent {
       this.parentManifest = await fse.readJson(this.join(this.contentBaseFolder, this.dbParentDetails.identifier,  'manifest.json'));
       this.parentDetails = _.get(this.parentManifest, 'archive.items[0]');
       this.ecarName =  this.parentDetails.name;
-      console.log('--------exporting content of mimeType--------', this.parentDetails.mimeType);
+      logger.info('Export content mimeType', this.parentDetails.mimeType);
       if (this.parentDetails.mimeType === 'application/vnd.ekstep.content-collection') {
         await this.loadParentCollection();
       } else {
         await this.loadContent(this.parentDetails, false);
       }
-      this.interval = setInterval(() => console.log(this.parentArchive.pointer(), this.parentArchive._entriesCount, this.parentArchive._entriesProcessedCount), 1000);
+      this.interval = setInterval(() => logger.log(this.parentArchive.pointer(), this.parentArchive._entriesCount, this.parentArchive._entriesProcessedCount), 1000);
       const data = await this.streamZip();
       this.cb(null, data);
     } catch(error) {
       this.cb(error, null);
-      console.log('Got Error while exporting content', this.ecarName, error);
+      logger.error('Got Error while exporting content', this.ecarName, error);
     }
   }
   archiveAppend(type, src, dest){
-    console.log(`Adding ${src} of type ${type} to dest folder ${dest}`);
-    console.log('');
+    logger.info(`Adding ${src} of type ${type} to dest folder ${dest}`);
     if(type === 'path'){
       this.parentArchive.append(fs.createReadStream(src), { name: dest });
     } else if (type === 'directory'){
@@ -98,7 +98,6 @@ export class ExportContent {
       this.archiveAppend('path', appIcon, baseDestPath + contentDetails.appIcon);
     }
     if(contentDetails.artifactUrl && path.extname(contentDetails.artifactUrl)){ // not needed as appIcon and artifact url will be in same folder
-      console.log('-------dir name created----------', baseDestPath +  path.dirname(contentDetails.artifactUrl));
       this.archiveAppend('createDir', null, baseDestPath +  path.dirname(contentDetails.artifactUrl));
       this.parentArchive.append(null, { name: baseDestPath +  path.dirname(contentDetails.artifactUrl) + '/'});
     }
@@ -115,7 +114,6 @@ export class ExportContent {
     const childArchive = archiver('zip', { zlib: { level: 9 }});
     const toBeZipped: any = await this.readDirectory(this.join(this.contentBaseFolder, contentDetails.identifier));
     for(const items of toBeZipped){
-      console.log('--------------loadZipContent------------', items)
       if((!contentDetails.appIcon || !contentDetails.appIcon.includes(items)) && items !== 'manifest.json'){
         if(path.extname(items)){
           childArchive.append(fs.createReadStream(this.join(this.contentBaseFolder, contentDetails.identifier, items)), { name: items });
@@ -132,7 +130,6 @@ export class ExportContent {
       const appIconFileName = path.basename(this.parentDetails.appIcon);
       const appIcon = this.join(this.contentBaseFolder, this.parentDetails.identifier, appIconFileName);
       if(path.dirname(this.parentDetails.appIcon) !== '.'){
-        console.log('-------dir name created----------', path.dirname(this.parentDetails.appIcon));
         this.archiveAppend('createDir', null, path.dirname(this.parentDetails.appIcon));
       }
       this.archiveAppend('path', appIcon, this.parentDetails.appIcon);
@@ -145,19 +142,17 @@ export class ExportContent {
     await this.loadChildNodes();
   }
   async loadChildNodes(){
-    console.log('------------loading child node---------------');
     if(!this.parentDetails.childNodes || !this.parentDetails.childNodes.length){
-      console.log('------------no child nodes returning---------------');
+      logger.debug('No child node for content to export', this.parentDetails.identifier);
       return ;
     }
     let childNodes = _.filter(_.get(this.parentManifest, 'archive.items'),
         item => (item.mimeType !== 'application/vnd.ekstep.content-collection'))
         .map(item => item.identifier)
     for(const child of childNodes){
-      console.log('-------------------loading child content-------------------', child);
       const childManifest = await fse.readJson(this.join(this.contentBaseFolder, child,  'manifest.json'))
       .catch(err => {
-        console.log('got error while reading content', child);
+        logger.error('Got error while reading content', child, 'for import of', this.parentDetails.identifier);
         this.corruptContents.push({ id: child, reason: 'MANIFEST_MISSING'});
       });
       if(childManifest){
@@ -172,9 +167,9 @@ export class ExportContent {
       let output = fs.createWriteStream(ecarFilePath);
       output.on('close', () => {
         clearInterval(this.interval);
-        console.log(this.parentArchive.pointer() + ' total bytes zipped');
-        console.log('Took ', (Date.now() - this.startTime)/1000, 'seconds');
-        console.log('Skipped corrupt content', this.corruptContents);
+        logger.info(this.parentDetails.identifier, 'Exported successfully with', this.parentArchive.pointer() + ' total bytes zipped');
+        logger.info('Took ', (Date.now() - this.startTime)/1000, 'seconds');
+        logger.info('Skipped corrupt content', this.corruptContents);
         resolve({
           ecarSize: this.parentArchive.pointer(),
           timeTaken: (Date.now() - this.startTime)/1000,
@@ -184,7 +179,7 @@ export class ExportContent {
         });
       });
       output.on('end', () => {
-        console.log('Data has been drained');
+        logger.log('Data has been drained');
       });
       this.parentArchive.on('error', (err) => {
         reject(err);

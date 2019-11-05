@@ -198,7 +198,6 @@ const extractFile = (zipHandler, pathDetails) => {
   return new Promise(async (resolve, reject) => {
     if (pathDetails.isDirectory) {
       return await fileSDK.mkdir(pathDetails.destRelativePath).then(() => resolve()).catch((err) => {
-        console.log('--------mkdir error--------', err, err.code);
         if(err.code === 'EEXIST'){
           resolve()
         } else {
