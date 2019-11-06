@@ -85,12 +85,14 @@ export default class ContentDownload {
                         return res.send(Response.success("api.content.download", { downloadId }, req));
                         // return response the downloadId
                     } else {
+                        let totalCollectionSize = 0;
                         logger.info(`ReqId = "${req.headers['X-msgid']}": Found content:${_.get(content, 'data.result.content.mimeType')} is of type collection`)
                         let downloadFiles = [{
                             id: (_.get(content, "data.result.content.identifier") as string),
                             url: (_.get(content, "data.result.content.downloadUrl") as string),
                             size: (_.get(content, "data.result.content.size") as number)
                         }];
+                        totalCollectionSize += _.get(content, "data.result.content.size");
 
                         // get the child contents
                         let childNodes = _.get(content, "data.result.content.childNodes")
@@ -114,6 +116,7 @@ export default class ContentDownload {
                             if (_.get(childrenContentsRes, 'data.result.count')) {
                                 let contents = _.get(childrenContentsRes, 'data.result.content');
                                 for (let content of contents) {
+                                    totalCollectionSize += _.get(content, "size");
                                     downloadFiles.push({
                                         id: (_.get(content, "identifier") as string),
                                         url: (_.get(content, "downloadUrl") as string),
@@ -140,7 +143,7 @@ export default class ContentDownload {
                             queueMetaData: queueMetaData,
                             createdOn: Date.now(),
                             updatedOn: Date.now(),
-                            size: (_.get(content, "data.result.content.size") as number)
+                            size: totalCollectionSize
                         })
                         logger.info(`ReqId = "${req.headers['X-msgid']}": Collection inserted successfully`);
                         return res.send(Response.success("api.content.download", { downloadId }, req));
