@@ -4,7 +4,7 @@ export enum IAddedUsingType {
 }
 
 export interface IDesktopAppMetadata {
-    'ecarFile': string;
+    'ecarFile'?: string;
     'addedUsing': IAddedUsingType;
     'createdOn': number;
     'updatedOn': number;

@@ -5,7 +5,6 @@ import {
 import { frameworkAPI } from "@project-sunbird/ext-framework-server/api";
 import * as path from "path";
 import { Inject } from "typescript-ioc";
-import ContentManager from "./manager/ContentManager";
 import {ContentImportManager} from "./manager/contentImportManager"
 import { Framework } from "./controllers/framework";
 import { Organization } from "./controllers/organization";
@@ -33,9 +32,6 @@ export class Server extends BaseServer {
 
   @Inject
   private databaseSdk: DatabaseSDK;
-
-  @Inject
-  private contentManager: ContentManager;
 
   @Inject
   private contentImportManager: ContentImportManager;
@@ -123,15 +119,6 @@ export class Server extends BaseServer {
     addContentListener(manifest.id);
     reconciliation(manifest.id);
 
-    /* used to listen for content added to downloads folder and unzip them to 
-            content_files
-            and inserts metadata to content database
-        */
-    this.contentManager.initialize(
-      manifest.id,
-      this.fileSDK.getAbsPath(this.contentFilesPath),
-      this.fileSDK.getAbsPath(this.ecarsFolderPath)
-    );
     this.contentImportManager.initialize(
       manifest.id,
       this.fileSDK.getAbsPath(this.contentFilesPath),

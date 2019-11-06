@@ -522,30 +522,12 @@ export class Router {
         }
       })
     );
-    app.post("/api/content/v2/import", content.importV2.bind(content));
-    app.post(
-      "/api/content/v2/import/pause/:importId",
-      content.pauseImport.bind(content)
-    );
-    app.post(
-      "/api/content/v2/import/resume/:importId",
-      content.resumeImport.bind(content)
-    );
-    app.post(
-      "/api/content/v2/import/cancel/:importId",
-      content.cancelImport.bind(content)
-    );
+    app.post("/api/content/v1/import", content.import.bind(content));
+    app.post("/api/content/v1/import/pause/:importId", content.pauseImport.bind(content));
+    app.post("/api/content/v1/import/resume/:importId", content.resumeImport.bind(content));
+    app.post("/api/content/v1/import/cancel/:importId", content.cancelImport.bind(content));
 
-    app.post(
-      "/api/content/v1/import",
-      this.setConnectionTimeout(1200000),
-      (req, res) => {
-        content.import(req, res);
-      }
-    );
-    app.get("/api/content/v1/export/:id", (req, res) => {
-      content.export(req, res);
-    });
+    app.get("/api/content/v1/export/:id", this.setConnectionTimeout(1200000), content.export.bind(content));
 
     let contentDownload = new ContentDownload(manifest);
     app.post("/api/content/v1/download/list", (req, res) => {
