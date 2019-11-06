@@ -197,7 +197,13 @@ const getDestFilePath = (entry, id, contentMap = {}) => {
 const extractFile = (zipHandler, pathDetails) => {
   return new Promise(async (resolve, reject) => {
     if (pathDetails.isDirectory) {
-      return await fileSDK.mkdir(pathDetails.destRelativePath).then(() => resolve()).catch(reject)
+      return await fileSDK.mkdir(pathDetails.destRelativePath).then(() => resolve()).catch((err) => {
+        if(err.code === 'EEXIST'){
+          resolve()
+        } else {
+          reject(err);
+        }
+      });
     }
     zipHandler.extract(pathDetails.src, pathDetails.dest, (err, count) => {
       if (err) {
