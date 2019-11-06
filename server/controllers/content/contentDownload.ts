@@ -23,6 +23,7 @@ enum API_DOWNLOAD_STATUS {
     completed = "COMPLETED",
     failed = "FAILED"
 }
+
 let dbName = "content_download";
 export default class ContentDownload {
 
@@ -77,7 +78,8 @@ export default class ContentDownload {
                             status: CONTENT_DOWNLOAD_STATUS.Submitted,
                             queueMetaData: queueMetaData,
                             createdOn: Date.now(),
-                            updatedOn: Date.now()
+                            updatedOn: Date.now(),
+                            size: (_.get(content, "data.result.content.size") as number)
                         })
                         logger.info(`ReqId = "${req.headers['X-msgid']}": Content Inserted in Database Successfully`);
                         return res.send(Response.success("api.content.download", { downloadId }, req));
@@ -137,7 +139,8 @@ export default class ContentDownload {
                             status: CONTENT_DOWNLOAD_STATUS.Submitted,
                             queueMetaData: queueMetaData,
                             createdOn: Date.now(),
-                            updatedOn: Date.now()
+                            updatedOn: Date.now(),
+                            size: (_.get(content, "data.result.content.size") as number)
                         })
                         logger.info(`ReqId = "${req.headers['X-msgid']}": Collection inserted successfully`);
                         return res.send(Response.success("api.content.download", { downloadId }, req));
@@ -168,6 +171,7 @@ export default class ContentDownload {
                 let inprogress = [];
                 let failed = [];
                 let completed = [];
+                let contentListArray = [];
                 logger.debug(`ReqId = "${req.headers['X-msgid']}": Check download status is submitted or not`);
                 if (_.indexOf(status, API_DOWNLOAD_STATUS.submitted) !== -1) {
                     // submitted - get from the content downloadDB and merge with data
@@ -187,10 +191,12 @@ export default class ContentDownload {
                                 "resourceId": _.get(doc, 'queueMetaData.resourceId'),
                                 "mimeType": doc.queueMetaData.mimeType,
                                 "name": doc.name,
-                                "status": CONTENT_DOWNLOAD_STATUS.Submitted,
+                                "status": ImportStatus[2],
                                 "createdOn": doc.createdOn,
                                 "pkgVersion": _.get(doc, 'queueMetaData.pkgVersion'),
-                                "contentType": _.get(doc, 'queueMetaData.contentType')
+                                "contentType": _.get(doc, 'queueMetaData.contentType'),
+                                "totalSize": doc.size,
+                                "addedUsing": "download"
                             };
                         })
                     }
@@ -202,6 +208,9 @@ export default class ContentDownload {
                     let completed_CDB = await this.databaseSdk.find(dbName, {
                         "selector": {
                             "status": CONTENT_DOWNLOAD_STATUS.Indexed,
+                            "updatedOn": {
+                                "$gt": sessionStartTime
+                            },
                             "createdOn": {
                                 "$gt": null
                             }
@@ -222,10 +231,12 @@ export default class ContentDownload {
                                 "resourceId": _.get(doc, 'queueMetaData.resourceId'),
                                 "mimeType": doc.queueMetaData.mimeType,
                                 "name": doc.name,
-                                "status": API_DOWNLOAD_STATUS.completed,
+                                "status": ImportStatus[8],
                                 "createdOn": doc.createdOn,
                                 "pkgVersion": _.get(doc, 'queueMetaData.pkgVersion'),
-                                "contentType": _.get(doc, 'queueMetaData.contentType')
+                                "contentType": _.get(doc, 'queueMetaData.contentType'),
+                                "totalSize": doc.size,
+                                "addedUsing": "download"
                             };
                         })
                     }
@@ -265,8 +276,9 @@ export default class ContentDownload {
                                 name: _.get(contentItem, 'name') || 'Unnamed download',
                                 totalSize: item.stats.totalSize,
                                 downloadedSize: item.stats.downloadedSize,
-                                status: API_DOWNLOAD_STATUS.inprogress,
-                                createdOn: _.get(contentItem, 'createdOn') || item.createdOn
+                                status: ImportStatus[3],
+                                createdOn: _.get(contentItem, 'createdOn') || item.createdOn,
+                                addedUsing: "download"
                             })
                         })
                     }
@@ -281,6 +293,9 @@ export default class ContentDownload {
                     let failed_CDB = await this.databaseSdk.find(dbName, {
                         "selector": {
                             "status": CONTENT_DOWNLOAD_STATUS.Failed,
+                            "updatedOn": {
+                                "$gt": sessionStartTime
+                            },
                             "createdOn": {
                                 "$gt": null
                             }
@@ -301,10 +316,12 @@ export default class ContentDownload {
                                 "resourceId": _.get(doc, 'queueMetaData.resourceId'),
                                 "mimeType": doc.queueMetaData.mimeType,
                                 "name": doc.name,
-                                "status": API_DOWNLOAD_STATUS.failed,
+                                "status": ImportStatus[9],
                                 "createdOn": doc.createdOn,
                                 "pkgVersion": _.get(doc, 'queueMetaData.pkgVersion'),
-                                "contentType": _.get(doc, 'queueMetaData.contentType')
+                                "contentType": _.get(doc, 'queueMetaData.contentType'),
+                                "totalSize": doc.size,
+                                "addedUsing": "download"
                             };
                         })
                     }
@@ -313,18 +330,11 @@ export default class ContentDownload {
 
                 logger.info(`ReqId = "${req.headers['X-msgid']}": Received all downloaded Contents`);
                 const importJobs = await this.listContentImport();
-                submitted.push(...importJobs.submitted);
-                inprogress.push(...importJobs.inprogress);
-                failed.push(...importJobs.failed);
-                completed.push(...importJobs.completed);
+                contentListArray = _.concat(submitted, inprogress, failed, completed, importJobs.importList)
+
                 return res.send(Response.success("api.content.download.list", {
                     response: {
-                        downloads: {
-                            submitted: submitted,
-                            inprogress: inprogress,
-                            failed: failed,
-                            completed: _.take(completed, 10)
-                        }
+                        contents: contentListArray,
                     }
                 }, req));
 
@@ -359,13 +369,10 @@ export default class ContentDownload {
             }
         }).catch((error) => {
             console.error('Error while fetching content import status');
-            return {docs: []}
+            return { docs: [] }
         });
         const contentImportJobs = {
-            submitted: [],
-            inprogress: [],
-            failed: [],
-            completed: []
+            importList: []
         };
         _.forEach(importJobs.docs, (job: IContentImport) => {
             const jobObj = {
@@ -373,21 +380,14 @@ export default class ContentDownload {
                 id: job._id,
                 resourceId: job.contentId,
                 name: job.name,
-                totalSize: 100,
+                totalSize: job.contentSize,
                 downloadedSize: job.progress,
-                status: job.status,
+                status: ImportStatus[job.status],
                 createdOn: job.createdOn,
                 addedUsing: job.type
             }
-            if (ImportStatus.inProgress === job.status) {
-                contentImportJobs.inprogress.push(jobObj)
-            } else if (ImportStatus.inQueue === job.status || ImportStatus.reconcile === job.status) {
-                contentImportJobs.submitted.push(jobObj)
-            } else if (ImportStatus.completed === job.status) {
-                contentImportJobs.completed.push(jobObj)
-            } else if (ImportStatus.failed === job.status) {
-                contentImportJobs.failed.push(jobObj)
-            }
+
+            contentImportJobs.importList.push(jobObj)
         });
         return contentImportJobs;
     }
