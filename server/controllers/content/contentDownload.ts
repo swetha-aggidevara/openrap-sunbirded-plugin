@@ -353,7 +353,8 @@ export default class ContentDownload {
                     {
                         type: IAddedUsingType.import,
                         status: {
-                            "$in": [ImportStatus.inProgress, ImportStatus.inQueue, ImportStatus.reconcile]
+                            "$in": [ImportStatus.inProgress, ImportStatus.inQueue, ImportStatus.reconcile, ImportStatus.pausing, ImportStatus.paused,
+                                ImportStatus.resume]
                         }
                     },
                     {
