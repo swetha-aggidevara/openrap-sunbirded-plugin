@@ -39,6 +39,7 @@ export interface IContentImport {
   contentSize: number;
   contentId?: string;
   contentType?: string;
+  contentVer?: string;
   failedCode?: string;
   failedReason?: string;
   ecarSourcePath: string;

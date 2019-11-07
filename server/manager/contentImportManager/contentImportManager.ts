@@ -188,7 +188,7 @@ export class ContentImportManager {
       telemetryEvent.object = {
         id: contentImport.contentId,
         type: 'content',
-        ver: '1.0'
+        ver: contentImport.contentVer
       }
     }
     telemetryInstance.audit(telemetryEvent);
