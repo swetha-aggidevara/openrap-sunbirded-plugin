@@ -500,88 +500,29 @@ describe('Test Page assemble with and without referrer', () => {
 
 describe('Test Import Content/Collection', () => { 
 
-    it('#Import Content', (done) => {
-        let file_path = `${__dirname}/test_data/to_import_contents/TEST.ecar`, boundary = Math.random();
-        let req = supertest(app).post('/api/content/v1/import')
-        req.set('Content-Type', 'multipart/form-data; boundary=' + boundary)
-        req.attach('file', file_path)
-        req.expect(200)
-        req.end((err, res) => {
-            if (res.statusCode >= 500) { logger.error(err); return done(); }
-            if (err && res.statusCode >= 400) {  return done(); };
-            expect(res.body.success).to.be.true;
-            expect(res.body.content.name).to.be.a('string');
-            expect(res.body.content.name).to.be.a('string').to.equal('TEST');
-            expect(res.body.content.pkgVersion).to.be.a('number');
-            expect(res.body.content.identifier).to.be.a('string');
-            done();
-        });
-    }).timeout(100000);
-
-    it('#Import Collection', (done) => {
-        let file_path = `${__dirname}/test_data/to_import_contents/25th Sept Book.ecar`, boundary = Math.random();
-        let req = supertest(app).post('/api/content/v1/import')
-        req.set('Content-Type', 'multipart/form-data; boundary=' + boundary)
-        req.attach('file', file_path)
-        req.expect(200)
-        req.end((err, res) => {
-            if (res.statusCode >= 500) { logger.error(err); return done(); }
-            if (err && res.statusCode >= 400) {  return done(); };
-            expect(res.body.success).to.be.true;
-            expect(res.body.content.name).to.be.a('string');
-            expect(res.body.content.name).to.be.a('string').to.equal('25th Sept Book');
-            expect(res.body.content.pkgVersion).to.be.a('number');
-            expect(res.body.content.identifier).to.be.a('string');
-            done();
-        });
-    }).timeout(200000);
-
-    it('#Import v2 collection', done => {
-        let file_path = `${__dirname}/test_data/to_import_contents/Maths_VI6.ecar`;
-        let req = supertest(app).post('/api/content/v2/import');
-        req.send([file_path]);
+    it('#Import Collections ', (done) => {
+        let file_path = [`${__dirname}/test_data/to_import_contents/25th Sept Book.ecar`,`${__dirname}/test_data/to_import_contents/Maths_VI6.ecar`, `${__dirname}/test_data/to_import_contents/TextBookTest.ecar`, `${__dirname}/test_data/to_import_contents/TEST.ecar`];
+        let req = supertest(app).post('/api/content/v1/import');
+        req.send(file_path);
         req.expect(200);
         req.end((err, res) => {
-            if (res.statusCode >= 500) {
-                logger.error(err);
-                return done();
-            }
-            if (err && res.statusCode >= 400) {
-                return done();
-            }
+            if (res.statusCode >= 500) { logger.error(err); return done(); }
+            if (err && res.statusCode >= 400) {  return done(); };
             importId = res.body.result.importedJobIds;
             expect(res.body.id).to.equal('api.content.import').to.be.a('string');
             expect(res.body.ver).to.equal('1.0').to.be.a('string');
             expect(res.body.result.importedJobIds).to.be.an('array');
+            expect(res.body.result).to.have.property('importedJobIds');
             done();
         });
     }).timeout(200000);
     
-    it('#Import v2 collection2', done => {
-        let file_path = `${__dirname}/test_data/to_import_contents/TextBookTest.ecar`;
-        let req = supertest(app).post('/api/content/v2/import');
-        req.send([file_path]);
-        req.expect(200);
-        req.end((err, res) => {
-            if (res.statusCode >= 500) {
-                logger.error(err);
-                return done();
-            }
-            if (err && res.statusCode >= 400) {
-                return done();
-            }
-            expect(res.body.id).to.equal('api.content.import').to.be.a('string');
-            expect(res.body.ver).to.equal('1.0').to.be.a('string');
-            expect(res.body.result.importedJobIds).to.be.an('array');
-            done();
-        });
-    }).timeout(200000);
-
-    it('#Import v2 collection cancel', done => {
-        let req = supertest(app).post(`/api/content/v2/import/cancel/${importId[0]}`);
+    it('#Import v1 collection cancel', done => {
+        let req = supertest(app).post(`/api/content/v1/import/cancel/${importId[0]}`);
         req.send({});
         req.expect(200);
         req.end((err, res) => {
+            
             if (res.statusCode >= 500) {
                 logger.error(err);
                 return done();
@@ -598,9 +539,34 @@ describe('Test Import Content/Collection', () => {
         });
     }).timeout(200000);
 
-    it('#Import v2 collection import again', done => {
+    it('#Import v1 collection import again', done => {
         let file_path = `${__dirname}/test_data/to_import_contents/25th Sept Book.ecar`;
-        let req = supertest(app).post('/api/content/v2/import');
+        let req = supertest(app).post('/api/content/v1/import');
+        req.send([file_path]);
+        req.expect(200);
+        req.end((err, res) => {
+            
+            if (res.statusCode >= 500) {
+                logger.error(err);
+                return done();
+            }
+            if (err && res.statusCode >= 400) {
+                return done();
+            }
+            importId = res.body.result.importedJobIds;
+            console.log('impr id', importId, importId[0]);
+            expect(res.body.id).to.equal('api.content.import').to.be.a('string');
+            expect(res.body.ver).to.equal('1.0').to.be.a('string');
+            expect(res.body.result.importedJobIds).to.be.an('array');
+            expect(res.body.result).to.have.property('importedJobIds');
+            done();
+        });
+    }).timeout(200000);
+
+
+    it('#Import v1 collection import again', done => {
+        let file_path = `${__dirname}/test_data/to_import_contents/25th Sept Book.ecar`;
+        let req = supertest(app).post('/api/content/v1/import');
         req.send([file_path]);
         req.expect(200);
         req.end((err, res) => {
@@ -611,16 +577,16 @@ describe('Test Import Content/Collection', () => {
             if (err && res.statusCode >= 400) {
                 return done();
             }
-            importId = res.body.result.importedJobIds;
             expect(res.body.id).to.equal('api.content.import').to.be.a('string');
             expect(res.body.ver).to.equal('1.0').to.be.a('string');
             expect(res.body.result.importedJobIds).to.be.an('array');
+            expect(res.body.result).to.have.property('importedJobIds');
             done();
         });
     }).timeout(200000);
 
-    it('#Import v2 collection pause', done => {
-        let req = supertest(app).post(`/api/content/v2/import/pause/${importId[0]}`);
+    it('#Import v1 collection pause', done => {
+        let req = supertest(app).post(`/api/content/v1/import/pause/${importId[0]}`);
         req.send({});
         req.expect(200);
         req.end((err, res) => {
@@ -635,12 +601,13 @@ describe('Test Import Content/Collection', () => {
             expect(res.body.ver).to.equal('1.0').to.be.a('string');
             expect(res.body.params.status).to.be.a('string');
             expect(res.body.result).to.be.an('object');
+
             done();
         });
     }).timeout(200000);
 
-    it('#Import v2 collection resume', done => {
-        let req = supertest(app).post(`/api/content/v2/import/resume/${importId[0]}`);
+    it('#Import v1 collection resume', done => {
+        let req = supertest(app).post(`/api/content/v1/import/resume/${importId[0]}`);
         req.send({});
         req.expect(200);
         req.end((err, res) => {
@@ -657,11 +624,10 @@ describe('Test Import Content/Collection', () => {
             expect(res.body.result).to.be.an('object');
             done();
         });
-    }).timeout(200000);
+    }).timeout(230000);
 
-    it('#Import v2 collection pause (ERROR)', done => {
-        
-        let req = supertest(app).post(`/api/content/v2/import/pause/645764546776`);
+    it('#Import v1 collection pause (ERROR)', done => {
+        let req = supertest(app).post(`/api/content/v1/import/pause/645764546776`);
         req.send({});
         req.expect(500);
         req.end((err, res) => {
@@ -675,8 +641,23 @@ describe('Test Import Content/Collection', () => {
         });
     }).timeout(200000);
 
-    it('#Import v2 collection resume (ERROR)', done => {
-        let req = supertest(app).post(`/api/content/v2/import/resume/645764546776`);
+    it('#Import v1 collection resume (ERROR)', done => {
+        let req = supertest(app).post(`/api/content/v1/import/resume/645764546776`);
+        req.send({});
+        req.expect(500);
+        req.end((err, res) => {  
+            expect(res.body.id).to.equal('api.content.import').to.be.a('string');
+            expect(res.body.ver).to.equal('1.0').to.be.a('string');
+            expect(res.body.params.status).to.be.a('string');
+            expect(res.body.params.status).to.equal('failed');
+            expect(res.body.result).to.be.an('object');
+            expect(res.body.params.errmsg).to.contain('Error while processing the request');
+            done();
+        });
+    }).timeout(200000);
+
+    it('#Import v1 collection cancel (ERROR)', done => {
+        let req = supertest(app).post(`/api/content/v1/import/cancel/645764546776`);
         req.send({});
         req.expect(500);
         req.end((err, res) => {
@@ -690,20 +671,6 @@ describe('Test Import Content/Collection', () => {
         });
     }).timeout(200000);
 
-    it('#Import v2 collection cancel (ERROR)', done => {
-        let req = supertest(app).post(`/api/content/v2/import/cancel/645764546776`);
-        req.send({});
-        req.expect(500);
-        req.end((err, res) => {
-            expect(res.body.id).to.equal('api.content.import').to.be.a('string');
-            expect(res.body.ver).to.equal('1.0').to.be.a('string');
-            expect(res.body.params.status).to.be.a('string');
-            expect(res.body.params.status).to.equal('failed');
-            expect(res.body.result).to.be.an('object');
-            expect(res.body.params.errmsg).to.contain('Error while processing the request');
-            done();
-        });
-    }).timeout(200000);
 });
 
 describe('Test Download Content', () => {
@@ -722,6 +689,7 @@ describe('Test Download Content', () => {
                 done();
             });
     }).timeout(100000);
+
     it('#Download Collection', (done) => {
         supertest(app)
             .post('/api/content/v1/download/KP_FT_1563858046256')
@@ -747,23 +715,11 @@ describe('Test Download Content', () => {
                 .end((err, res) => {
                     if (res.statusCode >= 500) { logger.error(err); return done(); }
                     if (err && res.statusCode >= 400) {  return done(); };
-                    logger.info(`submitted: ${res.body.result.response.downloads.submitted.length}`)
-                    logger.info(`inprogress: ${res.body.result.response.downloads.inprogress.length}`)
-                    if (res.body.result.response.downloads.submitted.length === 0 &&
-                        res.body.result.response.downloads.inprogress.length === 0) {
-                        expect(res.body.responseCode).to.equal('OK');
-                        expect(res.body.id).to.equal('api.content.download.list').to.be.a('string');
-                        expect(res.body.ver).to.equal('1.0').to.be.a('string');
-                        expect(res.body.result.response).to.have.property('downloads');
-                        expect(res.body.result.response.downloads).to.have.property('submitted');
-                        expect(res.body.result.response.downloads).to.have.property('inprogress');
-                        expect(res.body.result.response.downloads).to.have.property('failed');
-                        expect(res.body.result.response.downloads).to.have.property('completed');
-                        expect(res.body.result.response.downloads.submitted).to.have.lengthOf(0);
-                        expect(res.body.result.response.downloads.inprogress).to.have.lengthOf(0);
+                        expect(res.body.result.response.contents).to.be.an('array');
+                        expect(res.body.result.response.contents[0]).to.have.property('contentId');
+                        expect(res.body.result.response.contents[0]).to.have.property('resourceId');
                         clearInterval(interval);
                         done();
-                    };
                 });
         }, 2000);
     }).timeout(210000);
@@ -774,7 +730,6 @@ describe('Test Download Content', () => {
             .send({})
             .expect(500)
             .end((err, res) => {
-                
                 if (res.statusCode >= 500) { logger.error(err); return done(); }
                 if (err && res.statusCode >= 400) {  return done(); };
                 expect(res.body.responseCode).to.equal('INTERNAL_SERVER_ERROR');
@@ -793,6 +748,7 @@ describe('Test Content search with and without referrer', () => {
             .send({ "request": { "filters": { "channel": "505c7c48ac6dc1edc9b08f21db5a571d", "contentType": ["Collection", "TextBook", "LessonPlan", "Resource"] }, "limit": 20, "softConstraints": { "badgeAssertions": 98, "board": 99, "channel": 100 }, "mode": "soft", "facets": ["board", "medium", "gradeLevel", "subject", "contentType"], "offset": 0 } })
             .expect(200)
             .end((err, res) => {
+                
                 if (res.statusCode >= 500) { logger.error(err); return done(); }
                 if (err && res.statusCode >= 400) {  return done(); };
                 expect(res.body.id).to.equal('api.content.search').to.be.a('string');
@@ -806,7 +762,7 @@ describe('Test Content search with and without referrer', () => {
         supertest(app)
             .post('/api/content/v1/search')
             .set('Referer', 'http://localhost:9010/browse')
-            .send({ "request": { "filters": { "channel": "505c7c48ac6dc1edc9b08f21db5a571d", "contentType": ["Collection", "TextBook", "LessonPlan", "Resource"] }, "limit": 20, "softConstraints": { "badgeAssertions": 98, "board": 99, "channel": 100 }, "mode": "soft", "facets": ["board", "medium", "gradeLevel", "subject", "contentType"], "offset": 0 } })
+            .send({ "request": { "filters": { "channel": "505c7c48ac6dc1edc9b08f21db5a571d", "contentType": ["Collection", "TextBook", "LessonPlan", "Resource"] }, "limit": 20, "query":"youtube", "softConstraints": { "badgeAssertions": 98, "board": 99, "channel": 100 }, "mode": "soft", "facets": ["board", "medium", "gradeLevel", "subject", "contentType"], "offset": 0 } })
             .expect(200)
             .end((err, res) => {
                 if (res.statusCode >= 500) { logger.error(err); return done(); }
@@ -815,6 +771,7 @@ describe('Test Content search with and without referrer', () => {
                 expect(res.body.ver).to.equal('1.0').to.be.a('string');
                 expect(res.body.result).to.have.property('content');
                 expect(res.body.result).to.have.property('count');
+                expect(res.body.result.content[0].mimeType).to.contain('video/x-youtube');
                 done();
             });
     });
@@ -1023,6 +980,7 @@ describe('Update content', () => {
     .send({})
     .expect(200)
     .end((err, res) => {
+        
         if (res.statusCode >= 500) { logger.error(err); return done(); }
         if (err && res.statusCode >= 400) { return done(); };
         expect(res.body.id).to.equal('api.content.update').to.be.a('string');
@@ -1039,6 +997,7 @@ describe('Update content', () => {
     .send({})
     .expect(200)
     .end((err, res) => {
+        
         if (res.statusCode >= 500) { logger.error(err); return done(); }
         if (err && res.statusCode >= 400) { return done(); };
         expect(res.body.id).to.equal('api.content.update').to.be.a('string');
@@ -1055,6 +1014,7 @@ describe('Update content', () => {
     .send({request: {parentId: 'do_112835337547972608153' }})
     .expect(200)
     .end((err, res) => {
+        
         if (res.statusCode >= 500) { logger.error(err); return done(); }
         if (err && res.statusCode >= 400) { return done(); };
         expect(res.body.id).to.equal('api.content.update').to.be.a('string');
@@ -1072,6 +1032,7 @@ describe('Update content', () => {
     .send({})
     .expect(200)
     .end((err, res) => {
+        
         if (res.statusCode >= 500) { logger.error(err); return done(); }
         if (err && res.statusCode >= 400) { return done(); };
         expect(res.body.id).to.equal('api.content.update').to.be.a('string');
@@ -1088,6 +1049,7 @@ describe('Update content', () => {
     .send({})
     .expect(200)
     .end((err, res) => {
+        
         expect(res.body.id).to.equal('api.content.update').to.be.a('string');
         expect(res.body.params.status).to.equal('failed');
         expect(res.body.result).to.be.an('object');
@@ -1132,9 +1094,8 @@ describe('Test Export Content/Collection', () => {
                 expect(res.body.ver).to.equal('1.0').to.be.a('string');
                 expect(res.body.result.response).to.have.property('url');
                 done();
-
             });
-    }).timeout(100000);
+    }).timeout(10000);
 
     it('#Export Content (ERROR)', (done) => {
         supertest(app)
@@ -1149,9 +1110,8 @@ describe('Test Export Content/Collection', () => {
                 expect(res.body.id).to.equal('api.content.export').to.be.a('string');
                 expect(res.body.ver).to.equal('1.0').to.be.a('string');
                 done();
-
             });
-    }).timeout(100000);
+    });
 });
 
 describe.skip('App Update', () => {
