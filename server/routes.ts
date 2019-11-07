@@ -523,11 +523,24 @@ export class Router {
       })
     );
     app.post("/api/content/v1/import", content.import.bind(content));
-    app.post("/api/content/v1/import/pause/:importId", content.pauseImport.bind(content));
-    app.post("/api/content/v1/import/resume/:importId", content.resumeImport.bind(content));
-    app.post("/api/content/v1/import/cancel/:importId", content.cancelImport.bind(content));
+    app.post(
+      "/api/content/v1/import/pause/:importId",
+      content.pauseImport.bind(content)
+    );
+    app.post(
+      "/api/content/v1/import/resume/:importId",
+      content.resumeImport.bind(content)
+    );
+    app.post(
+      "/api/content/v1/import/cancel/:importId",
+      content.cancelImport.bind(content)
+    );
 
-    app.get("/api/content/v1/export/:id", this.setConnectionTimeout(1200000), content.export.bind(content));
+    app.get(
+      "/api/content/v1/export/:id",
+      this.setConnectionTimeout(1200000),
+      content.export.bind(content)
+    );
 
     let contentDownload = new ContentDownload(manifest);
     app.post("/api/content/v1/download/list", (req, res) => {
@@ -545,11 +558,6 @@ export class Router {
         telemetry.addEvents(req, res);
       }
     );
-
-    app.post("/api/v1/device/registry/:id", (req, res) => {
-      res.status(200).end();
-    });
-
     let contentUpdate = new ContentUpdate(manifest);
     app.post("/api/content/v1/update/:id", (req, res) => {
       contentUpdate.contentUpdate(req, res);
@@ -625,7 +633,6 @@ export class Router {
     locals.apiCacheTtl = "5";
     locals.cloudStorageUrls = null;
     locals.userUploadRefLink = null;
-    locals.deviceRegisterApi = null;
     locals.googleCaptchaSiteKey = null;
     locals.videoMaxSize = null;
     locals.reportsLocation = null;
@@ -640,6 +647,7 @@ export class Router {
     locals.offlineDesktopAppDownloadUrl = "";
     locals.logFingerprintDetails = "";
     locals.deviceId = deviceId;
+    locals.deviceProfileApi =""
     return locals;
   }
 }
