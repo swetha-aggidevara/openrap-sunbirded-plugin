@@ -18,15 +18,12 @@ export class ExportContent {
   parentDetails;
   constructor(private destFolder, private dbParentDetails, private dbChildNodes){
   }
-  join(...paths){
-    return path.join(...paths);
-  }
   public async export(cb){
     this.cb = cb;
     try {
       this.parentArchive = fileSDK.archiver();
       await fileSDK.mkdir('temp');
-      this.parentManifest = await fileSDK.readJSON(this.join(this.contentBaseFolder, this.dbParentDetails.identifier,  'manifest.json'));
+      this.parentManifest = await fileSDK.readJSON(path.join(this.contentBaseFolder, this.dbParentDetails.identifier,  'manifest.json'));
       this.parentDetails = _.get(this.parentManifest, 'archive.items[0]');
       this.ecarName =  this.parentDetails.name;
       logger.info('Export content mimeType', this.parentDetails.mimeType);
@@ -59,7 +56,7 @@ export class ExportContent {
   async validContent(contentDetails){
     if(contentDetails.appIcon){
       const appIconFileName = path.basename(contentDetails.appIcon);
-      const appIcon = this.join(this.contentBaseFolder, contentDetails.identifier, appIconFileName);
+      const appIcon = path.join(this.contentBaseFolder, contentDetails.identifier, appIconFileName);
       const exist = await fse.pathExists(appIcon);
       if(!exist){
         return { valid: false, reason: 'APP_ICON_MISSING'};
@@ -67,7 +64,7 @@ export class ExportContent {
     }
     if(contentDetails.artifactUrl && path.extname(contentDetails.artifactUrl) && path.extname(contentDetails.artifactUrl) !== '.zip'){
       const artifactUrlName = path.basename(contentDetails.artifactUrl);
-      const artifactUrlPath = this.join(this.contentBaseFolder, contentDetails.identifier, artifactUrlName);
+      const artifactUrlPath = path.join(this.contentBaseFolder, contentDetails.identifier, artifactUrlName);
       const exist = await fse.pathExists(artifactUrlPath);
       if(!exist){
         return { valid: false, reason: 'ARTIFACT_URL_MISSING'};
@@ -85,13 +82,13 @@ export class ExportContent {
     if(child){
       this.archiveAppend('createDir', null, contentDetails.identifier);
     }
-    this.archiveAppend('path', this.join(this.contentBaseFolder, contentDetails.identifier, 'manifest.json'), baseDestPath + 'manifest.json');
+    this.archiveAppend('path', path.join(this.contentBaseFolder, contentDetails.identifier, 'manifest.json'), baseDestPath + 'manifest.json');
     if(contentDetails.appIcon){
       if(path.dirname(contentDetails.appIcon) !== '.'){
         this.archiveAppend('createDir', null, baseDestPath +  path.dirname(contentDetails.appIcon));
       }
       const appIconFileName = path.basename(contentDetails.appIcon);
-      const appIcon = this.join(this.contentBaseFolder, contentDetails.identifier, appIconFileName);
+      const appIcon = path.join(this.contentBaseFolder, contentDetails.identifier, appIconFileName);
       this.archiveAppend('path', appIcon, baseDestPath + contentDetails.appIcon);
     }
     if(contentDetails.artifactUrl && path.extname(contentDetails.artifactUrl)){ // not needed as appIcon and artifact url will be in same folder
@@ -100,7 +97,7 @@ export class ExportContent {
     }
     if(contentDetails.artifactUrl && path.extname(contentDetails.artifactUrl) && path.extname(contentDetails.artifactUrl) !== '.zip'){
       const artifactUrlName = path.basename(contentDetails.artifactUrl);
-      const artifactUrlPath = this.join(this.contentBaseFolder, contentDetails.identifier, artifactUrlName);
+      const artifactUrlPath = path.join(this.contentBaseFolder, contentDetails.identifier, artifactUrlName);
       this.archiveAppend('path', artifactUrlPath, baseDestPath + contentDetails.artifactUrl);
     } else if(contentDetails.artifactUrl && path.extname(contentDetails.artifactUrl) && path.extname(contentDetails.artifactUrl) === '.zip'){
       await this.loadZipContent(contentDetails, true);
@@ -109,13 +106,13 @@ export class ExportContent {
   async loadZipContent(contentDetails, child){
     const baseDestPath = child ? contentDetails.identifier + '/' : '';
     const childArchive = fileSDK.archiver();
-    const toBeZipped: any = await this.readDirectory(this.join(this.contentBaseFolder, contentDetails.identifier));
+    const toBeZipped: any = await this.readDirectory(path.join(this.contentBaseFolder, contentDetails.identifier));
     for(const items of toBeZipped){
       if((!contentDetails.appIcon || !contentDetails.appIcon.includes(items)) && items !== 'manifest.json'){
         if(path.extname(items)){
-          childArchive.append(fs.createReadStream(this.join(this.contentBaseFolder, contentDetails.identifier, items)), { name: items });
+          childArchive.append(fs.createReadStream(path.join(this.contentBaseFolder, contentDetails.identifier, items)), { name: items });
         } else {
-          childArchive.directory(this.join(this.contentBaseFolder, contentDetails.identifier, items), items);
+          childArchive.directory(path.join(this.contentBaseFolder, contentDetails.identifier, items), items);
         }
       }
     }
@@ -125,16 +122,16 @@ export class ExportContent {
   async loadParentCollection(){
     if(this.parentDetails.appIcon){
       const appIconFileName = path.basename(this.parentDetails.appIcon);
-      const appIcon = this.join(this.contentBaseFolder, this.parentDetails.identifier, appIconFileName);
+      const appIcon = path.join(this.contentBaseFolder, this.parentDetails.identifier, appIconFileName);
       if(path.dirname(this.parentDetails.appIcon) !== '.'){
         this.archiveAppend('createDir', null, path.dirname(this.parentDetails.appIcon));
       }
       this.archiveAppend('path', appIcon, this.parentDetails.appIcon);
     }
-    this.archiveAppend('path', this.join(this.contentBaseFolder, this.parentDetails.identifier, 'manifest.json'), 'manifest.json');
-    const exist = await fse.pathExists(this.join(this.contentBaseFolder, this.parentDetails.identifier, 'hierarchy.json'));
+    this.archiveAppend('path', path.join(this.contentBaseFolder, this.parentDetails.identifier, 'manifest.json'), 'manifest.json');
+    const exist = await fse.pathExists(path.join(this.contentBaseFolder, this.parentDetails.identifier, 'hierarchy.json'));
     if(exist){
-      this.archiveAppend('path', this.join(this.contentBaseFolder, this.parentDetails.identifier, 'hierarchy.json'), 'hierarchy.json');
+      this.archiveAppend('path', path.join(this.contentBaseFolder, this.parentDetails.identifier, 'hierarchy.json'), 'hierarchy.json');
     }
     await this.loadChildNodes();
   }
@@ -147,7 +144,7 @@ export class ExportContent {
         item => (item.mimeType !== 'application/vnd.ekstep.content-collection'))
         .map(item => item.identifier)
     for(const child of childNodes){
-      const childManifest = await fileSDK.readJSON(this.join(this.contentBaseFolder, child,  'manifest.json'))
+      const childManifest = await fileSDK.readJSON(path.join(this.contentBaseFolder, child,  'manifest.json'))
       .catch(err => {
         logger.error('Got error while reading content', child, 'for import of', this.parentDetails.identifier);
         this.corruptContents.push({ id: child, reason: 'MANIFEST_MISSING'});
@@ -160,7 +157,7 @@ export class ExportContent {
   }
   async streamZip(){
     return new Promise((resolve, reject) => {
-      const ecarFilePath = this.join(this.destFolder, this.ecarName + '.ecar');
+      const ecarFilePath = path.join(this.destFolder, this.ecarName + '.ecar');
       let output = fs.createWriteStream(ecarFilePath);
       output.on('close', () => {
         logger.info(this.parentDetails.identifier, 'Exported successfully with', this.parentArchive.pointer() + ' total bytes zipped');
