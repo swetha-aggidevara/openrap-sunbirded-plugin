@@ -212,6 +212,7 @@ export default class Content {
 
     async export(req: any, res: any): Promise<any> {
         let id = req.params.id;
+        let destFolder = req.query.destFolder;
         logger.debug(`ReqId = "${req.headers['X-msgid']}": Get Content: ${id} from ContentDB`)
         let content = await this.databaseSdk.get('content', id);
         let childNode = [];
@@ -236,7 +237,7 @@ export default class Content {
             );
             childNode = dbChildResponse.docs;
         }
-        const contentExport = new ExportContent(content, childNode);
+        const contentExport = new ExportContent(destFolder, content, childNode);
         contentExport.export((err, data) => {
             if (err) {
                 res.status(500);
@@ -246,7 +247,7 @@ export default class Content {
             res.status(200);
             res.send(Response.success(`api.content.export`, {
                     response: {
-                        url: req.protocol + '://' + req.get('host') + '/temp/' + `${data.name}.ecar`
+                        ecarFilePath: data.ecarFilePath
                     }
                 }, req));
         });

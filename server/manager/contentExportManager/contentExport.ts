@@ -8,7 +8,6 @@ let fileSDK = containerAPI.getFileSDKInstance(manifest.id);
 import { logger } from '@project-sunbird/ext-framework-server/logger';
 
 export class ExportContent {
-  tempBaseFolder = fileSDK.getAbsPath('temp');
   contentBaseFolder = fileSDK.getAbsPath('content');
   parentArchive;
   parentManifest;
@@ -17,16 +16,16 @@ export class ExportContent {
   startTime = Date.now();
   cb;
   parentDetails;
-  constructor(public dbParentDetails, dbChildNodes){
-    this.parentArchive = fileSDK.archiver();
+  constructor(private destFolder, private dbParentDetails, private dbChildNodes){
   }
   join(...paths){
     return path.join(...paths);
   }
   public async export(cb){
-    await fileSDK.mkdir('temp');
     this.cb = cb;
     try {
+      this.parentArchive = fileSDK.archiver();
+      await fileSDK.mkdir('temp');
       this.parentManifest = await fileSDK.readJSON(this.join(this.contentBaseFolder, this.dbParentDetails.identifier,  'manifest.json'));
       this.parentDetails = _.get(this.parentManifest, 'archive.items[0]');
       this.ecarName =  this.parentDetails.name;
@@ -161,7 +160,7 @@ export class ExportContent {
   }
   async streamZip(){
     return new Promise((resolve, reject) => {
-      const ecarFilePath = this.join(this.tempBaseFolder, this.ecarName + '.ecar');
+      const ecarFilePath = this.join(this.destFolder, this.ecarName + '.ecar');
       let output = fs.createWriteStream(ecarFilePath);
       output.on('close', () => {
         logger.info(this.parentDetails.identifier, 'Exported successfully with', this.parentArchive.pointer() + ' total bytes zipped');
