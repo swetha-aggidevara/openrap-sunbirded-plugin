@@ -79,9 +79,9 @@ const parseEcar = async () => {
       throw getErrorObj({ message: `${parent.compatibilityLevel} not supported. Required ${config.get("CONTENT_COMPATIBILITY_LEVEL")} and below` }, "UNSUPPORTED_COMPATIBILITY_LEVEL");
     }
     contentImportData.contentId = parent.identifier;
-    contentImportData.contentType = parent.mimeType;
-    contentImportData.contentVer = _.toString(parent.pkgVersion) || '1.0';
-    if (contentImportData.contentType === 'application/vnd.ekstep.content-collection') {
+    contentImportData.mimeType = parent.mimeType;
+    contentImportData.pkgVersion = _.toString(parent.pkgVersion) || '1.0';
+    if (contentImportData.mimeType === 'application/vnd.ekstep.content-collection') {
       contentImportData.childNodes = _.filter(_.get(manifestJson, 'archive.items'),
         item => (item.mimeType !== 'application/vnd.ekstep.content-collection'))
         .map(item => item.identifier)

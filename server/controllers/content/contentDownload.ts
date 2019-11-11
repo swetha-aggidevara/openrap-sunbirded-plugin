@@ -387,6 +387,8 @@ export default class ContentDownload {
                 downloadedSize: job.progress,
                 status: ImportStatus[job.status],
                 createdOn: job.createdOn,
+                pkgVersion: job.pkgVersion,
+                mimeType: job.mimeType,
                 addedUsing: job.type
             }
 

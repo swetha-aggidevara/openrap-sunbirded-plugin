@@ -38,8 +38,8 @@ export interface IContentImport {
   progress: number;
   contentSize: number;
   contentId?: string;
-  contentType?: string;
-  contentVer?: string;
+  mimeType?: string;
+  pkgVersion?: string;
   failedCode?: string;
   failedReason?: string;
   ecarSourcePath: string;

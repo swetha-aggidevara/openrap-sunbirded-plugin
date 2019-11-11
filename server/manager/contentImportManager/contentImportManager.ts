@@ -188,7 +188,7 @@ export class ContentImportManager {
       telemetryEvent.object = {
         id: contentImport.contentId,
         type: 'content',
-        ver: contentImport.contentVer
+        ver: contentImport.pkgVersion
       }
     }
     telemetryInstance.audit(telemetryEvent);
@@ -348,7 +348,7 @@ class ImportContent {
   */
   private saveDataFromWorker(contentImportData: IContentImport){
     this.contentImportData = { ...this.contentImportData,
-      ..._.pick(contentImportData, ['childNodes', 'contentId', 'contentType', 'extractedEcarEntries', 'artifactUnzipped', 'progress', 'contentSize'])}
+      ..._.pick(contentImportData, ['childNodes', 'contentId', 'mimeType', 'extractedEcarEntries', 'artifactUnzipped', 'progress', 'contentSize', 'pkgVersion'])}
   }
   private async extractEcar() {
     try {
@@ -420,7 +420,7 @@ class ImportContent {
       "updatedOn": Date.now(),
     }
     let resources = [];
-    if (this.contentImportData.contentType === 'application/vnd.ekstep.content-collection') {
+    if (this.contentImportData.mimeType === 'application/vnd.ekstep.content-collection') {
       let itemsClone = _.cloneDeep(_.get(this.manifestJson, 'archive.items'));
       parent.children = this.createHierarchy(itemsClone, parent);
       resources = _.filter(_.get(this.manifestJson, 'archive.items'), item => (item.mimeType !== 'application/vnd.ekstep.content-collection'))
