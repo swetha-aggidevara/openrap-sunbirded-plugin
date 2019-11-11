@@ -243,7 +243,6 @@ export default class Content {
                 res.status(500);
                 return res.send(Response.error('api.content.export', 500));
             }
-            this.cleanUpExports(path.join('temp', `${data.name}.ecar`), req.headers['X-msgid']);
             res.status(200);
             res.send(Response.success(`api.content.export`, {
                     response: {
@@ -251,28 +250,6 @@ export default class Content {
                     }
                 }, req));
         });
-    }
-
-
-    /*
-          This method will clear the exported files after 5 min from the time the file is created
-      */
-    private cleanUpExports(file: string, reqId) {
-        logger.debug(`ReqId = "${reqId}": CleanUpExports method is called to delete the file after Export `)
-        let interval = setInterval(() => {
-            try {
-                logger.info(`ReqId = "${reqId}": Removed temp path for file: ${file} after export`);
-                this.fileSDK.remove(file);
-                clearInterval(interval);
-            } catch (error) {
-                logger.error(
-                    `ReqId = "${reqId}": Received error while deleting the ${file} after export and err.message: ${
-                    error.message
-                    } `
-                );
-                clearInterval(interval);
-            }
-        }, 300000);
     }
 
     /* This method converts the buffer data to json and if any error will catch and return the buffer data */
