@@ -243,9 +243,6 @@ process.on('message', (data) => {
     dbContents = data.dbContents;
     extractEcar();
   } else if (data.message === "KILL") {
-    if (zipHandler && zipHandler.close) {
-      zipHandler.close();
-    }
     sendMessage("DATA_SYNC_KILL");
   }
 });
