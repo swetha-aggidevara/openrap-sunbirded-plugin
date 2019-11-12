@@ -389,6 +389,8 @@ export default class ContentDownload {
                 createdOn: job.createdOn,
                 pkgVersion: job.pkgVersion,
                 mimeType: job.mimeType,
+                failedCode: job.failedCode,
+                failedReason: job.failedReason,
                 addedUsing: job.type
             }
 

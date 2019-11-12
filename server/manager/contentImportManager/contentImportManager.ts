@@ -400,7 +400,7 @@ class ImportContent {
       this.cb('ERROR', this.contentImportData);
       this.cleanUpAfterErrorOrCancel();
     } finally {
-      this.workerProcessRef.kill('SIGHUP');
+      this.workerProcessRef.kill();
     }
   }
 
@@ -451,7 +451,7 @@ class ImportContent {
       await this.syncStatusToDb();
     }
     this.cb(null, this.contentImportData);
-    this.workerProcessRef.kill('SIGHUP');
+    this.workerProcessRef.kill();
   }
 
   private async copyEcar() {
@@ -496,7 +496,7 @@ class ImportContent {
   private handleWorkerCloseEvents() {
     this.workerProcessRef.on('exit', (code, signal) => {
       logger.log(this.contentImportData._id, 'Child process exited with', code, signal);
-      if(signal === 'SIGHUP'){
+      if (this.interrupt || this.contentImportData.importStep === ImportSteps.complete) {
         return;
       }
       if (!_.includes([ImportStatus.canceled, ImportStatus.paused], this.contentImportData.status)) {
@@ -587,7 +587,7 @@ class ImportContent {
     return new Promise((resolve, reject) => {
       this.workerProcessRef.on('message', async (data) => {
         if (data.message === "DATA_SYNC_KILL") {
-          this.workerProcessRef.kill('SIGHUP');
+          this.workerProcessRef.kill();
           logger.log(this.contentImportData._id, 'kill signal from child', this.contentImportData.status, this.contentImportData.importStep);
           if (this.contentImportData.status === ImportStatus.paused) {
             this.contentImportData.status = ImportStatus.paused; // this line should not be removed
