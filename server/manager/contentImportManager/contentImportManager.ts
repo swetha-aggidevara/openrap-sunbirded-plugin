@@ -217,7 +217,7 @@ export class ContentImportManager {
       if (!inProgressJob) {
         throw "INVALID_OPERATION"
       }
-      inProgressJob.jobReference.pause();
+      await inProgressJob.jobReference.pause();
       _.remove(this.runningImportJobs, job => job._id === inProgressJob._id) // update meta data in db 
     } else {
       importDbResults.status = ImportStatus.paused; // update db with new status
@@ -252,7 +252,7 @@ export class ContentImportManager {
       if (!inProgressJob) {
         throw "INVALID_OPERATION"
       }
-      inProgressJob.jobReference.cancel();
+      await inProgressJob.jobReference.cancel();
       _.remove(this.runningImportJobs, job => job._id === inProgressJob._id);
     } else {
       importDbResults.status = ImportStatus.canceled;
@@ -269,7 +269,7 @@ export class ContentImportManager {
       "selector": {
         type: IAddedUsingType.import,
         status: {
-          "$in": [ImportStatus.inProgress, ImportStatus.inQueue, ImportStatus.reconcile, ImportStatus.resume]
+          "$in": [ImportStatus.inProgress, ImportStatus.inQueue, ImportStatus.reconcile, ImportStatus.resume, ImportStatus.paused, ImportStatus.pausing]
         }
       }
     });
@@ -285,7 +285,6 @@ export class ContentImportManager {
   }
 }
 
-
 interface IRunningImportJobs {
   _id: string;
   jobReference: ImportContent
@@ -299,6 +298,7 @@ class ImportContent {
   ecarFolder: string;
   @Inject dbSDK: DatabaseSDK;
   manifestJson: any;
+  interrupt;
 
   constructor(private contentImportData: IContentImport, private cb) {
     this.dbSDK.initialize(pluginId);
@@ -469,6 +469,9 @@ class ImportContent {
       if(data.contentImportData && (data && data.message !== 'LOG')){
         this.saveDataFromWorker(data.contentImportData); // save only required data from child, 
       }
+      if(this.interrupt){ // stop import progress when status changes like pause or cancel
+        return;
+      }
       if (data.message === ImportSteps.copyEcar) {
         this.copyEcar()
       } else if (data.message === ImportSteps.parseEcar) {
@@ -479,8 +482,6 @@ class ImportContent {
         this.importComplete()
       } else if (data.message === "DATA_SYNC") {
         this.syncStatusToDb()
-      } else if (data.message === "DATA_SYNC_KILL") {
-        this.handleKillSignal();
       } else if (data.message === 'LOG') {
         if(logger[data.logType]){
           logger[data.logType]('Log from import worker: ', ...data.logBody)
@@ -556,30 +557,49 @@ class ImportContent {
     return _.get(dbResults, 'docs') ? dbResults.docs : []
   }
   public async cancel() {
+    this.interrupt = true; // to stop message from child process
     logger.log('canceling running import job for', this.contentImportData._id);
+    if(this.contentImportData.importStep === ImportSteps.processContents){
+      return false; 
+    }
     this.contentImportData.status = ImportStatus.canceling;
     await this.syncStatusToDb();
     this.contentImportData.status = ImportStatus.canceled;
     this.workerProcessRef.send({ message: 'KILL' });
     this.cleanUpAfterErrorOrCancel();
+    await this.handleKillSignal();
+    return true;
   }
   public async pause() {
     logger.log('pausing running import job for', this.contentImportData._id);
+    this.interrupt = true; // to stop message from child process
+    if(this.contentImportData.importStep === ImportSteps.processContents){
+      return false; 
+    }
     this.contentImportData.status = ImportStatus.pausing; // update db with new status
     await this.syncStatusToDb();
     this.contentImportData.status = ImportStatus.paused;
     this.workerProcessRef.send({ message: 'KILL' });
+    await this.handleKillSignal();
+    return true;
   }
   private async handleKillSignal() {
-    this.workerProcessRef.kill('SIGHUP');
-    logger.log(this.contentImportData._id, 'kill signal from child', this.contentImportData.status, this.contentImportData.importStep);
-    if (this.contentImportData.status === ImportStatus.paused) {
-      this.contentImportData.status = ImportStatus.paused; // this line should not be removed
-    } else if(this.contentImportData.status === ImportStatus.canceled) {
-      this.contentImportData.status = ImportStatus.canceled; // this line should not be removed
-      this.cleanUpAfterErrorOrCancel();
-    }
-    await this.syncStatusToDb();
+    return new Promise((resolve, reject) => {
+      this.workerProcessRef.on('message', async (data) => {
+        if (data.message === "DATA_SYNC_KILL") {
+          this.workerProcessRef.kill('SIGHUP');
+          logger.log(this.contentImportData._id, 'kill signal from child', this.contentImportData.status, this.contentImportData.importStep);
+          if (this.contentImportData.status === ImportStatus.paused) {
+            this.contentImportData.status = ImportStatus.paused; // this line should not be removed
+          } else if(this.contentImportData.status === ImportStatus.canceled) {
+            this.contentImportData.status = ImportStatus.canceled; // this line should not be removed
+            this.cleanUpAfterErrorOrCancel();
+          }
+          await this.syncStatusToDb();
+          resolve();
+        } 
+      });
+    });
   }
   private createHierarchy(items: any[], parent: any, tree?: any[]): any {
     tree = typeof tree !== 'undefined' ? tree : [];
