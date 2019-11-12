@@ -10,7 +10,7 @@ import { CONTENT_DOWNLOAD_STATUS } from "./contentDownload";
 import * as path from "path";
 
 let dbName = "content_download";
-export default class ContentDownload {
+export default class ContentUpdate {
   @Inject
   private databaseSdk: DatabaseSDK;
   private pluginId;
