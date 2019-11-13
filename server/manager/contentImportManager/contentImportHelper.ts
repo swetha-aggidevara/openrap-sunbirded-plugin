@@ -118,11 +118,13 @@ const extractEcar = async () => {
     }
     _.get(manifestJson, 'archive.items').forEach(item => contentMap[item.identifier] = item); // maps all content to object
     const syncFunc = syncCloser(ImportProgress.EXTRACT_ECAR ,65);
-    for(const childContent of contentImportData.childNodes){
-      await extractFile(zipHandler, {
-        isDirectory: true,
-        destRelativePath: path.join('content', childContent)
-      }).catch(handelError('EXTRACT_ECAR_CONTENT'));
+    if(contentImportData.mimeType === 'application/vnd.ekstep.content-collection' && contentImportData.childNodes){
+      for(const childContent of contentImportData.childNodes){
+        await extractFile(zipHandler, {
+          isDirectory: true,
+          destRelativePath: path.join('content', childContent)
+        }).catch(handelError('EXTRACT_ECAR_CONTENT'));
+      }
     }
     for (const entry of _.values(zipHandler.entries()) as any) {
       syncFunc(entry.compressedSize);
