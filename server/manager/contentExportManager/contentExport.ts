@@ -82,7 +82,7 @@ export class ExportContent {
   getManifestBuffer(manifest){
     const manifestData = {
       "id": "ekstep.content.archive",
-      "ver": "1.2",
+      "ver": manifest.pkgVersion || "1.0",
       "ts": new Date(),
       "params": {
         "resmsgid": uuid()
