@@ -3,6 +3,7 @@ import * as path from 'path';
 import * as  _ from 'lodash';
 import * as fse from 'fs-extra';
 import { manifest } from '../../manifest';
+import * as uuid from 'uuid';
 import { containerAPI } from 'OpenRAP/dist/api';
 let fileSDK = containerAPI.getFileSDKInstance(manifest.id);
 import { logger } from '@project-sunbird/ext-framework-server/logger';
@@ -51,9 +52,15 @@ export class ExportContent {
     } else if (type === 'createDir'){
       dest = dest.endsWith('/') ? dest : dest + '/';
       this.parentArchive.append(null, { name: dest});
+    } else if (type === 'buffer'){
+      this.parentArchive.append(src, { name: dest});
     }
   }
   async validContent(contentDetails){
+    const exist = await fse.pathExists(path.join(this.contentBaseFolder, contentDetails.identifier));
+    if(!exist){
+      return { valid: false, reason: 'CONTENT_FOLDER_MISSING'};
+    }
     if(contentDetails.appIcon){
       const appIconFileName = path.basename(contentDetails.appIcon);
       const appIcon = path.join(this.contentBaseFolder, contentDetails.identifier, appIconFileName);
@@ -72,7 +79,23 @@ export class ExportContent {
     }
     return { valid: true };
   }
-  async loadContent(contentDetails, child){
+  getManifestBuffer(manifest){
+    const manifestData = {
+      "id": "ekstep.content.archive",
+      "ver": "1.2",
+      "ts": new Date(),
+      "params": {
+        "resmsgid": uuid()
+      },
+      "archive": {
+        "count": 1,
+        "ttl": 24,
+        "items": [manifest]
+      }
+    }
+    return Buffer.from(JSON.stringify(manifestData));
+  }
+  async loadContent(contentDetails, child, manifestMissing = false){
     const contentState = await this.validContent(contentDetails);
     if(!contentState.valid){
       this.corruptContents.push({ id: contentDetails.identifier, reason: contentState.reason});
@@ -82,7 +105,11 @@ export class ExportContent {
     if(child){
       this.archiveAppend('createDir', null, contentDetails.identifier);
     }
-    this.archiveAppend('path', path.join(this.contentBaseFolder, contentDetails.identifier, 'manifest.json'), baseDestPath + 'manifest.json');
+    if(manifestMissing){
+      this.archiveAppend('buffer', this.getManifestBuffer(contentDetails), baseDestPath + 'manifest.json');
+    } else {
+      this.archiveAppend('path', path.join(this.contentBaseFolder, contentDetails.identifier, 'manifest.json'), baseDestPath + 'manifest.json');
+    }
     if(contentDetails.appIcon){
       if(path.dirname(contentDetails.appIcon) !== '.'){
         this.archiveAppend('createDir', null, baseDestPath +  path.dirname(contentDetails.appIcon));
@@ -144,14 +171,18 @@ export class ExportContent {
         item => (item.mimeType !== 'application/vnd.ekstep.content-collection'))
         .map(item => item.identifier)
     for(const child of childNodes){
+      const dbChildDetails = _.find(this.dbChildNodes, {identifier: child});
       const childManifest = await fileSDK.readJSON(path.join(this.contentBaseFolder, child,  'manifest.json'))
       .catch(err => {
         logger.error('Got error while reading content', child, 'for import of', this.parentDetails.identifier);
-        this.corruptContents.push({ id: child, reason: 'MANIFEST_MISSING'});
       });
       if(childManifest){
         const childDetails = _.get(childManifest, 'archive.items[0]');
         await this.loadContent(childDetails, true);
+      } else if(dbChildDetails) {
+        await this.loadContent(dbChildDetails, true, true);
+      } else {
+        this.corruptContents.push({ id: child, reason: 'CONTENT_MISSING'});
       }
     }
   }
