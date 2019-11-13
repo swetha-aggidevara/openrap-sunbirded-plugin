@@ -67,7 +67,7 @@ const parseEcar = async () => {
     await fileSDK.mkdir(path.join('content', contentImportData._id));
     const ecarContentEntries = zipHandler.entries();
     const manifestEntry = ecarContentEntries['manifest.json'] || ecarContentEntries['/manifest.json'];
-    if (manifestEntry) {
+    if (!manifestEntry) {
       throw getErrorObj({ message: "manifest.json is missing in ecar" }, "MANIFEST_MISSING");
     }
     await extractFile(zipHandler, getDestFilePath(manifestEntry, contentImportData._id))
@@ -118,8 +118,16 @@ const extractEcar = async () => {
     }
     _.get(manifestJson, 'archive.items').forEach(item => contentMap[item.identifier] = item); // maps all content to object
     const syncFunc = syncCloser(ImportProgress.EXTRACT_ECAR ,65);
+    if(contentImportData.mimeType === 'application/vnd.ekstep.content-collection' && contentImportData.childNodes){
+      for(const childContent of contentImportData.childNodes){
+        await extractFile(zipHandler, {
+          isDirectory: true,
+          destRelativePath: path.join('content', childContent)
+        }).catch(handelError('EXTRACT_ECAR_CONTENT'));
+      }
+    }
     for (const entry of _.values(zipHandler.entries()) as any) {
-      syncFunc(entry.compressedSize)
+      syncFunc(entry.compressedSize);
       if (!contentImportData.extractedEcarEntries[entry.name]) {
         const pathObj = getDestFilePath(entry, contentImportData.contentId, contentMap);
         if (entry.name.endsWith('.zip')) {
