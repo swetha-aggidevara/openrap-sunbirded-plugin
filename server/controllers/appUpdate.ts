@@ -36,7 +36,7 @@ export default class appUpdate {
         };
 
         try {
-            let data = await HTTPService.post(`${process.env.APP_BASE_URL}api/desktop/v1/update`, body, config).toPromise();
+            let data = await HTTPService.post(`${process.env.APP_BASE_URL}/api/desktop/v1/update`, body, config).toPromise();
             logger.info(`ReqId = "${req.headers['X-msgid']}": result: ${_.get(body, 'result')} found from desktop app update api`);
             return res.send(Response.success('api.desktop.update', _.get(data, 'data.result'), req));
         } catch (err) {
