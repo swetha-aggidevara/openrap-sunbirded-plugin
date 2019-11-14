@@ -26,7 +26,7 @@ export class ExportContent {
       await fileSDK.mkdir('temp');
       this.parentManifest = await fileSDK.readJSON(path.join(this.contentBaseFolder, this.dbParentDetails.identifier,  'manifest.json'));
       this.parentDetails = _.get(this.parentManifest, 'archive.items[0]');
-      this.ecarName =  this.parentDetails.name;
+      this.ecarName =  this.parentDetails.name ? this.parentDetails.name.replace(/[&\/\\#,+()$~%.!@%|'":*?<>{}]/g, '') : 'Untitled content';
       logger.info('Export content mimeType', this.parentDetails.mimeType);
       if (this.parentDetails.mimeType === 'application/vnd.ekstep.content-collection') {
         await this.loadParentCollection();
