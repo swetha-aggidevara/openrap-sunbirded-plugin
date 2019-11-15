@@ -12,6 +12,7 @@ import { Page } from "./controllers/page";
 import { ResourceBundle } from "./controllers/resourceBundle";
 import { Channel } from "./controllers/channel";
 import { Form } from "./controllers/form";
+import { Location } from './controllers/location';
 import DatabaseSDK from "./sdk/database";
 import config from "./config";
 import { logger } from "@project-sunbird/ext-framework-server/logger";
@@ -142,6 +143,7 @@ export class Server extends BaseServer {
     const resourceBundle = new ResourceBundle(manifest);
     const channel = new Channel(manifest);
     const form = new Form(manifest);
+    const location = new Location(manifest);
 
     await organization.insert();
     await resourceBundle.insert();
@@ -149,6 +151,7 @@ export class Server extends BaseServer {
     await channel.insert();
     await form.insert();
     await page.insert();
+    await location.insert();
   }
 }
 

@@ -19,6 +19,7 @@ import { logger } from "@project-sunbird/ext-framework-server/logger";
 import * as uuid from "uuid";
 import { containerAPI } from "OpenRAP/dist/api";
 import DesktopApp from "./controllers/appUpdate";
+import { Location } from './controllers/location';
 
 let telemetry;
 
@@ -568,6 +569,11 @@ export class Router {
       desktopApp.getDesktopAppUpate(req, res);
     });
 
+    let location = new Location(manifest);
+    app.post("/data/v1/location/search", (req, res) => {
+      location.search(req, res);
+    });
+  
     app.use(
       "/content-plugins/*",
       proxy(proxyUrl, {
