@@ -18,7 +18,8 @@ import config from "./config";
 import { logger } from "@project-sunbird/ext-framework-server/logger";
 import * as uuid from "uuid";
 import { containerAPI } from "OpenRAP/dist/api";
-import DesktopApp from "./controllers/appUpdate";
+import DesktopAppUpdate from "./controllers/appUpdate";
+import User from "./controllers/user";
 
 let telemetry;
 
@@ -563,9 +564,18 @@ export class Router {
       contentUpdate.contentUpdate(req, res);
     });
 
-    let desktopApp = new DesktopApp();
+    let desktopAppUpdate = new DesktopAppUpdate();
     app.get("/api/desktop/v1/update", (req, res) => {
-      desktopApp.getDesktopAppUpate(req, res);
+      desktopAppUpdate.getDesktopAppUpate(req, res);
+    });
+
+    let user = new User();
+    app.post("/api/desktop/user/v1/create", (req, res) => {
+      user.addUser(req, res);
+    });
+
+    app.get("/api/desktop/user/v1/read", (req, res) => {
+      user.getUser(req, res);
     });
 
     app.use(
