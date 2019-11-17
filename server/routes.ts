@@ -6,6 +6,7 @@ import { Organization } from "./controllers/organization";
 import { Form } from "./controllers/form";
 import { Channel } from "./controllers/channel";
 import { Framework } from "./controllers/framework";
+import { Faqs } from './controllers/faqs';
 import { Page } from "./controllers/page";
 import Tenant from "./controllers/tenant";
 import Content from "./controllers/content/content";
@@ -216,6 +217,9 @@ export class Router {
         }
       })
     );
+
+    let faqs = new Faqs(manifest);
+    app.get("/api/faqs/v1/read/:language", faqs.read.bind(faqs));
 
     let framework = new Framework(manifest);
     app.get(
