@@ -41,8 +41,8 @@ export class Location {
             logger.error(`while getting the data from  database: LOCATION ${error}`);
         });
 
-        if (!_.isEmpty(stateData) && locationData.type === 'district') {
-            _.isEmpty(_.find(stateData['data'], { id: locationData.id })) ? stateData['data'].push(locationData) : '';
+        if (!_.isEmpty(stateData) && locationData.type === 'district' && _.isEmpty(_.find(stateData['data'], { id: locationData.id }))) {
+            stateData['data'].push(locationData);
             await this.databaseSdk.update('location', id, stateData).catch(err => {
                 logger.error(`while updating the state to location database  ${err}`);
             });
