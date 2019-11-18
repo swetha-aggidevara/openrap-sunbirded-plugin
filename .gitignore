@@ -7,3 +7,5 @@ server/test_data/openrap-sunbirded-plugin/ecars
 server/test_data/openrap-sunbirded-plugin/telemetry_archived 
 server/test_data/database/* 
 server/test_data/log
+server/coverage
+server/.nyc_output
