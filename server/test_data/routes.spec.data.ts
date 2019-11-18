@@ -31,7 +31,7 @@ export const frameworkConfig = {
             id: "openrap-sunbirded-plugin", ver: "1.0"
         }
     ],
-    pluginBasePath: path.join(__dirname, "../test") + "/"
+    pluginBasePath: path.join(__dirname, "..", "test") + "/"
 }
 
 export const env = {
