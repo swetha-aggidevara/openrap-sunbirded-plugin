@@ -79,13 +79,14 @@ export class Location {
             res.status(400);
             return res.send(Response.error('api.location.read', 400, error));
         }
-
-        await this.getLocationData(requestBody.locationType, requestBody.parentId).then(response => {
+        logger.debug(`ReqId = ${req.headers['X-msgid']}: getLocationData method is calling`);
+        await this.getLocationData(req.headers['X-msgid'], requestBody.locationType, requestBody.parentId).then(response => {
             response = _.map(response['docs'], (doc: ILocation) => requestBody.locationType === 'state' ? _.omit(doc, ['_id', '_rev', 'data']) : _.omit(doc, ['_id', '_rev']));
 
             let resObj = {
                 response: response
             }
+            logger.info(`ReqId =  ${req.headers['X-msgid']}: got data from db`);
             return res.send(Response.success('api.location.read', resObj, req));
         }).catch(err => {
             logger.error(
@@ -104,7 +105,8 @@ export class Location {
         })
     }
     // Gets location data from online and inserts in db 
-    async getLocationData(type, parentId?) {
+    async getLocationData(msgId, type, parentId?) {
+        logger.info(`ReqId =  ${msgId}: getLocationdata method is called`);
         const config = {
             headers: {
                 authorization: `Bearer ${process.env.APP_BASE_URL_TOKEN}`,
@@ -118,35 +120,40 @@ export class Location {
         const requestParams = {
             request: filter,
         };
+
         return new Promise(async (resolve, reject) => {
             let offlineData: Array<ILocation>;
             try {
+                logger.debug(`ReqId =  ${msgId}: getting location data from online`);
                 let responseData = await HTTPService.post(
                     `${process.env.APP_BASE_URL}/api/data/v1/location/search`,
                     requestParams,
                     config
                 ).toPromise();
-                offlineData = await this.fetchLocationFromOffline(parentId, _.get(responseData, 'data.result.response'));
+                logger.debug(`ReqId =  ${msgId}: fetchLocationFromOffline method is calling `);
+                offlineData = await this.fetchLocationFromOffline(msgId, parentId, _.get(responseData, 'data.result.response'));
                 resolve(offlineData);
             } catch (err) {
-                offlineData = await this.fetchLocationFromOffline(parentId);
+                logger.debug(`ReqId =  ${msgId}: fetchLocationFromOffline method is calling `);
+                offlineData = await this.fetchLocationFromOffline(msgId, parentId);
                 resolve(offlineData);
             }
         });
     }
 
     // Searching location in Db with user applied filters
-    async fetchLocationFromOffline(parentId, onlineLocationData?) {
-
+    async fetchLocationFromOffline(msgId, parentId, onlineLocationData?) {
+        logger.debug(`ReqId =  ${msgId}: fetchLocationFromOffline method is called `);
         if (!_.isEmpty(onlineLocationData)) {
+            logger.info(`ReqId =  ${msgId}: Inserting online location  data in db`);
             _.map(onlineLocationData, async (onlineData: ILocation) => {
                 let id = _.get(onlineData, 'parentId') || onlineData.id;
                 onlineData.type === 'state' && _.isEmpty(_.get(onlineData, 'data')) ? onlineData['data'] = [] : onlineData;
                 await this.InsertLocationData(id, onlineData);
             });
         }
-
         const request = _.isEmpty(parentId) ? { selector: {} } : { selector: { id: parentId } };
+        logger.info(`ReqId =  ${msgId}: finding data from location db`);
         return await this.databaseSdk.find('location', request);
     }
 }

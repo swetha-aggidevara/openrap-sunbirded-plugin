@@ -61,7 +61,7 @@ export class Router {
         if (elapsedTime > 1) {
           logger.warn(
             `${req.headers["X-msgid"] || ""} path: ${
-              req.path
+            req.path
             } took ${elapsedTime}s`
           );
         }
@@ -164,7 +164,7 @@ export class Router {
         }
       },
       proxy(proxyUrl, {
-        proxyReqPathResolver: function(req) {
+        proxyReqPathResolver: function (req) {
           return `/api/org/v1/search`;
         }
       })
@@ -186,7 +186,7 @@ export class Router {
         }
       },
       proxy(proxyUrl, {
-        proxyReqPathResolver: function(req) {
+        proxyReqPathResolver: function (req) {
           return `/api/data/v1/form/read`;
         }
       })
@@ -212,7 +212,7 @@ export class Router {
         }
       },
       proxy(proxyUrl, {
-        proxyReqPathResolver: function(req) {
+        proxyReqPathResolver: function (req) {
           return `/api/channel/v1/read/${req.params.id}`;
         }
       })
@@ -238,7 +238,7 @@ export class Router {
         }
       },
       proxy(proxyUrl, {
-        proxyReqPathResolver: function(req) {
+        proxyReqPathResolver: function (req) {
           return `/api/framework/v1/read/${req.params.id}`;
         }
       })
@@ -267,11 +267,11 @@ export class Router {
         }
       },
       proxy(proxyUrl, {
-        proxyReqPathResolver: function(req) {
+        proxyReqPathResolver: function (req) {
           return `/api/data/v1/page/assemble`;
         },
-        userResDecorator: function(proxyRes, proxyResData, req) {
-          return new Promise(function(resolve) {
+        userResDecorator: function (proxyRes, proxyResData, req) {
+          return new Promise(function (resolve) {
             logger.info(`Proxy is Enabled for Content`);
             logger.debug(
               `ReqId = "${req.headers["X-msgid"]}": Convert buffer data to json`
@@ -329,7 +329,7 @@ export class Router {
         }
       },
       proxy(proxyUrl, {
-        proxyReqPathResolver: function(req) {
+        proxyReqPathResolver: function (req) {
           return `/v1/tenant/info/`;
         }
       })
@@ -355,11 +355,11 @@ export class Router {
         }
       },
       proxy(proxyUrl, {
-        proxyReqPathResolver: function(req) {
+        proxyReqPathResolver: function (req) {
           return `/api/content/v1/read/${req.params.id}?fields=${req.query.fields}`;
         },
-        userResDecorator: function(proxyRes, proxyResData, req) {
-          return new Promise(function(resolve) {
+        userResDecorator: function (proxyRes, proxyResData, req) {
+          return new Promise(function (resolve) {
             logger.info(`Proxy is Enabled for Content: ${req.params.id}`);
             logger.debug(
               `ReqId = "${req.headers["X-msgid"]}": Convert buffer data to json`
@@ -417,11 +417,11 @@ export class Router {
         }
       },
       proxy(proxyUrl, {
-        proxyReqPathResolver: function(req) {
+        proxyReqPathResolver: function (req) {
           return `/api/course/v1/hierarchy/${req.params.id}`;
         },
-        userResDecorator: function(proxyRes, proxyResData, req) {
-          return new Promise(function(resolve) {
+        userResDecorator: function (proxyRes, proxyResData, req) {
+          return new Promise(function (resolve) {
             logger.info(`Proxy is Enabled for Content: ${req.params.id}`);
             logger.debug(
               `ReqId = "${req.headers["X-msgid"]}": Convert buffer data to json`
@@ -483,11 +483,11 @@ export class Router {
         }
       },
       proxy(proxyUrl, {
-        proxyReqPathResolver: function(req) {
+        proxyReqPathResolver: function (req) {
           return `/api/content/v1/search`;
         },
-        userResDecorator: function(proxyRes, proxyResData, req) {
-          return new Promise(function(resolve) {
+        userResDecorator: function (proxyRes, proxyResData, req) {
+          return new Promise(function (resolve) {
             logger.info(`Proxy is Enabled for Content`);
             logger.debug(
               `ReqId = "${req.headers["X-msgid"]}": Convert buffer data to json`
@@ -570,14 +570,17 @@ export class Router {
     });
 
     let location = new Location(manifest);
-    app.post("/data/v1/location/search", (req, res) => {
+    app.post("/api/data/v1/location/search", (req, res) => {
+      logger.debug(
+        `ReqId = "${req.headers["X-msgid"]}": Location search is method is calling `
+      );
       location.search(req, res);
     });
-  
+
     app.use(
       "/content-plugins/*",
       proxy(proxyUrl, {
-        proxyReqPathResolver: function(req) {
+        proxyReqPathResolver: function (req) {
           logger.debug(
             `ReqId = "${req.headers["X-msgid"]}": Parsing content-plugin urls`
           );
@@ -589,7 +592,7 @@ export class Router {
     app.use(
       "/assets/public/*",
       proxy(proxyUrl, {
-        proxyReqPathResolver: function(req) {
+        proxyReqPathResolver: function (req) {
           logger.debug(
             `ReqId = "${req.headers["X-msgid"]}": Parsing assets/public urls`
           );
@@ -601,7 +604,7 @@ export class Router {
     app.use(
       "/contentPlayer/preview/*",
       proxy(proxyUrl, {
-        proxyReqPathResolver: function(req) {
+        proxyReqPathResolver: function (req) {
           logger.debug(
             `ReqId = "${req.headers["X-msgid"]}": Parsing contentPlayer/preview/ urls`
           );
@@ -653,7 +656,7 @@ export class Router {
     locals.offlineDesktopAppDownloadUrl = "";
     locals.logFingerprintDetails = "";
     locals.deviceId = deviceId;
-    locals.deviceProfileApi =""
+    locals.deviceProfileApi = ""
     return locals;
   }
 }
