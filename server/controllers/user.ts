@@ -18,7 +18,7 @@ export default class User {
             logger.error(`ReqId = "${req.headers['X-msgid']}": Received error while adding user,  where err = ${err}`);
             res.status(err.status || 500);
             return res.send(
-                Response.error("api.content.update", err.status, err.message || '')
+                Response.error("api.desktop.user.create", err.status, err.message || '')
             );
         }
     }
@@ -32,7 +32,7 @@ export default class User {
             logger.error(`ReqId = "${req.headers['X-msgid']}": Received error while getting user,  where err = ${err}`);
             res.status(err.status || 500);
             return res.send(
-                Response.error("api.content.update", err.status, err.message || '')
+                Response.error("api.desktop.user.read", err.status, err.message || '')
             );
         }
     }
