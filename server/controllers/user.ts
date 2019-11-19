@@ -9,27 +9,31 @@ export default class User {
         this.userSDK = containerAPI.getUserSdkInstance();
     }
 
-    async addUser(req, res) {
+    async create(req, res) {
         try {
             const createResp = await this.userSDK.create(_.get(req, 'body.request'));
             logger.info(`ReqId = "${req.headers['X-msgid']}": request: ${_.get(req, 'body.request')} found from desktop app update api`);
-            return res.send(Response.success('api.desktop.user.create', createResp.id, req));
+            return res.send(Response.success('api.desktop.user.create', { id: createResp._id }, req));
         } catch (err) {
             logger.error(`ReqId = "${req.headers['X-msgid']}": Received error while adding user,  where err = ${err}`);
-            res.status(500);
-            return res.send(Response.error("api.desktop.user.create", 500));
+            res.status(err.status || 500);
+            return res.send(
+                Response.error("api.content.update", err.status, err.message || '')
+            );
         }
     }
 
-    async getUser(req, res) {
+    async read(req, res) {
         try {
             const userData = await this.userSDK.read();
             logger.info(`ReqId = "${req.headers['X-msgid']}": result: ${userData} found from desktop app update api`);
             return res.send(Response.success('api.desktop.user.read', userData, req));
         } catch (err) {
             logger.error(`ReqId = "${req.headers['X-msgid']}": Received error while getting user,  where err = ${err}`);
-            res.status(500);
-            return res.send(Response.error("api.desktop.user.read", 500));
+            res.status(err.status || 500);
+            return res.send(
+                Response.error("api.content.update", err.status, err.message || '')
+            );
         }
     }
 }

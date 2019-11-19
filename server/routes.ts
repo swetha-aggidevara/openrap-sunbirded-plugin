@@ -570,13 +570,13 @@ export class Router {
     });
 
     let user = new User();
-    app.post("/api/desktop/user/v1/create", (req, res) => {
-      user.addUser(req, res);
-    });
+    app.post( "/api/desktop/user/v1/create",
+      user.create.bind(user)
+    );
 
-    app.get("/api/desktop/user/v1/read", (req, res) => {
-      user.getUser(req, res);
-    });
+    app.get( "/api/desktop/user/v1/read",
+      user.read.bind(user)
+    );
 
     app.use(
       "/content-plugins/*",
