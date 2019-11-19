@@ -3,7 +3,7 @@ jobs:
   build:
     docker:
       image: node:8.1.2-browsers
-    - working_directory: ~/project/server
+    working_directory: ~/project/server
     steps:
       - checkout:
       - run:
