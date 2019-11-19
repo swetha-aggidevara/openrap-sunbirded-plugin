@@ -53,6 +53,10 @@ const config = {
             }
         ],
         dest_folder: "pages"
+    },
+    location: {
+        url: "api/data/v1/location/search",
+        dest_folder: 'location'
     }
 }
 
