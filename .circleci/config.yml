@@ -2,7 +2,7 @@ version: 2.1
 jobs:
   build:
     docker:
-      image: node:8.1.2-browsers
+      - image: node:8.1.2-browsers
     working_directory: ~/project/server
     steps:
       - checkout:
