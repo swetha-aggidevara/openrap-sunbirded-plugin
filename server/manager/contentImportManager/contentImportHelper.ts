@@ -66,10 +66,11 @@ const parseEcar = async () => {
     zipHandler = await loadZipHandler(ecarBasePath).catch(handelError('LOAD_ECAR'));
     await fileSDK.mkdir(path.join('content', contentImportData._id));
     const ecarContentEntries = zipHandler.entries();
-    if (!ecarContentEntries['manifest.json']) {
+    const manifestEntry = ecarContentEntries['manifest.json'] || ecarContentEntries['/manifest.json'];
+    if (!manifestEntry) {
       throw getErrorObj({ message: "manifest.json is missing in ecar" }, "MANIFEST_MISSING");
     }
-    await extractFile(zipHandler, getDestFilePath(ecarContentEntries['manifest.json'], contentImportData._id))
+    await extractFile(zipHandler, getDestFilePath(manifestEntry, contentImportData._id))
     manifestJson = await fileSDK.readJSON(path.join(contentBasePath, 'manifest.json'))
     let parent = _.get(manifestJson, 'archive.items[0]');
     if (_.get(parent, 'visibility') !== 'Default') {
@@ -117,8 +118,16 @@ const extractEcar = async () => {
     }
     _.get(manifestJson, 'archive.items').forEach(item => contentMap[item.identifier] = item); // maps all content to object
     const syncFunc = syncCloser(ImportProgress.EXTRACT_ECAR ,65);
+    if(contentImportData.mimeType === 'application/vnd.ekstep.content-collection' && contentImportData.childNodes){
+      for(const childContent of contentImportData.childNodes){
+        await extractFile(zipHandler, {
+          isDirectory: true,
+          destRelativePath: path.join('content', childContent)
+        }).catch(handelError('EXTRACT_ECAR_CONTENT'));
+      }
+    }
     for (const entry of _.values(zipHandler.entries()) as any) {
-      syncFunc(entry.compressedSize)
+      syncFunc(entry.compressedSize);
       if (!contentImportData.extractedEcarEntries[entry.name]) {
         const pathObj = getDestFilePath(entry, contentImportData.contentId, contentMap);
         if (entry.name.endsWith('.zip')) {
@@ -215,7 +224,7 @@ const extractFile = (zipHandler, pathDetails) => {
   })
 }
 const loadZipHandler = async (path) => {
-  const zip = new StreamZip({ file: path, storeEntries: true });
+  const zip = new StreamZip({ file: path, storeEntries: true, skipEntryNameValidation: true });
   return new Promise((resolve, reject) => {
     zip.on('ready', () => resolve(zip));
     zip.on('error', reject);

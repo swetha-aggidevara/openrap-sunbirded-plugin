@@ -28,8 +28,15 @@ export default class appUpdate {
             }
         };
 
+        const config = {
+            headers: {
+                "authorization": `Bearer ${process.env.APP_BASE_URL_TOKEN}`,
+                "content-type": "application/json"
+            }
+        };
+
         try {
-            let data = await HTTPService.post(`${process.env.APP_BASE_URL}desktop/v1/update`, body).toPromise();
+            let data = await HTTPService.post(`${process.env.APP_BASE_URL}/api/desktop/v1/update`, body, config).toPromise();
             logger.info(`ReqId = "${req.headers['X-msgid']}": result: ${_.get(body, 'result')} found from desktop app update api`);
             return res.send(Response.success('api.desktop.update', _.get(data, 'data.result'), req));
         } catch (err) {
