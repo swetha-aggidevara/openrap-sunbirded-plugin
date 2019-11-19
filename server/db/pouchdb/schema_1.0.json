@@ -40,6 +40,9 @@
             ]
         },
         {
+            "name": "faqs"
+        },
+        {
             "name": "resource_bundle",
             "indexes": [
                 {
