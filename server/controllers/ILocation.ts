@@ -3,5 +3,5 @@ export interface ILocation {
     type: string,
     code: string,
     name: string,
-    parentId?: string
+    data: Array<string>
   }

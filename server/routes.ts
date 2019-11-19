@@ -570,12 +570,9 @@ export class Router {
     });
 
     let location = new Location(manifest);
-    app.post("/api/data/v1/location/search", (req, res) => {
-      logger.debug(
-        `ReqId = "${req.headers["X-msgid"]}": Location search is method is calling `
-      );
-      location.search(req, res);
-    });
+    app.post(
+      "/api/data/v1/location/search",location.proxyToAPI.bind(location), location.search.bind(location)
+    );
 
     app.use(
       "/content-plugins/*",
