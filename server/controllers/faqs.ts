@@ -67,7 +67,6 @@ export class Faqs {
     logger.info(`Getting faqs from blob for language:`, language, `for ReqId: ${req.get('x-msgid')}`);
     const config = {
       headers: {
-          "authorization": `Bearer ${process.env.APP_BASE_URL_TOKEN}`, // not needed unless it being proxed 
           "content-type": "application/json"
       }
     };
