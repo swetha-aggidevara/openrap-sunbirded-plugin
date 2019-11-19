@@ -11,6 +11,12 @@ export default class User {
 
     async create(req, res) {
         try {
+            if (!_.get(req, 'body.request')) {
+                res.status(400);
+                return res.send(
+                    Response.error("api.desktop.user.read", 400, 'Request object is required')
+                );
+            }
             const createResp = await this.userSDK.create(_.get(req, 'body.request'));
             logger.info(`ReqId = "${req.headers['X-msgid']}": request: ${_.get(req, 'body.request')} found from desktop app update api`);
             return res.send(Response.success('api.desktop.user.create', { id: createResp._id }, req));
