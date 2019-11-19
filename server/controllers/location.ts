@@ -33,7 +33,7 @@ export class Location {
             if (allDocs.rows.length === 0) {
                 for (let state of states) {
                     state._id = state.id;
-                    let districtFile = await this.fileSDK.readJSON(filesPath + 'district-' + state.id + '.json');
+                    let districtFile = await this.fileSDK.readJSON(filesPath + 'district-' + state._id + '.json');
                     state['data'] = _.get(districtFile, 'result.response') || [];
                     allStates.push(state);
                 }
@@ -63,7 +63,7 @@ export class Location {
             logger.error(
                 `ReqId = '${req.headers[
                 'X-msgid'
-                ]}': Error Received while searching ${locationType} data error: parentId is missing`
+                ]}': Error Received while searching ${req.body} data error`
             );
             res.status(400);
             return res.send(Response.error('api.location.read', 400, 'parentId is missing'));
@@ -96,8 +96,10 @@ export class Location {
     }
     async proxyToAPI(req, res, next) {
 
-        let type = _.get(req.body, 'request.filters.type');
-        let parentId = _.get(req.body, 'request.filters.parentId');
+        let requestObj = {
+            type: _.get(req.body, 'request.filters.type'),
+            parentId: _.get(req.body, 'request.filters.parentId')
+        }
 
         const config = {
             headers: {
@@ -105,9 +107,9 @@ export class Location {
                 'content-type': 'application/json',
             },
         };
-        const filter = _.isEmpty(parentId)
-            ? { filters: { type: type } }
-            : { filters: { type: type, parentId: parentId } };
+        const filter = _.isEmpty(requestObj.parentId)
+            ? { filters: { type: requestObj.type } }
+            : { filters: { type: requestObj.type, parentId: requestObj.parentId } };
 
         const requestParams = {
             request: filter,
@@ -120,44 +122,76 @@ export class Location {
                 config
             ).toPromise();
 
+            let response = _.get(responseData.data, 'result.response')
+            requestObj.type === 'state' ? await this.insertStatesDataInDB(response, req.headers["X-msgid"]) : await this.updateStateDataInDB(response, req.headers["X-msgid"]);
+            response = _.map(response, data => _.omit(data, ['_id', 'data']));
             let resObj = {
-                response: _.get(responseData.data, 'result.response')
+                response: response
             }
-
-            logger.debug(`ReqId =  ${req.headers["X-msgid"]}}: fetchLocationFromOffline method is calling `);
-            await this.insertOnlineDataInDB(resObj, parentId, req.headers['X-msgid']);
-            resObj.response = _.map(resObj.response, data => _.has(data, 'data') ? _.omit(data, 'data') : data);
+            
+            logger.debug(`ReqId =  ${req.headers["X-msgid"]}: fetchLocationFromOffline method is calling `)
             return res.send(Response.success('api.location.read', resObj, req));
         } catch (err) {
-            logger.error(`Error Received while getting data from Online ${_.get(err, 'response')}`)
+            logger.error(`ReqId =  ${req.headers["X-msgid"]}: Error Received while getting data from Online ${err}`)
             next();
         }
     }
 
-    async insertOnlineDataInDB(onlineData, parentId, msgId) {
-        logger.debug(`ReqId =  ${msgId}: Inserting online data in db method is called`);
-        let dataNotInDB: Array<ILocation> = [], dataInDB;
-        onlineData = _.map(onlineData.response, data => {
-            !_.has(data, 'data') && data.type === 'state' ? data['data'] = [] : '';
-            return data;
-        });
-        logger.info(`ReqId =  ${msgId}: Finding  data in Location DB`);
-        const request = _.isEmpty(parentId) ? { selector: {} } : { selector: { id: parentId } };
-        let allDocs = await this.databaseSdk.find('location', request);
-        logger.info(`ReqId =  ${msgId}: Data found in Location DB`);
-        dataNotInDB = _.map(onlineData, (data) => { if (data.type === 'state' && _.isEmpty(_.find(allDocs.docs, { id: data.id }))) { return data } });
-        _.map(onlineData, async data => {
-            if (data.type === 'district') {
-                dataInDB = _.find(allDocs.docs, { id: data.parentId });
-                if (!_.find(dataInDB.data, { id: data.id })) {
-                    dataInDB['data'].push(data);
-                    let id = _.get(dataInDB, '_id');
-                    await this.databaseSdk.update('location', id, dataInDB);
+    async insertStatesDataInDB(onlineStates, msgId) {
+        logger.debug(`ReqId =  ${msgId}: insertStatesDataInDB method is called `)
+
+        try {
+            let bulkInsert = [], bulkUpdate = [];
+            let allDocs = await this.databaseSdk.find('location', { selector: {} });
+            let ids = _.map(allDocs.docs, doc => { doc.id });
+            if (!_.isEmpty(onlineStates)) {
+                for (let state of onlineStates) {
+                    if (_.includes(ids, state.id)) {
+                        state._id = state.id;
+                        bulkUpdate.push(state);
+                    } else {
+                        state._id = state.id;
+                        _.has(state, 'data') ? state.data = state['data'] : state['data'] = []
+                        bulkInsert.push(state);
+                    }
                 }
+                if (bulkInsert.length > 0) {
+                    logger.info(`ReqId =  ${msgId}: bulkInsert in LocationDB`)
+                    await this.databaseSdk.bulk('location', bulkInsert);
+                }
+                if (bulkUpdate.length > 0) {
+                    logger.info(`ReqId =  ${msgId}: bulkUpdate in LocationDB`)
+                    await this.databaseSdk.bulk('location', bulkUpdate);
+                }
+            } else {
+                logger.info(`ReqId =  ${msgId}: state data is empty`)
+                return;
             }
-        });
-        logger.info(`ReqId =  ${msgId}: Inserting  online data in Location DB`);
-        if (dataNotInDB.length > 0 && !_.isEmpty(dataNotInDB[0])) { await this.databaseSdk.bulk('location', dataNotInDB); }
+        } catch(err) {
+            logger.error(`ReqId =  ${msgId}: updateStateDataInDB method is called ${err}`);
+            return;
+        }
+    }
+    async updateStateDataInDB(district, msgId) {
+        logger.debug(`ReqId =  ${msgId}: updateStateDataInDB method is called `)
+
+        try {
+            let id = district[0]['parentId'];
+            logger.info(`ReqId =  ${msgId}: getting data from LocationDB`)
+            let state = await this.databaseSdk.get('location', id);
+            if (!_.isEmpty(district)) {
+                state.data = district;
+                logger.info(`ReqId =  ${msgId}: updating data in LocationDB`)
+                await this.databaseSdk.update('location', state.id, state);
+            } else {
+                logger.info(`ReqId =  ${msgId}: district data is empty`)
+                return;
+            }
+
+        } catch(err) {
+            logger.error(`ReqId =  ${msgId}: updateStateDataInDB method is called ${err}`);
+            return;
+        }
     }
 
 }
