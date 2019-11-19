@@ -1150,6 +1150,81 @@ describe.skip('App Update', () => {
     });
 });
 
+describe('User API', () => {
+    it('#User create success', (done) => {
+        supertest(app)
+            .post('/api/desktop/user/v1/create')
+            .send({ "request": { "framework": { "board": "english", "medium": ["english"], "gradeLevel": ["class 5"] } } })
+            .expect(200)
+            .end((err, res) => {
+                if (res.statusCode >= 500) { logger.error(err); return done(); }
+                if (err && res.statusCode >= 400) { return done(); };
+                expect(res.body.params.status).to.equal('successful');
+                expect(res.body.id).to.equal('api.desktop.user.create').to.be.a('string');
+                expect(res.body.result.id).not.to.be.empty;
+                done();
+            });
+    });
+
+    it('#User create 409 conflict', (done) => {
+        supertest(app)
+            .post('/api/desktop/user/v1/create')
+            .send({ "request": { "framework": { "board": "english", "medium": ["english"], "gradeLevel": ["class 5"] } } })
+            .expect(409)
+            .end((err, res) => {
+                if (res.statusCode >= 500) { logger.error(err); return done(); }
+                if (err && res.statusCode >= 400) { return done(); };
+                expect(res.body.params.status).to.equal('failed');
+                expect(res.body.params.errmsg).to.equal('User already exist with name guest');
+                expect(res.body.id).to.equal('api.desktop.user.create').to.be.a('string');
+                done();
+            });
+    });
+
+    it('#User create 500 internal server error', (done) => {
+        supertest(app)
+            .post('/api/desktop/user/v1/create')
+            .send()
+            .expect(500)
+            .end((err, res) => {
+                if (res.statusCode >= 500) { logger.error(err); return done(); }
+                if (err && res.statusCode >= 400) { return done(); };
+                expect(res.body.params.status).to.equal('failed');
+                expect(res.body.id).to.equal('api.desktop.user.create').to.be.a('string');
+                done();
+            });
+    });
+
+    it('#User read success', (done) => {
+        supertest(app)
+            .get('/api/desktop/user/v1/read')
+            .expect(200)
+            .end((err, res) => {
+                if (res.statusCode >= 500) { logger.error(err); return done(); }
+                if (err && res.statusCode >= 400) { return done(); };
+                expect(res.body.params.status).to.equal('successful');
+                expect(res.body.id).to.equal('api.desktop.user.read').to.be.a('string');
+                expect(res.body.result.name).to.equal('guest');
+                expect(res.body.result).not.to.be.empty;
+                done();
+            });
+    });
+
+    it.skip('#User read 404 error', (done) => {
+        supertest(app)
+            .get('/api/desktop/user/v1/read')
+            .expect(404)
+            .end((err, res) => {
+                if (res.statusCode >= 500) { logger.error(err); return done(); }
+                if (err && res.statusCode >= 400) { return done(); };
+                expect(res.body.params.status).to.equal('failed');
+                expect(res.body.params.errmsg).to.equal('User not found with name guest');
+                expect(res.body.id).to.equal('api.desktop.user.read').to.be.a('string');
+                done();
+            });
+    });
+});
+
 after('Disconnect Server', (done) => {
     server.close();
     done();
