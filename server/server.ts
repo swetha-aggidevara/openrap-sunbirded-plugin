@@ -7,6 +7,7 @@ import * as path from "path";
 import { Inject } from "typescript-ioc";
 import {ContentImportManager} from "./manager/contentImportManager"
 import { Framework } from "./controllers/framework";
+import { Faqs } from "./controllers/faqs";
 import { Organization } from "./controllers/organization";
 import { Page } from "./controllers/page";
 import { ResourceBundle } from "./controllers/resourceBundle";
@@ -137,6 +138,7 @@ export class Server extends BaseServer {
 
   private async insertConfig(manifest: Manifest) {
     const framework = new Framework(manifest);
+    const faqs = new Faqs(manifest);
     const organization = new Organization(manifest);
     const page = new Page(manifest);
     const resourceBundle = new ResourceBundle(manifest);
@@ -146,6 +148,7 @@ export class Server extends BaseServer {
     await organization.insert();
     await resourceBundle.insert();
     await framework.insert();
+    await faqs.insert();
     await channel.insert();
     await form.insert();
     await page.insert();
