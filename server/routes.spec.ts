@@ -1210,19 +1210,6 @@ describe('User API', () => {
             });
     });
 
-    it.skip('#User read 404 error', (done) => {
-        supertest(app)
-            .get('/api/desktop/user/v1/read')
-            .expect(404)
-            .end((err, res) => {
-                if (res.statusCode >= 500) { logger.error(err); return done(); }
-                if (err && res.statusCode >= 400) { return done(); };
-                expect(res.body.params.status).to.equal('failed');
-                expect(res.body.params.errmsg).to.equal('User not found with name guest');
-                expect(res.body.id).to.equal('api.desktop.user.read').to.be.a('string');
-                done();
-            });
-    });
 });
 
 after('Disconnect Server', (done) => {
