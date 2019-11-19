@@ -24,58 +24,57 @@ export class Location {
 
     public async insert() {
         logger.debug(`Location insert method is called`);
-        let filesPath = this.fileSDK.getAbsPath(path.join('data', 'location', '/'));
-        let stateFile = await this.fileSDK.readJSON(filesPath + 'state.json');
-        let states = _.get(stateFile, 'result.response');
-        let allStates: Array<ILocation> = [];
-        let allDocs = await this.databaseSdk.list('location', { include_docs: true, startkey: 'design_\uffff' });
-        if (allDocs.rows.length === 0) {
-            for (let state of states) {
-                state._id = state.id;
-                let districtFile = await this.fileSDK.readJSON(filesPath + 'district-' + state.id + '.json');
-                state['data'] = _.get(districtFile, 'result.response') || [];
-                allStates.push(state);
+        try {
+            let filesPath = this.fileSDK.getAbsPath(path.join('data', 'location', '/'));
+            let stateFile = await this.fileSDK.readJSON(filesPath + 'state.json');
+            let states = _.get(stateFile, 'result.response');
+            let allStates: Array<ILocation> = [];
+            let allDocs = await this.databaseSdk.list('location', { include_docs: true, startkey: 'design_\uffff' });
+            if (allDocs.rows.length === 0) {
+                for (let state of states) {
+                    state._id = state.id;
+                    let districtFile = await this.fileSDK.readJSON(filesPath + 'district-' + state.id + '.json');
+                    state['data'] = _.get(districtFile, 'result.response') || [];
+                    allStates.push(state);
+                }
+                logger.debug('Inserting location data in locationDB')
+                await this.databaseSdk.bulk('location', allStates).catch(err => {
+                    logger.error(`while inserting location data in locationDB  ${err}`);
+                });
             }
-            logger.debug('Inserting location data in locationDB')
-            await this.databaseSdk.bulk('location', allStates).catch(err => {
-                logger.error(`while inserting location data in locationDB  ${err}`);
-            });
+            return;
+        } catch (err) {
+            logger.error(`while inserting location data in locationDB  ${err}`);
+            return;
         }
-        return;
     }
 
     // Searching location data in DB (if user is in online get online data and insert in db)
     async search(req, res) {
         logger.debug(`ReqId = '${req.headers['X-msgid']}': Location search method is called`);
-        let requestBody = {
-            locationType: _.get(req.body, 'request.filters.type'),
-            parentId: _.get(req.body, 'request.filters.parentId'),
-        };
+        let locationType = _.get(req.body, 'request.filters.type');
+        let parentId = _.get(req.body, 'request.filters.parentId');
         logger.debug(`ReqId = '${req.headers['X-msgid']}': Finding the data from location database`);
-
-        if (
-            (requestBody.locationType === 'district' && _.isEmpty(requestBody.parentId)) ||
-            (requestBody.locationType === 'state' && !_.isEmpty(requestBody.parentId))
-        ) {
-            const error =
-                requestBody.locationType === 'district' && _.isEmpty(requestBody.parentId)
-                    ? 'requestBody.parentId is missing'
-                    : 'requestBody.parentId is not required';
+        if (_.isEmpty(locationType)) {
+            res.status(400);
+            return res.send(Response.error('api.location.read', 400, 'location Type is missing'));
+        }
+        if (locationType === 'district' && _.isEmpty(parentId)) {
             logger.error(
                 `ReqId = '${req.headers[
                 'X-msgid'
-                ]}': Error Received while searching ${requestBody.locationType} data error: ${error}`
+                ]}': Error Received while searching ${locationType} data error: parentId is missing`
             );
             res.status(400);
-            return res.send(Response.error('api.location.read', 400, error));
+            return res.send(Response.error('api.location.read', 400, 'parentId is missing'));
         }
 
         logger.debug(`ReqId = ${req.headers['X-msgid']}: getLocationData method is calling`);
-        const request = _.isEmpty(requestBody.parentId) ? { selector: {} } : { selector: { id: requestBody.parentId } };
+        const request = _.isEmpty(parentId) ? { selector: {} } : { selector: { id: parentId } };
         await this.databaseSdk.find('location', request).then(response => {
-            response = _.map(response['docs'], (doc) => requestBody.locationType === 'state' ? _.omit(doc, ['_id', '_rev', 'data']) : doc.data);
+            response = _.map(response['docs'], (doc) => locationType === 'state' ? _.omit(doc, ['_id', '_rev', 'data']) : doc.data);
             let resObj = {
-                response: requestBody.locationType === 'district' ? response[0] : response
+                response: locationType === 'district' ? response[0] : response
             };
             logger.info(`ReqId =  ${req.headers['X-msgid']}: got data from db`);
             return res.send(Response.success('api.location.read', resObj, req));
@@ -97,19 +96,18 @@ export class Location {
     }
     async proxyToAPI(req, res, next) {
 
-        let requestObj = {
-            type: _.get(req.body, 'request.filters.type'),
-            parentId: _.get(req.body, 'request.filters.parentId')
-        }
+        let type = _.get(req.body, 'request.filters.type');
+        let parentId = _.get(req.body, 'request.filters.parentId');
+
         const config = {
             headers: {
                 authorization: `Bearer ${process.env.APP_BASE_URL_TOKEN}`,
                 'content-type': 'application/json',
             },
         };
-        const filter = _.isEmpty(requestObj.parentId)
-            ? { filters: { type: requestObj.type } }
-            : { filters: { type: requestObj.type, parentId: requestObj.parentId } };
+        const filter = _.isEmpty(parentId)
+            ? { filters: { type: type } }
+            : { filters: { type: type, parentId: parentId } };
 
         const requestParams = {
             request: filter,
@@ -127,8 +125,8 @@ export class Location {
             }
 
             logger.debug(`ReqId =  ${req.headers["X-msgid"]}}: fetchLocationFromOffline method is calling `);
-            await this.insertOnlineDataInDB(resObj, requestObj, req.headers['X-msgid']);
-            resObj.response = _.map(resObj.response , data => _.has(data, 'data') ? _.omit(data, 'data') : data);
+            await this.insertOnlineDataInDB(resObj, parentId, req.headers['X-msgid']);
+            resObj.response = _.map(resObj.response, data => _.has(data, 'data') ? _.omit(data, 'data') : data);
             return res.send(Response.success('api.location.read', resObj, req));
         } catch (err) {
             logger.error(`Error Received while getting data from Online ${_.get(err, 'response')}`)
@@ -136,7 +134,7 @@ export class Location {
         }
     }
 
-    async insertOnlineDataInDB(onlineData, requestObj, msgId) {
+    async insertOnlineDataInDB(onlineData, parentId, msgId) {
         logger.debug(`ReqId =  ${msgId}: Inserting online data in db method is called`);
         let dataNotInDB: Array<ILocation> = [], dataInDB;
         onlineData = _.map(onlineData.response, data => {
@@ -144,7 +142,7 @@ export class Location {
             return data;
         });
         logger.info(`ReqId =  ${msgId}: Finding  data in Location DB`);
-        const request = _.isEmpty(requestObj.parentId) ? { selector: {} } : { selector: { id: requestObj.parentId } };
+        const request = _.isEmpty(parentId) ? { selector: {} } : { selector: { id: parentId } };
         let allDocs = await this.databaseSdk.find('location', request);
         logger.info(`ReqId =  ${msgId}: Data found in Location DB`);
         dataNotInDB = _.map(onlineData, (data) => { if (data.type === 'state' && _.isEmpty(_.find(allDocs.docs, { id: data.id }))) { return data } });
