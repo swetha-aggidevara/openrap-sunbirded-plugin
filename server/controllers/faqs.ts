@@ -23,11 +23,18 @@ export class Faqs {
   }
   public async insert() {
     let files = glob.sync(path.join(this.faqsBasePath, "**", "*.json"), {});
-    logger.log('--Inserting faqs to db--', files);
-    for (let file of files) {
-      let faqsData: IFaqsData = await this.fileSDK.readJSON(file);
-      let _id = path.basename(file, path.extname(file));
-      await this.addToDb(_id, faqsData);
+    const dbData = await this.databaseSdk.list(FAQS_DB, {limit: 1});
+    logger.log('--Inserting faqs to db--', dbData.total_rows, files.length);
+    if(!dbData.total_rows && files.length){
+      const bulkDocs = [];
+      for (let file of files) {
+        let data: IFaqsData = await this.fileSDK.readJSON(file);
+        bulkDocs.push({
+          _id: path.basename(file, path.extname(file)),
+          data
+        });
+      }
+      await this.databaseSdk.bulk(FAQS_DB, bulkDocs);
     }
   }
   public async read(req, res){
@@ -41,7 +48,7 @@ export class Faqs {
       res.status(404).send(Response.error("api.faqs.read", 404));
     }
   }
-  async fetchOfflineFaqs(language, req): Promise<IFaqsData | undefined > {
+  public async fetchOfflineFaqs(language, req): Promise<IFaqsData | undefined > {
     logger.info(`Getting faqs from db for language:`, language, `for ReqId: ${req.get('x-msgid')}`);
     let faqsData: IFaqsData = await this.databaseSdk.get(FAQS_DB, language).then(doc => doc.data).catch(err => {
       logger.error(`Got error while reading Faq from DB for language`, language, `for ReqId: ${req.get('x-msgid')}, error message `, err.message);
@@ -56,7 +63,7 @@ export class Faqs {
     }
     return faqsData;
   }
-  async fetchOnlineFaqs(language, req): Promise<IFaqsData  | undefined > {
+  public async fetchOnlineFaqs(language, req): Promise<IFaqsData  | undefined > {
     logger.info(`Getting faqs from blob for language:`, language, `for ReqId: ${req.get('x-msgid')}`);
     const config = {
       headers: {
