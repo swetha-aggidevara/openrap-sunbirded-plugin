@@ -565,9 +565,9 @@ export class Router {
     });
 
     let desktopAppUpdate = new DesktopAppUpdate();
-    app.get("/api/desktop/v1/update", (req, res) => {
-      desktopAppUpdate.getDesktopAppUpate(req, res);
-    });
+    app.get( "/api/desktop/v1/update",
+    desktopAppUpdate.getDesktopAppUpate.bind(desktopAppUpdate)
+    );
 
     let user = new User();
     app.post( "/api/desktop/user/v1/create",
