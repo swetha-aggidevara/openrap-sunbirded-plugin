@@ -5,7 +5,7 @@ jobs:
       - image: node:8.1.2-browsers
     working_directory: ~/project/server
     steps:
-      - checkout:
+      - checkout
       - run:
           name: Install npm modules
           command: npm i
