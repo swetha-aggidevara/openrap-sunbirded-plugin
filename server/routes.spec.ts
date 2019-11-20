@@ -1062,7 +1062,7 @@ describe('Update content', () => {
 
 describe.skip('Test Export Content/Collection', () => {
 
-    it('#Export Content', (done) => {
+    it.skip('#Export Content', (done) => {
         supertest(app)
             .get('/api/content/v1/export/KP_FT_1564394134764')
             .set('Accept', 'application/json')
