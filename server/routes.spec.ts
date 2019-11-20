@@ -1060,7 +1060,7 @@ describe('Update content', () => {
 
 });
 
-describe('Test Export Content/Collection', () => {
+describe.skip('Test Export Content/Collection', () => {
 
     it.skip('#Export Content', (done) => {
         supertest(app)
