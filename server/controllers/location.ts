@@ -215,7 +215,7 @@ export class Location {
             logger.error(
                 `ReqId = "${req.headers[
                 'X-msgid'
-                ]}": Received error while searching in location database and err.message: ${err.message} ${err}`
+                ]}": Received error while saving in location database and err.message: ${err.message} ${err}`
             );
             if (err.status === 404) {
                 res.status(404);
