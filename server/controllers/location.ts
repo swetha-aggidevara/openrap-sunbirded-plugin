@@ -197,8 +197,10 @@ export class Location {
     }
 
     async saveUserLocationData(req, res) {
+        logger.debug(`ReqId =  ${req.headers["X-msgid"]}: saveUserLocationData method is called `)
         let userData = _.get(req.body, 'request');
         try {
+            logger.info(`ReqId =  ${req.headers["X-msgid"]}: saving userlocation data in settingsSdk`)
             let response = await this.settingSDK.put('userLocationData', userData);
                 let resObj = {
                     response: {
