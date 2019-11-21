@@ -200,7 +200,7 @@ export class Location {
         logger.debug(`ReqId =  ${req.headers["X-msgid"]}: saveUserLocationData method is called `);
         let userData = _.get(req.body, 'request');
         try {
-            if (!_.isObject(userData.state) || !_.isObject(userData.district)) {
+            if (!_.isObject(userData.state) || !_.isObject(userData.city)) {
                 throw 'State and district should be an object';
             }
             let resObj = {
