@@ -196,15 +196,15 @@ export class Location {
         }
     }
 
-    async saveUserLocationData(req, res) {
+    async saveLocation(req, res) {
         logger.debug(`ReqId =  ${req.headers["X-msgid"]}: saveUserLocationData method is called `);
-        let userData = _.get(req.body, 'request');
+        let locationData = _.get(req.body, 'request');
         try {
-            if (!_.isObject(userData.state) || !_.isObject(userData.city)) {
+            if (!_.isObject(locationData.state) || !_.isObject(locationData.city)) {
                 throw 'State and district should be an object';
             }
             let resObj = {
-                doc: userData
+                doc: locationData
             }
             logger.info(`ReqId =  ${req.headers["X-msgid"]}: saving userlocation data in settingsSdk`)
             let response = await this.settingSDK.put('location', resObj);
