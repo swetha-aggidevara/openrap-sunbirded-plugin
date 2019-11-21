@@ -2,11 +2,14 @@ import Response from "../utils/response";
 import { logger } from '@project-sunbird/ext-framework-server/logger';
 import * as _ from 'lodash';
 import { containerAPI } from "OpenRAP/dist/api";
+import { Manifest } from '@project-sunbird/ext-framework-server/models';
 
 export default class User {
     private userSDK;
-    constructor() {
+    private settingSDK;
+    constructor(manifest: Manifest) {
         this.userSDK = containerAPI.getUserSdkInstance();
+        this.settingSDK = containerAPI.getSettingSDKInstance(manifest.id);
     }
 
     async create(req, res) {
@@ -32,6 +35,8 @@ export default class User {
     async read(req, res) {
         try {
             const userData = await this.userSDK.read();
+            const locationData = await this.settingSDK.get('location');
+            userData['location'] = locationData;
             logger.info(`ReqId = "${req.headers['X-msgid']}": result: ${userData} found from desktop app update api`);
             return res.send(Response.success('api.desktop.user.read', userData, req));
         } catch (err) {

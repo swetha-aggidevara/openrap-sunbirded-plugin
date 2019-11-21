@@ -59,7 +59,7 @@ export class Location {
         logger.debug(`ReqId = '${req.headers['X-msgid']}': Finding the data from location database`);
         if (_.isEmpty(locationType)) {
             res.status(400);
-            return res.send(Response.error('api.location.read', 400, 'location Type is missing'));
+            return res.send(Response.error('api.location.search', 400, 'location Type is missing'));
         }
         if (locationType === 'district' && _.isEmpty(parentId)) {
             logger.error(
@@ -68,7 +68,7 @@ export class Location {
                 ]}': Error Received while searching ${req.body} data error`
             );
             res.status(400);
-            return res.send(Response.error('api.location.read', 400, 'parentId is missing'));
+            return res.send(Response.error('api.location.search', 400, 'parentId is missing'));
         }
 
         logger.debug(`ReqId = ${req.headers['X-msgid']}: getLocationData method is calling`);
@@ -79,7 +79,7 @@ export class Location {
                 response: locationType === 'district' ? response[0] : response
             };
             logger.info(`ReqId =  ${req.headers['X-msgid']}: got data from db`);
-            return res.send(Response.success('api.location.read', resObj, req));
+            return res.send(Response.success('api.location.search', resObj, req));
         }).catch(err => {
             logger.error(
                 `ReqId = "${req.headers[
@@ -88,11 +88,11 @@ export class Location {
             );
             if (err.status === 404) {
                 res.status(404);
-                return res.send(Response.error('api.location.read', 404));
+                return res.send(Response.error('api.location.search', 404));
             } else {
                 let status = err.status || 500;
                 res.status(status);
-                return res.send(Response.error('api.location.read', status));
+                return res.send(Response.error('api.location.search', status));
             }
         });
     }
@@ -132,7 +132,7 @@ export class Location {
             }
             
             logger.debug(`ReqId =  ${req.headers["X-msgid"]}: fetchLocationFromOffline method is calling `)
-            return res.send(Response.success('api.location.read', resObj, req));
+            return res.send(Response.success('api.location.search', resObj, req));
         } catch (err) {
             logger.error(`ReqId =  ${req.headers["X-msgid"]}: Error Received while getting data from Online ${err}`)
             next();
@@ -197,19 +197,19 @@ export class Location {
     }
 
     async saveUserLocationData(req, res) {
-        logger.debug(`ReqId =  ${req.headers["X-msgid"]}: saveUserLocationData method is called `)
+        logger.debug(`ReqId =  ${req.headers["X-msgid"]}: saveUserLocationData method is called `);
         let userData = _.get(req.body, 'request');
         try {
+            if (!_.isObject(userData.state) || !_.isObject(userData.district)) {
+                throw 'State and district should be an object';
+            }
+            let resObj = {
+                doc: userData
+            }
             logger.info(`ReqId =  ${req.headers["X-msgid"]}: saving userlocation data in settingsSdk`)
-            let response = await this.settingSDK.put('userLocationData', userData);
-                let resObj = {
-                    response: {
-                        location: userData,
-                        saved: response
-                    }
-                };
+            let response = await this.settingSDK.put('location', resObj);
                 res.status(200);
-                return res.send(Response.success('api.location.read', resObj, req))
+                return res.send(Response.success('api.location.save', response, req))
         }
         catch(err) {
             logger.error(
@@ -219,11 +219,11 @@ export class Location {
             );
             if (err.status === 404) {
                 res.status(404);
-                return res.send(Response.error('api.location.read', 404));
+                return res.send(Response.error('api.location.save', 404));
             } else {
                 let status = err.status || 500;
                 res.status(status);
-                return res.send(Response.error('api.location.read', status));
+                return res.send(Response.error('api.location.save', status));
             }
         }
     }
