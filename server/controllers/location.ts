@@ -15,9 +15,11 @@ export class Location {
     @Inject private databaseSdk: DatabaseSDK;
 
     private fileSDK;
+    private settingSDK;
     constructor(manifest: Manifest) {
         this.databaseSdk.initialize(manifest.id);
         this.fileSDK = containerAPI.getFileSDKInstance(manifest.id);
+        this.settingSDK = containerAPI.getSettingSDKInstance(manifest.id);
     }
 
     // Inserting states and districts data from files
@@ -191,6 +193,36 @@ export class Location {
         } catch(err) {
             logger.error(`ReqId =  ${msgId}: updateStateDataInDB method is called ${err}`);
             return;
+        }
+    }
+
+    async saveUserLocationData(req, res) {
+        let userData = _.get(req.body, 'request');
+        try {
+            let response = await this.settingSDK.put('userLocationData', userData);
+                let resObj = {
+                    response: {
+                        location: userData,
+                        saved: response
+                    }
+                };
+                res.status(200);
+                return res.send(Response.success('api.location.read', resObj, req))
+        }
+        catch(err) {
+            logger.error(
+                `ReqId = "${req.headers[
+                'X-msgid'
+                ]}": Received error while searching in location database and err.message: ${err.message} ${err}`
+            );
+            if (err.status === 404) {
+                res.status(404);
+                return res.send(Response.error('api.location.read', 404));
+            } else {
+                let status = err.status || 500;
+                res.status(status);
+                return res.send(Response.error('api.location.read', status));
+            }
         }
     }
 

@@ -587,6 +587,9 @@ export class Router {
     app.post(
       "/api/data/v1/location/search",location.proxyToAPI.bind(location), location.search.bind(location)
     );
+    app.post(
+      "/api/data/v1/location/save", location.saveUserLocationData.bind(location)
+    );
 
     app.use(
       "/content-plugins/*",
