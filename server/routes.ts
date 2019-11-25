@@ -574,7 +574,7 @@ export class Router {
     desktopAppUpdate.getDesktopAppUpate.bind(desktopAppUpdate)
     );
 
-    let user = new User();
+    let user = new User(manifest);
     app.post( "/api/desktop/user/v1/create",
       user.create.bind(user)
     );
@@ -586,6 +586,9 @@ export class Router {
     let location = new Location(manifest);
     app.post(
       "/api/data/v1/location/search",location.proxyToAPI.bind(location), location.search.bind(location)
+    );
+    app.post(
+      "/api/data/v1/location/save", location.saveLocation.bind(location)
     );
 
     app.use(
