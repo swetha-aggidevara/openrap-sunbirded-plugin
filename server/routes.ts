@@ -22,6 +22,7 @@ import { containerAPI } from "OpenRAP/dist/api";
 import DesktopAppUpdate from "./controllers/appUpdate";
 import { Location } from './controllers/location';
 import User from "./controllers/user";
+import Response from "./utils/response";
 
 let telemetry;
 
@@ -222,7 +223,14 @@ export class Router {
 
     let faqs = new Faqs(manifest);
     app.get("/api/faqs/v1/read/:language", faqs.read.bind(faqs));
-
+    let ticketSDK = containerAPI.getTicketSdkInstance();
+    app.post("/api/help/v1/report/issue", async (req, res) => {
+      ticketSDK.createTicket(req.body).then(succussRes => {
+        res.send(Response.success('api.report.issue', succussRes, req))
+      }).catch(errorRes => {
+        res.status(errorRes.status || 500).send(Response.error("api.report.issue", errorRes.status, errorRes.message, errorRes.code));
+      });
+    });
     let framework = new Framework(manifest);
     app.get(
       "/api/framework/v1/read/:id",
