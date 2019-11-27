@@ -514,7 +514,7 @@ describe('Location API', () => {
                 expect(res.body.params.status).to.equal('successful');
                 expect(res.body.id).to.equal('api.location.search').to.be.a('string');
                 expect(res.body.responseCode).to.equal('OK');
-                expect(res.body.result.response).to.have.deep.include({ code: '29', name: 'Karnataka', id: '4a6d77a1-6653-4e30-9be8-93371b6b53b5', type: 'state' });
+                expect(res.body.result.response).to.have.deep.include({ code: '29', name: 'test_state_1', id: '4a6d77a1-6653-4e30-9be8-93371b6b53b5', type: 'state' });
                 done();
             });
     });
@@ -530,7 +530,7 @@ describe('Location API', () => {
                 if (err && res.statusCode >= 400) { return done(); };
                 expect(res.body.params.status).to.equal('successful');
                 expect(res.body.id).to.equal('api.location.search').to.be.a('string');
-                expect(res.body.result.response).to.have.deep.include({ code: '2907', name: 'KOPPAL', id: 'cde02789-5803-424b-a3f5-10db347280e9', type: 'district', parentId: '4a6d77a1-6653-4e30-9be8-93371b6b53b5' });
+                expect(res.body.result.response).to.have.deep.include({ code: '2907', name: 'test_district_1', id: 'cde02789-5803-424b-a3f5-10db347280e9', type: 'district', parentId: '4a6d77a1-6653-4e30-9be8-93371b6b53b5' });
                 done();
             });
     });
@@ -572,7 +572,7 @@ describe('Location API', () => {
     it('#save Location', (done) => {
         supertest(app)
             .post('/api/data/v1/location/save')
-            .send({ "request": { "state": { "code": "29", "name": "Karnataka", "id": "4a6d77a1-6653-4e30-9be8-93371b6b53b5", "type": "state" }, "city": { "code": "2909", "name": "DHARWAD", "id": "3ac37fb2-d833-45bf-a579-a2656b0cce62", "type": "district", "parentId": "4a6d77a1-6653-4e30-9be8-93371b6b53b5" } } })
+            .send({ "request": { "state": { "code": "29", "name": "test_state_1", "id": "4a6d77a1-6653-4e30-9be8-93371b6b53b5", "type": "state" }, "city": { "code": "2909", "name": "test_district_2", "id": "3ac37fb2-d833-45bf-a579-a2656b0cce62", "type": "district", "parentId": "4a6d77a1-6653-4e30-9be8-93371b6b53b5" } } })
             .expect(200)
             .end((err, res) => {
                 if (res.statusCode >= 500) { logger.error(err); return done(); }
