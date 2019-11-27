@@ -14,35 +14,35 @@
     "response": [
       {
         "code": "2907",
-        "name": "KOPPAL",
+        "name": "test_district_1",
         "id": "cde02789-5803-424b-a3f5-10db347280e9",
         "type": "district",
         "parentId": "4a6d77a1-6653-4e30-9be8-93371b6b53b5"
       },
       {
         "code": "2909",
-        "name": "DHARWAD",
+        "name": "test_district_2",
         "id": "3ac37fb2-d833-45bf-a579-a2656b0cce62",
         "type": "district",
         "parentId": "4a6d77a1-6653-4e30-9be8-93371b6b53b5"
       },
       {
         "code": "2918",
-        "name": "TUMAKURU",
+        "name": "test_district_3",
         "id": "ed622a46-17bb-42c0-b0a0-50c02b38a05c",
         "type": "district",
         "parentId": "4a6d77a1-6653-4e30-9be8-93371b6b53b5"
       },
       {
         "code": "2925",
-        "name": "KODAGU",
+        "name": "test_district_4",
         "id": "28f72589-ea1c-47ab-9fb3-80cd6f9504a2",
         "type": "district",
         "parentId": "4a6d77a1-6653-4e30-9be8-93371b6b53b5"
       },
       {
         "code": "2927",
-        "name": "CHAMARAJANAGARA",
+        "name": "test_district_5",
         "id": "dcb5d08d-5e5d-4cae-af7d-f5b4607aaef7",
         "type": "district",
         "parentId": "4a6d77a1-6653-4e30-9be8-93371b6b53b5"

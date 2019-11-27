@@ -14,31 +14,31 @@
     "response": [
       {
         "code": "29",
-        "name": "Karnataka",
+        "name": "test_state_1",
         "id": "4a6d77a1-6653-4e30-9be8-93371b6b53b5",
         "type": "state"
       },
       {
         "code": "9",
-        "name": "Uttar Pradesh",
+        "name": "test_state_2",
         "id": "f1fe9665-bf2e-43cd-9063-57b0f330144b",
         "type": "state"
       },
       {
         "code": "28",
-        "name": "Andhra Pradesh",
+        "name": "test_state_3",
         "id": "f62a597d-17bd-499e-9565-734e3d5562a3",
         "type": "state"
       },
       {
         "code": "1",
-        "name": "Jammu And Kashmir",
+        "name": "test_state_4",
         "id": "f138e9c2-adae-4e5b-ab3c-0527ff6a2b5f",
         "type": "state"
       },
       {
         "code": "34",
-        "name": "Puducherry",
+        "name": "test_state_5",
         "id": "f799d459-fd01-42af-b249-10341fbea415",
         "type": "state"
       }
