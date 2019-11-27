@@ -225,8 +225,8 @@ export class Router {
     app.get("/api/faqs/v1/read/:language", faqs.read.bind(faqs));
     let ticketSDK = containerAPI.getTicketSdkInstance();
     app.post("/api/help/v1/report/issue", async (req, res) => {
-      ticketSDK.createTicket(req.body).then(succussRes => {
-        res.send(Response.success('api.report.issue', succussRes, req))
+      ticketSDK.createTicket(req.body).then(successRes => {
+        res.send(Response.success('api.report.issue', successRes, req))
       }).catch(errorRes => {
         res.status(errorRes.status || 500).send(Response.error("api.report.issue", errorRes.status, errorRes.message, errorRes.code));
       });
