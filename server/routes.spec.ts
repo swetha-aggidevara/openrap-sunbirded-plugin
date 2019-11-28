@@ -900,24 +900,6 @@ describe('Test Import Content/Collection', () => {
             done();
         });
     });
-
-    it('#Import Content List', (done) => {
-        const interval = setInterval(() => {
-            supertest(app)
-                .post('/api/content/v1/download/list')
-                .send({})
-                .expect(200)
-                .end((err, res) => {
-                    if (res.statusCode >= 500) { logger.error(err); return done(); }
-                    if (err && res.statusCode >= 400) { return done(); };
-                    expect(res.body.result.response.contents).to.be.an('array');
-                    expect(res.body.result.response.contents[0]).to.have.property('contentId');
-                    expect(res.body.result.response.contents[0]).to.have.property('resourceId');
-                    clearInterval(interval);
-                    done();
-                });
-        }, 2000);
-    }).timeout(100000);
 });
 
 describe('Read and update content / collection', () => {
