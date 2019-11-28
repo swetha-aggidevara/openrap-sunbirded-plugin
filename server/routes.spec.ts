@@ -534,6 +534,7 @@ describe('Location API', () => {
                 done();
             });
     });
+
     it('#Search Location parentId is missing', (done) => {
         process.env.APP_BASE_URL_TOKEN = '';
         supertest(app)
