@@ -10,5 +10,13 @@
     "errmsg": null
   },
   "responseCode": "OK",
-  "result": { "response": [] }
+  "result": { "response": [
+    {
+      "code": "2927",
+      "name": "test_district_5",
+      "id": "dcb5d08d-5e5d-4cae-af7d-f5b4607aaef7",
+      "type": "district",
+      "parentId": "4a6d77a1-6653-4e30-9be8-93371b6b53b5"
+    }
+  ] }
 }

@@ -1220,6 +1220,11 @@ describe('Test Download content / collection', () =>{
     }).timeout(210000);
 });
 describe('Export content / collection', () => {
+    var fs = require('fs');
+    var dir = `${__dirname}/test_data/export_contents`;
+    if (!fs.existsSync(dir)){
+    fs.mkdirSync(dir);
+    }
     let file_path = `${__dirname}/test_data/export_contents`
     it('#Export Content', (done) => {
         supertest(app)

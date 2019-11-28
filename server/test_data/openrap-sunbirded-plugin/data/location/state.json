@@ -29,18 +29,6 @@
         "name": "test_state_3",
         "id": "f62a597d-17bd-499e-9565-734e3d5562a3",
         "type": "state"
-      },
-      {
-        "code": "1",
-        "name": "test_state_4",
-        "id": "f138e9c2-adae-4e5b-ab3c-0527ff6a2b5f",
-        "type": "state"
-      },
-      {
-        "code": "34",
-        "name": "test_state_5",
-        "id": "f799d459-fd01-42af-b249-10341fbea415",
-        "type": "state"
       }
     ]
   }

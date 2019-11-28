@@ -678,7 +678,8 @@ export class Router {
     locals.offlineDesktopAppDownloadUrl = "";
     locals.logFingerprintDetails = "";
     locals.deviceId = deviceId;
-    locals.deviceProfileApi = ""
+    locals.deviceProfileApi = "/api/v3/device/profile";
+    locals.deviceApi = `${process.env.APP_BASE_URL}/api/`;
     return locals;
   }
 }
