@@ -753,7 +753,6 @@ describe('Test Page assemble with and without referrer', () => {
 describe('Test Import Content/Collection', () => {
 
     it('#Import Collections ', (done) => {
-        // `${__dirname}/test_data/to_import_contents/25th_Sept_Book.ecar`,`${__dirname}/test_data/to_import_contents/Maths_VI6.ecar`, , ,`${__dirname}/test_data/to_import_contents/TEST.ecar`
         let file_path = [`${__dirname}/test_data/to_import_contents/TextBookTest.ecar`, `${__dirname}/test_data/to_import_contents/Maths_VI6.ecar`];
         let req = supertest(app).post('/api/content/v1/import');
         req.send(file_path);
@@ -1230,7 +1229,7 @@ describe('Export content / collection', () => {
 
     it('#Export Collection', (done) => {
         supertest(app)
-            .get('/api/content/v1/export/KP_FT_1563858046256')
+            .get('/api/content/v1/export/do_312473549722288128119665')
             .query({destFolder: file_path})
             .set('Accept', 'application/json')
             .expect('Content-Type', 'application/json; charset=utf-8')
