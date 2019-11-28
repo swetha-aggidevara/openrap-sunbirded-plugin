@@ -1,20 +1,16 @@
-import { env } from "./routes.spec.data";
 import * as fs from "fs";
 import * as path from "path";
+import { env } from "./routes.spec.data";
 
 export class InitializeEnv {
 
-    init() {
-        for (let envId in env) {
+    public init() {
+        for (const envId in env) {
             process.env[envId] = env[envId];
         }
-        if(!fs.existsSync(path.join(__dirname,  'database'))) {
-            fs.mkdirSync(path.join(__dirname,  'database'))
+        if (!fs.existsSync(path.join(__dirname,  "database"))) {
+            fs.mkdirSync(path.join(__dirname,  "database"));
         }
 
     }
 }
-
-
-
-

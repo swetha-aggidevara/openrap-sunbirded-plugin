@@ -1,7 +1,7 @@
 export interface ILocation {
-    id:  string,
-    type: string,
-    code: string,
-    name: string,
-    data: Array<string>
+    id: string;
+    type: string;
+    code: string;
+    name: string;
+    data: string[];
   }
