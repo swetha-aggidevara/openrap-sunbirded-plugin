@@ -1264,7 +1264,8 @@ describe('Export content / collection', () => {
                 done();
             });
     }).timeout(1000);
-})
+});
+
 after('Disconnect Server', (done) => {
     server.close();
     done();
