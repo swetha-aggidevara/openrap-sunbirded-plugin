@@ -35,17 +35,17 @@ export const frameworkConfig = {
 }
 
 export const env = {
-    "APP_BASE_URL": "https://dev.sunbirded.org/",
+    "APP_BASE_URL": "https://dev.sunbirded.org",
     "CHANNEL": "sunbird",
     "TELEMETRY_SYNC_INTERVAL_IN_SECS": "30",
     "APP_ID": "local.sunbird.desktop",
     "TELEMETRY_PACKET_SIZE": "200",
-    "APP_BASE_URL_TOKEN": "",
     "APP_NAME": "SUNBIRD",
     "MODE": "standalone",
     "APPLICATION_PORT": "9010",
     "DATABASE_PATH": "test_data/database",
-    "FILES_PATH": "test_data"
+    "FILES_PATH": "test_data",
+    "APP_BASE_URL_TOKEN": ""
 }
 
 

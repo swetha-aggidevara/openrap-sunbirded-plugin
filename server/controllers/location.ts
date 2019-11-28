@@ -203,9 +203,7 @@ export class Location {
             if (!_.isObject(locationData.state) || !_.isObject(locationData.city)) {
                 throw 'State and district should be an object';
             }
-            let resObj = {
-                doc: locationData
-            }
+            let resObj = locationData;
             logger.info(`ReqId =  ${req.headers["X-msgid"]}: saving userlocation data in settingsSdk`)
             let response = await this.settingSDK.put('location', resObj);
                 res.status(200);
