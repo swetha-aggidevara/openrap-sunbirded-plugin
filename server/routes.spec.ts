@@ -711,7 +711,7 @@ describe('Test Page assemble with and without referrer', () => {
             .end((err, res) => {
                 if (res.statusCode >= 500) { logger.error(err); return done(); }
                 if (err && res.statusCode >= 400) { return done(); };
-                expect(res.body.responseCode).to.equal('OK');
+                expect(res.body.responseCode).to.equal('CLIENT_ERROR');
                 expect(res.body.id).to.equal('api.page.assemble').to.be.a('string');
                 expect(res.body.ver).to.oneOf(['v1', "1.0"]).to.be.a('string');
                 done();

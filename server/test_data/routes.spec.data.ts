@@ -36,7 +36,7 @@ export const frameworkConfig = {
 };
 
 export const env = {
-    APP_BASE_URL: "https://dev.sunbirded.org/",
+    APP_BASE_URL: "https://dev.sunbirded.org",
     CHANNEL: "sunbird",
     TELEMETRY_SYNC_INTERVAL_IN_SECS: "30",
     APP_ID: "local.sunbird.desktop",
