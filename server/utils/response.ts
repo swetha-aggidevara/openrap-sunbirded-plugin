@@ -54,6 +54,21 @@ export default class Response {
         responseCode: "CLIENT_ERROR",
         result: {}
       };
+    } else if (responseCode === 401) {
+      resObj = {
+        id: id,
+        ver: "1.0",
+        ts: new Date().toISOString(),
+        params: {
+          resmsgid: uuid.v4(),
+          msgid: uuid.v4(),
+          status: "failed",
+          err: errCode || "UNAUTHORIZED",
+          errmsg: errmsg || "You don't have permission to access this resource"
+        },
+        responseCode: "CLIENT_ERROR",
+        result: {}
+      };
     } else {
       resObj = {
         id: id,

@@ -23,7 +23,6 @@ export class ExportContent {
     this.cb = cb;
     try {
       this.parentArchive = fileSDK.archiver();
-      await fileSDK.mkdir('temp');
       this.parentManifest = await fileSDK.readJSON(path.join(this.contentBaseFolder, this.dbParentDetails.identifier,  'manifest.json'));
       this.parentDetails = _.get(this.parentManifest, 'archive.items[0]');
       this.ecarName =  this.parentDetails.name ? this.parentDetails.name.replace(/[&\/\\#,+()$~%.!@%|'":*?<>{}]/g, '') : 'Untitled content';
@@ -127,7 +126,7 @@ export class ExportContent {
       const artifactUrlPath = path.join(this.contentBaseFolder, contentDetails.identifier, artifactUrlName);
       this.archiveAppend('path', artifactUrlPath, baseDestPath + contentDetails.artifactUrl);
     } else if(contentDetails.artifactUrl && path.extname(contentDetails.artifactUrl) && path.extname(contentDetails.artifactUrl) === '.zip'){
-      await this.loadZipContent(contentDetails, true);
+      await this.loadZipContent(contentDetails, child);
     }
   }
   async loadZipContent(contentDetails, child){
