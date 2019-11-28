@@ -120,7 +120,7 @@ describe('Test Organisation with and without referrer', () => {
                 if (err && res.statusCode >= 400) { return done(); };
                 expect(res.body.responseCode).to.equal('OK');
                 expect(res.body.id).to.equal('api.org.search').to.be.a('string');
-                expect(res.body.ver).to.equal('v1').to.be.a('string');
+                expect(res.body.ver).to.oneOf(['v1', "1.0"]).to.be.a('string');
                 expect(res.body.result.response.content[0]).to.deep.include({ slug: 'sunbird' });
                 expect(res.body.result.response).to.have.property('content');
                 expect(res.body.result.response).to.have.property('count');
@@ -695,7 +695,7 @@ describe('Test Page assemble with and without referrer', () => {
                 if (err && res.statusCode >= 400) { return done(); };
                 expect(res.body.responseCode).to.equal('OK');
                 expect(res.body.id).to.equal('api.page.assemble').to.be.a('string');
-                expect(res.body.ver).to.equal('v1').to.be.a('string');
+                expect(res.body.ver).to.oneOf(['v1', "1.0"]).to.be.a('string');
                 expect(res.body.result.response.id).to.be.a('string');
                 expect(res.body.result.response.name).to.equal('Explore').to.be.a('string');
                 done();
@@ -711,9 +711,9 @@ describe('Test Page assemble with and without referrer', () => {
             .end((err, res) => {
                 if (res.statusCode >= 500) { logger.error(err); return done(); }
                 if (err && res.statusCode >= 400) { return done(); };
-                expect(res.body.responseCode).to.equal('CLIENT_ERROR');
+                expect(res.body.responseCode).to.equal('OK');
                 expect(res.body.id).to.equal('api.page.assemble').to.be.a('string');
-                expect(res.body.ver).to.equal('v1').to.be.a('string');
+                expect(res.body.ver).to.oneOf(['v1', "1.0"]).to.be.a('string');
                 done();
             });
     });
