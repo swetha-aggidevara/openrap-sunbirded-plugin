@@ -22,6 +22,7 @@ import { containerAPI } from "OpenRAP/dist/api";
 import DesktopAppUpdate from "./controllers/appUpdate";
 import { Location } from './controllers/location';
 import User from "./controllers/user";
+import Response from "./utils/response";
 
 let telemetry;
 
@@ -590,6 +591,18 @@ export class Router {
     app.post(
       "/api/data/v1/location/save", location.saveLocation.bind(location)
     );
+
+    app.get("/learner/data/v1/system/settings/get/custodianOrgId", (req, res) => {
+      let resObj = {
+        "response": {
+          "id": "custodianOrgId",
+          "field": "custodianOrgId",
+          "value": process.env.CUSTODIAN_ORG
+        }
+      };
+
+      return res.send(Response.success("api.system.settings.get.custodianOrgId", resObj, req));
+    });
 
     app.use(
       "/content-plugins/*",
