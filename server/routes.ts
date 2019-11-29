@@ -599,6 +599,18 @@ export class Router {
       "/api/data/v1/location/save", location.saveLocation.bind(location)
     );
 
+    app.get("/learner/data/v1/system/settings/get/custodianOrgId", (req, res) => {
+      let resObj = {
+        "response": {
+          "id": "custodianOrgId",
+          "field": "custodianOrgId",
+          "value": process.env.CUSTODIAN_ORG
+        }
+      };
+
+      return res.send(Response.success("api.system.settings.get.custodianOrgId", resObj, req));
+    });
+
     app.use(
       "/content-plugins/*",
       proxy(proxyUrl, {
