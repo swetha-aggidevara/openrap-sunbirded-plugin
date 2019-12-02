@@ -5,6 +5,13 @@ import * as supertest from 'supertest';
 import { ConnectToServer } from './test_data/routes.test.server';
 import { expect } from 'chai';
 import { telemetry_v1, telemetry_v3, error_telemetry_v1, error_telemetry_v3 } from './test_data/routes.spec.data';
+import * as faqTestData from './test_data/faq.test.data';
+import { HTTPService } from "@project-sunbird/ext-framework-server/services";
+import { of, throwError } from 'rxjs';
+const chai = require('chai'), spies = require('chai-spies');
+chai.use(spies);
+const spy = chai.spy.sandbox();
+
 const initialzeEnv = new InitializeEnv();
 let server = new ConnectToServer();
 let app;
@@ -610,6 +617,50 @@ describe('Location API', () => {
                 expect(res.body.params.status).to.equal('failed');
                 expect(res.body.id).to.equal('api.location.save').to.be.a('string');
                 expect(res.body.responseCode).to.equal('INTERNAL_SERVER_ERROR');
+                done();
+            });
+    });
+});
+
+describe('FAQS API', () => {
+
+    afterEach(async () => {
+        spy.restore();
+    })
+
+    it('should read faqs from database if not connected to internet', (done) => {
+        supertest(app)
+            .get('/api/faqs/v1/read/en')
+            .expect(200)
+            .end((err, res) => {
+                expect(res.body.params.status).to.equal('successful');
+                expect(res.body.id).to.equal('api.faqs.read');
+                expect(res.body.responseCode).to.equal('OK');
+                expect(res.body.result.faqs).to.deep.equal(faqTestData.faqOfflineEn)
+                done();
+            });
+    });
+    it('should read faqs from platform if connected to internet', (done) => {
+        const HTTPServiceSpy = spy.on(HTTPService, 'get', data => of({data: faqTestData.faqOnlineEn}));
+        supertest(app)
+            .get('/api/faqs/v1/read/en')
+            .expect(200)
+            .end((err, res) => {
+                expect(res.body.params.status).to.equal('successful');
+                expect(res.body.id).to.equal('api.faqs.read');
+                expect(res.body.responseCode).to.equal('OK');
+                expect(res.body.result.faqs).to.deep.equal(faqTestData.faqOnlineEn)
+                done();
+            });
+    });
+    it('should throw error if faqs not found in platform or in db', (done) => {
+        supertest(app)
+            .get('/api/faqs/v1/read/ne')
+            .expect(404)
+            .end((err, res) => {
+                expect(res.body.params.status).to.equal('failed');
+                expect(res.body.id).to.equal('api.faqs.read');
+                expect(res.body.responseCode).to.equal('RESOURCE_NOT_FOUND');
                 done();
             });
     });
