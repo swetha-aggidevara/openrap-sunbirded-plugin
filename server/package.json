@@ -35,8 +35,8 @@
     "all": true
   },
   "dependencies": {
-    "node-stream-zip": "^1.8.2",
     "busboy": "^0.3.0",
+    "chai-spies": "^1.0.0",
     "decompress-zip": "^0.2.2",
     "ejs": "^2.6.1",
     "express-http-proxy": "^1.5.1",
@@ -46,6 +46,7 @@
     "jsonwebtoken": "^8.5.1",
     "lodash": "^4.17.15",
     "nano": "^8.0.1",
+    "node-stream-zip": "^1.8.2",
     "tree-model": "^1.0.7",
     "typescript-ioc": "^1.2.5",
     "uuid": "^3.3.2"
