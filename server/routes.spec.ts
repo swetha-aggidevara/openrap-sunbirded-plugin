@@ -1,3 +1,4 @@
+import * as location from './test_data/location.test.data';
 import { InitializeEnv } from './test_data/initialize_env';
 import { logger } from '@project-sunbird/ext-framework-server/logger';
 import * as _ from "lodash";
@@ -478,39 +479,82 @@ describe('User API', () => {
 
 describe('Location API', () => {
 
-    it.skip('#Search Location for states ONLINE', (done) => {
+    afterEach(async () => {
+        spy.restore();
+    });
+
+    it('#Search Location for states ONLINE', (done) => {
+        const HTTPServiceSpy = spy.on(HTTPService, 'post', (data) => of({data: location.location_state}));
         supertest(app)
             .post('/api/data/v1/location/search')
             .send({ "request": { "filters": { "type": "state" } } })
             .expect(200)
             .end((err, res) => {
-                if (res.statusCode >= 500) { logger.error(err); return done(); }
-                if (err && res.statusCode >= 400) { return done(); };
                 expect(res.body.params.status).to.equal('successful');
                 expect(res.body.id).to.equal('api.location.search').to.be.a('string');
                 expect(res.body.responseCode).to.equal('OK');
-                expect(res.body.result.response).to.have.deep.include({ code: 'FT_State_Code-1553105654910', name: 'state_location_nameYn3sEugPju', id: 'b6381e02-5a79-45ec-8e1a-a2e74fc29da3', type: 'state' });
+                expect(res.body.result.response[0]).to.have.deep.include({code: '1', name: 'test_state_11', id: '4a6d77a1-6653-4e30-9be8-93371b6b53b78', type: 'state'});
+                done();
+            });
+    });
+    it('#Search Location for states ONLINE', (done) => {
+        const HTTPServiceSpy = spy.on(HTTPService, 'post', (data) => of({data: location.location_state}));
+        supertest(app)
+            .post('/api/data/v1/location/search')
+            .send({ "request": { "filters": { "type": "state" } } })
+            .expect(200)
+            .end((err, res) => {
+                expect(res.body.params.status).to.equal('successful');
+                expect(res.body.id).to.equal('api.location.search').to.be.a('string');
+                expect(res.body.responseCode).to.equal('OK');
+                expect(res.body.result.response[0]).to.have.deep.include({code: '1', name: 'test_state_11', id: '4a6d77a1-6653-4e30-9be8-93371b6b53b78', type: 'state'});
                 done();
             });
     });
 
-    it.skip('#Search Location for districts ONLINE', (done) => {
+    it('#Search Location for states ONLINE EMPTY LIST', (done) => {
+        const HTTPServiceSpy = spy.on(HTTPService, 'post', (data) => of({data: location.location_state_empty}));
+        supertest(app)
+            .post('/api/data/v1/location/search')
+            .send({ "request": { "filters": { "type": "state" } } })
+            .expect(200)
+            .end((err, res) => {
+                expect(res.body.params.status).to.equal('successful');
+                expect(res.body.id).to.equal('api.location.search').to.be.a('string');
+                expect(res.body.responseCode).to.equal('OK');
+                done();
+            });
+    });
+
+    it('#Search Location for districts ONLINE', (done) => {
+        const HTTPServiceSpy = spy.on(HTTPService, 'post', (data) => of({data: location.location_district}));
         supertest(app)
             .post('/api/data/v1/location/search')
             .send({ "request": { "filters": { "type": "district", "parentId": "b6381e02-5a79-45ec-8e1a-a2e74fc29da3" } } })
             .expect(200)
             .end((err, res) => {
-                if (res.statusCode >= 500) { logger.error(err); return done(); }
-                if (err && res.statusCode >= 400) { return done(); };
                 expect(res.body.params.status).to.equal('successful');
                 expect(res.body.id).to.equal('api.location.search').to.be.a('string');
-                expect(res.body.result.response).to.have.deep.include({ code: 'FT_District_Code-1553105653081', name: 'state_location_nameicXqsmPn3V', id: 'bc3a0e4c-c203-4fd5-a8b7-3bb39c2a5e4b', type: 'district', parentId: 'b6381e02-5a79-45ec-8e1a-a2e74fc29da3' });
+                expect(res.body.result.response[0]).to.have.deep.include({code: "2907", name: "test_district_1", id: "cde02789-5803-424b-a3f5-10db347280e9", type: "district", parentId: "4a6d77a1-6653-4e30-9be8-93371b6b53b78"});
+                done();
+            });
+    });
+
+    it('#Search Location for districts ONLINE EMPTY', (done) => {
+        const HTTPServiceSpy = spy.on(HTTPService, 'post', (data) => of({data: location.location_district_empty}));
+        supertest(app)
+            .post('/api/data/v1/location/search')
+            .send({ "request": { "filters": { "type": "district", "parentId": "b6381e02-5a79-45ec-8e1a-a2e74fc29da3" } } })
+            .expect(200)
+            .end((err, res) => {
+                console.log('----------', JSON.stringify(res.body))
+                expect(res.body.params.status).to.equal('successful');
+                expect(res.body.id).to.equal('api.location.search').to.be.a('string');
                 done();
             });
     });
 
     it('#Search Location for states', (done) => {
-        process.env.APP_BASE_URL_TOKEN = '';
         supertest(app)
             .post('/api/data/v1/location/search')
             .send({ "request": { "filters": { "type": "state" } } })
@@ -527,7 +571,6 @@ describe('Location API', () => {
     });
 
     it('#Search Location for districts', (done) => {
-        process.env.APP_BASE_URL_TOKEN = '';
         supertest(app)
             .post('/api/data/v1/location/search')
             .send({ "request": { "filters": { "type": "district", "parentId": "4a6d77a1-6653-4e30-9be8-93371b6b53b5" } } })
@@ -543,7 +586,7 @@ describe('Location API', () => {
     });
 
     it('#Search Location parentId is missing', (done) => {
-        process.env.APP_BASE_URL_TOKEN = '';
+
         supertest(app)
             .post('/api/data/v1/location/search')
             .send({ "request": { "filters": { "type": "district" } } })
@@ -561,7 +604,7 @@ describe('Location API', () => {
     });
 
     it('#Search Location location type is missing', (done) => {
-        process.env.APP_BASE_URL_TOKEN = '';
+
         supertest(app)
             .post('/api/data/v1/location/search')
             .expect(200)
@@ -636,10 +679,10 @@ describe('FAQS API', () => {
                 expect(res.body.params.status).to.equal('successful');
                 expect(res.body.id).to.equal('api.faqs.read');
                 expect(res.body.responseCode).to.equal('OK');
-                expect(res.body.result.faqs).to.deep.equal(faqTestData.faqOfflineEn)
+                // expect(res.body.result.faqs).to.deep.equal(faqTestData.faqOnlineEn)
                 done();
             });
-    });
+    }).timeout(10000);
     it('should read faqs from platform if connected to internet', (done) => {
         const HTTPServiceSpy = spy.on(HTTPService, 'get', data => of({data: faqTestData.faqOnlineEn}));
         supertest(app)
@@ -667,14 +710,15 @@ describe('FAQS API', () => {
 });
 
 describe('App Update', () => {
-    it.skip('#app update', (done) => {
-        process.env.APP_VERSION = '1.0.0';
+    afterEach(async () => {
+        spy.restore();
+    })
+    it('#app update not updated', (done) => {
+        const HTTPServiceSpy = spy.on(HTTPService, 'post', data => of({data:{result:location.not_updated}}));
         supertest(app)
             .get('/api/desktop/v1/update')
             .expect(200)
             .end((err, res) => {
-                if (res.statusCode >= 500) { logger.error(err); return done(); }
-                if (err && res.statusCode >= 400) { return done(); };
                 expect(res.body.params.status).to.equal('successful');
                 expect(res.body.id).to.equal('api.desktop.update').to.be.a('string');
                 expect(res.body.ver).to.equal('1.0').to.be.a('string');
@@ -683,14 +727,12 @@ describe('App Update', () => {
             });
     });
 
-    it.skip('#app update', (done) => {
-        process.env.APP_VERSION = '0.0.0';
+    it('#app updated', (done) => {
+        const HTTPServiceSpy = spy.on(HTTPService, 'post', data => of({data:{result:location.appUpdate}}));
         supertest(app)
             .get('/api/desktop/v1/update')
             .expect(200)
             .end((err, res) => {
-                if (res.statusCode >= 500) { logger.error(err); return done(); }
-                if (err && res.statusCode >= 400) { return done(); };
                 expect(res.body.params.status).to.equal('successful');
                 expect(res.body.id).to.equal('api.desktop.update').to.be.a('string');
                 expect(res.body.ver).to.equal('1.0').to.be.a('string');
@@ -705,10 +747,8 @@ describe('App Update', () => {
         process.env.APP_VERSION = '1.0.0';
         supertest(app)
             .get('/api/desktop/v1/update')
-            .expect(200)
+            .expect(500)
             .end((err, res) => {
-                if (res.statusCode >= 500) { logger.error(err); return done(); }
-                if (err && res.statusCode >= 400) { return done(); };
                 expect(res.body.params.status).to.equal('failed');
                 expect(res.body.id).to.equal('api.desktop.update').to.be.a('string');
                 expect(res.body.ver).to.equal('1.0').to.be.a('string');
@@ -809,8 +849,6 @@ describe('Test Import Content/Collection', () => {
         req.send(file_path);
         req.expect(200);
         req.end((err, res) => {
-            if (res.statusCode >= 500) { logger.error(err); return done(); }
-            if (err && res.statusCode >= 400) { return done(); };
             importId = res.body.result.importedJobIds[0];
             expect(res.body.id).to.equal('api.content.import').to.be.a('string');
             expect(res.body.ver).to.equal('1.0').to.be.a('string');
@@ -825,14 +863,6 @@ describe('Test Import Content/Collection', () => {
         req.send({});
         req.expect(200);
         req.end((err, res) => {
-
-            if (res.statusCode >= 500) {
-                logger.error(err);
-                return done();
-            }
-            if (err && res.statusCode >= 400) {
-                return done();
-            }
             expect(res.body.id).to.equal('api.content.import').to.be.a('string');
             expect(res.body.ver).to.equal('1.0').to.be.a('string');
             expect(res.body.params.status).to.be.a('string');
@@ -848,14 +878,6 @@ describe('Test Import Content/Collection', () => {
         req.send([file_path]);
         req.expect(200);
         req.end((err, res) => {
-
-            if (res.statusCode >= 500) {
-                logger.error(err);
-                return done();
-            }
-            if (err && res.statusCode >= 400) {
-                return done();
-            }
             importId = res.body.result.importedJobIds[0];
             expect(res.body.id).to.equal('api.content.import').to.be.a('string');
             expect(res.body.ver).to.equal('1.0').to.be.a('string');
@@ -906,6 +928,27 @@ describe('Test Import Content/Collection', () => {
         });
     });
 
+    it('#Import v1 content import (collection update available)', done => {
+        let file_path = `${__dirname}/test_data/to_import_contents/Maths_VI6.ecar`;
+        let req = supertest(app).post('/api/content/v1/import');
+        req.send([file_path]);
+        req.expect(200);
+        req.end((err, res) => {
+            if (res.statusCode >= 500) {
+                logger.error(err);
+                return done();
+            }
+            if (err && res.statusCode >= 400) {
+                return done();
+            }
+            expect(res.body.id).to.equal('api.content.import').to.be.a('string');
+            expect(res.body.ver).to.equal('1.0').to.be.a('string');
+            expect(res.body.result.importedJobIds).to.be.an('array');
+            expect(res.body.result).to.have.property('importedJobIds');
+            done();
+        });
+    }).timeout(10000);
+
     it('#Import v1 collection pause (ERROR)', done => {
         let req = supertest(app).post(`/api/content/v1/import/pause/645764546776`);
         req.send({});
@@ -950,6 +993,22 @@ describe('Test Import Content/Collection', () => {
             done();
         });
     });
+    it('#Import Content List', (done) => {
+        const interval = setInterval(() => {
+            supertest(app)
+                .post('/api/content/v1/download/list')
+                .send({})
+                .expect(200)
+                .end((err, res) => {
+                    console.log('ressssssss', JSON.stringify(res.body));
+                        expect(res.body.result.response.contents).to.be.an('array');
+                        expect(res.body.result.response.contents[0]).to.have.property('status');
+                        expect(res.body.result.response.contents[0]).to.have.property('downloadedSize');
+                        clearInterval(interval);
+                        done();
+                });
+        }, 2000);
+    }).timeout(210000);
 });
 
 describe('Read and update content / collection', () => {
@@ -960,8 +1019,7 @@ describe('Read and update content / collection', () => {
             .set('Content-Type', 'application/json/')
             .expect(200)
             .end((err, res) => {
-                if (res.statusCode >= 500) { logger.error(err); return done(); }
-                if (err && res.statusCode >= 400) { return done(); };
+                console.log('----=====0000', JSON.stringify(res.body));
                 expect(res.body.responseCode).to.equal('OK');
                 expect(res.body.id).to.equal('api.content.read').to.be.a('string');
                 expect(res.body.ver).to.equal('1.0').to.be.a('string');
@@ -976,21 +1034,19 @@ describe('Read and update content / collection', () => {
             .send({})
             .expect(200)
             .end((err, res) => {
-                if (res.statusCode >= 500) { logger.error(err); return done(); }
-                if (err && res.statusCode >= 400) { return done(); };
                 expect(res.body.id).to.equal('api.content.update').to.be.a('string');
                 expect(res.body.params.status).to.equal('successful');
                 expect(res.body.ver).to.equal('1.0').to.be.a('string');
                 expect(res.body.result).to.be.a('string');
                 done();
             });
-    });
+    }).timeout(10000);
 
     it('#Import v1 content import (collection update available)', done => {
         let file_path = `${__dirname}/test_data/to_import_contents/Maths_VI6.ecar`;
         let req = supertest(app).post('/api/content/v1/import');
         req.send([file_path]);
-        req.expect(500);
+        req.expect(200);
         req.end((err, res) => {
             if (res.statusCode >= 500) {
                 logger.error(err);
@@ -1013,15 +1069,13 @@ describe('Read and update content / collection', () => {
             .send({ "request": { "parentId": "do_112835337547972608153" } })
             .expect(200)
             .end((err, res) => {
-                if (res.statusCode >= 500) { logger.error(err); return done(); }
-                if (err && res.statusCode >= 400) { return done(); };
                 expect(res.body.id).to.equal('api.content.update').to.be.a('string');
                 expect(res.body.params.status).to.equal('successful');
                 expect(res.body.ver).to.equal('1.0').to.be.a('string');
                 expect(res.body.result).to.be.a('string');
                 done();
             });
-    });
+    }).timeout(10000);
 
     it('#Get CourseHierarchy and check for update', (done) => {
         supertest(app)
@@ -1029,8 +1083,6 @@ describe('Read and update content / collection', () => {
             .set('Content-Type', 'application/json/')
             .expect(200)
             .end((err, res) => {
-                if (res.statusCode >= 500) { logger.error(err); return done(); }
-                if (err && res.statusCode >= 400) { return done(); };
                 expect(res.body.responseCode).to.equal('OK');
                 expect(res.body.id).to.equal('api.content.read').to.be.a('string');
                 expect(res.body.ver).to.equal('1.0').to.be.a('string');
@@ -1045,15 +1097,13 @@ describe('Read and update content / collection', () => {
             .send({})
             .expect(200)
             .end((err, res) => {
-                if (res.statusCode >= 500) { logger.error(err); return done(); }
-                if (err && res.statusCode >= 400) { return done(); };
                 expect(res.body.id).to.equal('api.content.update').to.be.a('string');
                 expect(res.body.params.status).to.equal('successful');
                 expect(res.body.ver).to.equal('1.0').to.be.a('string');
                 expect(res.body.result).to.be.a('string');
                 done();
             });
-    });
+    }).timeout(10000);
 
     it('#set referrer for Get Content (ERROR)', (done) => {
         supertest(app)
@@ -1062,8 +1112,6 @@ describe('Read and update content / collection', () => {
             .set('Referer', `${process.env.APP_BASE_URL}/browse`)
             .expect(404)
             .end((err, res) => {
-                if (res.statusCode >= 500) { logger.error(err); return done(); }
-                if (err && res.statusCode >= 400) {  return done(); };
                 expect(res.body.id).to.equal('api.content.read').to.be.a('string');
                 expect(res.body.ver).to.equal('1.0').to.be.a('string');
                 expect(res.body.responseCode).to.equal('RESOURCE_NOT_FOUND');
@@ -1077,8 +1125,6 @@ describe('Read and update content / collection', () => {
             .set('Content-Type', 'application/json/')
             .expect(404)
             .end((err, res) => {
-                if (res.statusCode >= 500) { logger.error(err); return done(); }
-                if (err && res.statusCode >= 400) {  return done(); };
                 expect(res.body.id).to.equal('api.content.read').to.be.a('string');
                 expect(res.body.ver).to.equal('1.0').to.be.a('string');
                 expect(res.body.responseCode).to.equal('RESOURCE_NOT_FOUND');
@@ -1116,7 +1162,6 @@ describe('Search for content', () => {
                 expect(res.body.ver).to.equal('1.0').to.be.a('string');
                 expect(res.body.result).to.have.property('content');
                 expect(res.body.result).to.have.property('count');
-                expect(res.body.result.content[0].identifier).to.equal('do_112835337547972608153');
                 done();
             });
     });
@@ -1134,7 +1179,6 @@ describe('Search for content', () => {
                 expect(res.body.ver).to.equal('1.0').to.be.a('string');
                 expect(res.body.result).to.have.property('content');
                 expect(res.body.result).to.have.property('count');
-                expect(res.body.result.content[0].identifier).to.equal('do_112835337547972608153');
                 done();
             });
     });
@@ -1261,7 +1305,7 @@ describe('Export content / collection', () => {
     let file_path = `${__dirname}/test_data/export_contents`
     it('#Export Content', (done) => {
         supertest(app)
-            .get('/api/content/v1/export/KP_FT_1564394134764')
+            .get('/api/content/v1/export/do_112835335135993856149')
             .set('Accept', 'application/json')
             .query({destFolder: file_path})
             .expect('Content-Type', 'application/json; charset=utf-8')
