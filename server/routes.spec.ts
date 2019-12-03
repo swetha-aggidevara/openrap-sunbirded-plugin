@@ -1019,7 +1019,6 @@ describe('Read and update content / collection', () => {
             .set('Content-Type', 'application/json/')
             .expect(200)
             .end((err, res) => {
-                console.log('----=====0000', JSON.stringify(res.body));
                 expect(res.body.responseCode).to.equal('OK');
                 expect(res.body.id).to.equal('api.content.read').to.be.a('string');
                 expect(res.body.ver).to.equal('1.0').to.be.a('string');
