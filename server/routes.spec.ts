@@ -520,6 +520,7 @@ describe("Location API", () => {
                 expect(res.body.params.status).to.equal("successful");
                 expect(res.body.id).to.equal("api.location.search").to.be.a("string");
                 expect(res.body.responseCode).to.equal("OK");
+                expect(res.body.result.response).to.be.an('array').and.to.be.empty;
                 done();
             });
     });
@@ -547,6 +548,7 @@ describe("Location API", () => {
             .end((err, res) => {
                 expect(res.body.params.status).to.equal("successful");
                 expect(res.body.id).to.equal("api.location.search").to.be.a("string");
+                expect(res.body.result.response).to.be.an('array').and.to.be.empty;
                 done();
             });
     });
