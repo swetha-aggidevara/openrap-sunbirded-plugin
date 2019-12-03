@@ -1105,7 +1105,7 @@ describe("Read and update content / collection", () => {
                 expect(res.body.result).to.be.a("string");
                 done();
             });
-    }).timeout(10000);
+    }).timeout(20000);
 
     it("#set referrer for Get Content (ERROR)", (done) => {
         supertest(app)
