@@ -7,15 +7,12 @@ import { manifest } from '../../manifest';
 import { containerAPI } from 'OpenRAP/dist/api';
 import config from '../../config';
 import { Subject } from 'rxjs';
-import { throttleTime} from 'rxjs/operators';
+import { throttleTime } from 'rxjs/operators';
 const collectionMimeType = 'application/vnd.ekstep.content-collection';
-let zipHandler;
-let contentImportData: IContentImport;
-let dbContents;
+let zipHandler, zipEntries, dbContents, manifestJson, contentImportData: IContentImport;
 let fileSDK = containerAPI.getFileSDKInstance(manifest.id);
 const contentFolder = fileSDK.getAbsPath('content');
 const ecarFolder = fileSDK.getAbsPath('ecars');
-let manifestJson;
 
 const syncCloser = (initialProgress, percentage, totalSize = contentImportData.contentSize) => {
   initialProgress = initialProgress ? initialProgress : contentImportData.progress;
@@ -65,8 +62,8 @@ const parseEcar = async () => {
     let contentBasePath = path.join(contentFolder, contentImportData._id); // temp path
     zipHandler = await loadZipHandler(ecarBasePath).catch(handelError('LOAD_ECAR'));
     await fileSDK.mkdir(path.join('content', contentImportData._id));
-    const ecarContentEntries = zipHandler.entries();
-    const manifestEntry = ecarContentEntries['manifest.json'] || ecarContentEntries['/manifest.json'];
+    zipEntries = zipHandler.entries();
+    const manifestEntry = zipEntries['manifest.json'] || zipEntries['/manifest.json'];
     if (!manifestEntry) {
       throw getErrorObj({ message: "manifest.json is missing in ecar" }, "MANIFEST_MISSING");
     }
@@ -93,92 +90,76 @@ const parseEcar = async () => {
     sendMessage("IMPORT_ERROR", getErrorObj(err, "UNHANDLED_PARSE_ECAR_ERROR"))
   }
 }
+const extractZipEntry = async (identifier: string, contentBasePath: Array<string>, entry: string, syncFunc: Function): Promise<boolean | any> => {
+  const zipEntry = (identifier === contentImportData.contentId) ? entry : identifier + '/' + entry;
+  const entryObj = zipEntries[zipEntry] || zipEntries['/' + zipEntry];
+  if(!entryObj){
+    return false
+  }
+  if(!contentImportData.extractedEcarEntries[entryObj.name]){
+    await new Promise(async (resolve, reject) => zipHandler.extract(entryObj.name, 
+      path.join(contentFolder, ...contentBasePath), err => err ? reject(err) : resolve()))
+    contentImportData.extractedEcarEntries[entryObj.name] = true;
+  }
+  syncFunc(entryObj.compressedSize);
+  return entryObj;
+}
 const extractEcar = async () => {
   try {
     const corruptContent = [];
-    if (!zipHandler) {
-      zipHandler = await loadZipHandler(path.join(ecarFolder, contentImportData._id + '.ecar')).catch(handelError('LOAD_ECAR'));
-    }
-    if(!manifestJson){
-      manifestJson = await fileSDK.readJSON(path.join(contentFolder, contentImportData._id, 'manifest.json'))
-    }
+    zipHandler = zipHandler || await loadZipHandler(path.join(ecarFolder, contentImportData._id + '.ecar')).catch(handelError('LOAD_ECAR'));
+    manifestJson = manifestJson || await fileSDK.readJSON(path.join(contentFolder, contentImportData._id, 'manifest.json'));
+    zipEntries = zipHandler.entries();
     const syncFunc = syncCloser(ImportProgress.EXTRACT_ECAR ,65);
     const artifactToBeUnzipped = [];
     let artifactToBeUnzippedSize = 0;
-    const zipEntries = zipHandler.entries();
     const extractContent = async (content, parent, collection) => {
-      const contentBasePath = (collection && !parent) ? [contentImportData.contentId, content.identifier]: [content.identifier];
-      await fileSDK.mkdir(path.join('content', path.join(...contentBasePath)));
-      const appIconFile = parent ? content.appIcon : content.identifier + '/' + content.appIcon;
-      const appIconEntry = zipEntries[appIconFile] || zipEntries['/' + appIconFile]
-      if(appIconEntry && !contentImportData.extractedEcarEntries[appIconEntry.name]){
-        await extractEntry(appIconEntry.name, path.join(contentFolder, ...contentBasePath));
-        contentImportData.extractedEcarEntries[appIconEntry.name] = true;
-        syncFunc(appIconEntry.compressedSize);
-      }
-      if(!parent && collection){
+      if(collection && !parent && !content.appIcon){ // exit if content is not leaf node or parent
         return;
       }
-      const manifestFile = parent ? 'manifest.json' : content.identifier + '/manifest.json';
-      const manifestEntry = zipEntries[manifestFile] || zipEntries['/' + manifestFile];
-      if (!manifestEntry) {
+      const contentBasePath = (collection && !parent) ? [contentImportData.contentId, content.identifier]: [content.identifier];
+      await fileSDK.mkdir(path.join('content', path.join(...contentBasePath)));
+      await extractZipEntry(content.identifier, contentBasePath, content.appIcon, syncFunc);
+      const manifestExtracted = await extractZipEntry(content.identifier, contentBasePath, 'manifest.json', syncFunc);
+      if (!manifestExtracted) { // exit if manifest is missing 
         corruptContent.push({ id: content.identifier, reason: 'MANIFEST_MISSING'});
         return;
       }
-      if(!contentImportData.extractedEcarEntries[manifestEntry.name]){
-        await extractEntry(manifestEntry.name, path.join(contentFolder, ...contentBasePath));
-        contentImportData.extractedEcarEntries[manifestEntry.name] = true;
-        syncFunc(manifestEntry.compressedSize);
-      }
-      if(collection || (content.artifactUrl && !path.extname(content.artifactUrl))){
+      if(collection || (content.artifactUrl && !path.extname(content.artifactUrl))){ // exit if content is collection
         return;
       }
-      const artifactFile = parent ? content.artifactUrl : content.identifier + '/' + content.artifactUrl;
-      const artifactEntry = zipEntries[artifactFile] || zipEntries['/' + artifactFile]
-      if (!artifactEntry) {
+      const artifactExtracted = await extractZipEntry(content.identifier, contentBasePath, content.artifactUrl, syncFunc);
+      if (!artifactExtracted) { // exit if artifact is missing 
         corruptContent.push({ id: content.identifier, reason: 'ARTIFACT_MISSING'});
         return;
       }
-      if(!contentImportData.extractedEcarEntries[artifactEntry.name]){
-        await extractEntry(artifactEntry.name, path.join(contentFolder, ...contentBasePath));
-        contentImportData.extractedEcarEntries[artifactEntry.name] = true;
-        syncFunc(artifactEntry.compressedSize);
-      }
-      if (artifactEntry.name.endsWith('.zip')) {
-        artifactToBeUnzippedSize += artifactEntry.compressedSize;
+      if (artifactExtracted.name.endsWith('.zip')) { // append zip entry along with size to unzip later
+        artifactToBeUnzippedSize += artifactExtracted.compressedSize;
         artifactToBeUnzipped.push({
-          src: path.join('content', ...contentBasePath, path.basename(artifactEntry.name)),
-          size: artifactEntry.compressedSize
+          src: path.join('content', ...contentBasePath, path.basename(artifactExtracted.name)),
+          size: artifactExtracted.compressedSize
         });
       }
     }
-    for(const content of _.get(manifestJson, 'archive.items')){
+    for(const content of _.get(manifestJson, 'archive.items')){ // loop items in manifest and extract its contents
       const dbContent = _.find(dbContents, { identifier: content.identifier })
-      if(!dbContent){
+      if(!dbContent){ // if content already imported do nothing
         await extractContent(content, (content.identifier === contentImportData.contentId), (content.mimeType === collectionMimeType));
       }
     }
+    await extractZipEntry(contentImportData.contentId, [contentImportData.contentId], 'hierarchy.json', syncFunc); // extract hierarchy file for parent if its a collection
     syncFunc().unsubscribe();
-    const hierarchyEntry = zipEntries['hierarchy.json'] || zipEntries['/hierarchy.json'];
-    if (hierarchyEntry) {
-      await extractEntry(hierarchyEntry.name, path.join(contentFolder, contentImportData.contentId));
-    }
     process.send({message: "LOG", logType: "info", logBody: [contentImportData._id, 'ecar extracted']})
-    await unzipArtifacts(artifactToBeUnzipped, artifactToBeUnzippedSize).catch(handelError('EXTRACT_ARTIFACTS'));
-    await removeFile(path.join('ecars', contentImportData._id + '.ecar'));
-    await removeFile(path.join('content', contentImportData._id));
+    await unzipArtifacts(artifactToBeUnzipped, artifactToBeUnzippedSize).catch(handelError('EXTRACT_ARTIFACTS')); // extract all zip artifacts
     process.send({message: "LOG", logType: "info", logBody: [contentImportData._id, 'artifacts unzipped']})
-    contentImportData.progress = ImportProgress.PROCESS_CONTENTS;
+    await removeFile(path.join('ecars', contentImportData._id + '.ecar')); // delete ecar folder
+    await removeFile(path.join('content', contentImportData._id)); // delete temp content folder which has manifest.json
     sendMessage(ImportSteps.extractEcar)
   } catch (err) {
     sendMessage("IMPORT_ERROR", getErrorObj(err, "UNHANDLED_EXTRACT_ECAR_ERROR"))
   } finally {
     zipHandler.close && zipHandler.close();
   }
-}
-const extractEntry = async (src, dest) => {
-  await new Promise(async (resolve, reject) => 
-    zipHandler.extract(src, dest, err => err ? reject(err) : resolve('SUCCESS')))
 }
 
 const removeFile = (location) => {
