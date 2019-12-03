@@ -676,10 +676,10 @@ describe('FAQS API', () => {
                 expect(res.body.params.status).to.equal('successful');
                 expect(res.body.id).to.equal('api.faqs.read');
                 expect(res.body.responseCode).to.equal('OK');
-                expect(res.body.result.faqs).to.deep.equal(faqTestData.faqOnlineEn)
+                expect(res.body.result.faqs).to.deep.equal(faqTestData.faqOfflineEn)
                 done();
             });
-    }).timeout(10000);
+    })
     it('should read faqs from platform if connected to internet', (done) => {
         const HTTPServiceSpy = spy.on(HTTPService, 'get', data => of({data: faqTestData.faqOnlineEn}));
         supertest(app)
