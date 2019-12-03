@@ -1,4 +1,4 @@
-import * as location from './test_data/location.test.data';
+import * as mockData from './test_data/mock.test.data';
 import { InitializeEnv } from './test_data/initialize_env';
 import { logger } from '@project-sunbird/ext-framework-server/logger';
 import * as _ from "lodash";
@@ -161,8 +161,6 @@ describe('Test Form with and without referrer', () => {
             .send({ "request": { "type": "content", "action": "search", "subType": "resourcebundle", "rootOrgId": "505c7c48ac6dc1edc9b08f21db5a571d" } })
             .expect(200)
             .end((err, res) => {
-                if (res.statusCode >= 500) { logger.error(err); return done(); }
-                if (err && res.statusCode >= 400) { return done(); };
                 expect(res.body.responseCode).to.equal('OK');
                 expect(res.body.id).to.equal('api.form.read').to.be.a('string');
                 expect(res.body.ver).to.equal('1.0').to.be.a('string');
@@ -484,7 +482,7 @@ describe('Location API', () => {
     });
 
     it('#Search Location for states ONLINE', (done) => {
-        const HTTPServiceSpy = spy.on(HTTPService, 'post', (data) => of({data: location.location_state}));
+        const HTTPServiceSpy = spy.on(HTTPService, 'post', (data) => of({data: mockData.location_state}));
         supertest(app)
             .post('/api/data/v1/location/search')
             .send({ "request": { "filters": { "type": "state" } } })
@@ -498,7 +496,7 @@ describe('Location API', () => {
             });
     });
     it('#Search Location for states ONLINE', (done) => {
-        const HTTPServiceSpy = spy.on(HTTPService, 'post', (data) => of({data: location.location_state}));
+        const HTTPServiceSpy = spy.on(HTTPService, 'post', (data) => of({data: mockData.location_state}));
         supertest(app)
             .post('/api/data/v1/location/search')
             .send({ "request": { "filters": { "type": "state" } } })
@@ -513,7 +511,7 @@ describe('Location API', () => {
     });
 
     it('#Search Location for states ONLINE EMPTY LIST', (done) => {
-        const HTTPServiceSpy = spy.on(HTTPService, 'post', (data) => of({data: location.location_state_empty}));
+        const HTTPServiceSpy = spy.on(HTTPService, 'post', (data) => of({data: mockData.location_state_empty}));
         supertest(app)
             .post('/api/data/v1/location/search')
             .send({ "request": { "filters": { "type": "state" } } })
@@ -527,7 +525,7 @@ describe('Location API', () => {
     });
 
     it('#Search Location for districts ONLINE', (done) => {
-        const HTTPServiceSpy = spy.on(HTTPService, 'post', (data) => of({data: location.location_district}));
+        const HTTPServiceSpy = spy.on(HTTPService, 'post', (data) => of({data: mockData.location_district}));
         supertest(app)
             .post('/api/data/v1/location/search')
             .send({ "request": { "filters": { "type": "district", "parentId": "b6381e02-5a79-45ec-8e1a-a2e74fc29da3" } } })
@@ -541,13 +539,12 @@ describe('Location API', () => {
     });
 
     it('#Search Location for districts ONLINE EMPTY', (done) => {
-        const HTTPServiceSpy = spy.on(HTTPService, 'post', (data) => of({data: location.location_district_empty}));
+        const HTTPServiceSpy = spy.on(HTTPService, 'post', (data) => of({data: mockData.location_district_empty}));
         supertest(app)
             .post('/api/data/v1/location/search')
             .send({ "request": { "filters": { "type": "district", "parentId": "b6381e02-5a79-45ec-8e1a-a2e74fc29da3" } } })
             .expect(200)
             .end((err, res) => {
-                console.log('----------', JSON.stringify(res.body))
                 expect(res.body.params.status).to.equal('successful');
                 expect(res.body.id).to.equal('api.location.search').to.be.a('string');
                 done();
@@ -679,7 +676,7 @@ describe('FAQS API', () => {
                 expect(res.body.params.status).to.equal('successful');
                 expect(res.body.id).to.equal('api.faqs.read');
                 expect(res.body.responseCode).to.equal('OK');
-                // expect(res.body.result.faqs).to.deep.equal(faqTestData.faqOnlineEn)
+                expect(res.body.result.faqs).to.deep.equal(faqTestData.faqOnlineEn)
                 done();
             });
     }).timeout(10000);
@@ -714,7 +711,7 @@ describe('App Update', () => {
         spy.restore();
     })
     it('#app update not updated', (done) => {
-        const HTTPServiceSpy = spy.on(HTTPService, 'post', data => of({data:{result:location.not_updated}}));
+        const HTTPServiceSpy = spy.on(HTTPService, 'post', data => of({data:{result:mockData.not_updated}}));
         supertest(app)
             .get('/api/desktop/v1/update')
             .expect(200)
@@ -728,7 +725,7 @@ describe('App Update', () => {
     });
 
     it('#app updated', (done) => {
-        const HTTPServiceSpy = spy.on(HTTPService, 'post', data => of({data:{result:location.appUpdate}}));
+        const HTTPServiceSpy = spy.on(HTTPService, 'post', data => of({data:{result:mockData.appUpdate}}));
         supertest(app)
             .get('/api/desktop/v1/update')
             .expect(200)
@@ -1000,7 +997,6 @@ describe('Test Import Content/Collection', () => {
                 .send({})
                 .expect(200)
                 .end((err, res) => {
-                    console.log('ressssssss', JSON.stringify(res.body));
                         expect(res.body.result.response.contents).to.be.an('array');
                         expect(res.body.result.response.contents[0]).to.have.property('status');
                         expect(res.body.result.response.contents[0]).to.have.property('downloadedSize');
