@@ -619,6 +619,16 @@ describe("Location API", () => {
             });
     });
 
+    it("#get Location (ERROR)", (done) => {
+        supertest(app)
+            .post("/api/data/v1/location/read")
+            .expect(404)
+            .end((err, res) => {
+                expect(res.status).to.equal(404);
+                done();
+            });
+    });
+
     it("#save Location", (done) => {
         supertest(app)
             .post("/api/data/v1/location/save")
@@ -650,20 +660,22 @@ describe("Location API", () => {
             });
     });
 
-    it("#save Location (ERROR)", (done) => {
+    it("#get Location", (done) => {
         supertest(app)
-            .post("/api/data/v1/location/save")
-            .send({ request: { state: "", city: "" } })
+            .get("/api/data/v1/location/read")
             .expect(500)
             .end((err, res) => {
-                if (res.statusCode >= 500) { logger.error(err); return done(); }
-                if (err && res.statusCode >= 400) { logger.error(err); return done(); }
-                expect(res.body.params.status).to.equal("failed");
-                expect(res.body.id).to.equal("api.location.save").to.be.a("string");
-                expect(res.body.responseCode).to.equal("INTERNAL_SERVER_ERROR");
+                expect(res.body.params.status).to.equal("successful");
+                expect(res.body.id).to.equal("api.location.read").to.be.a("string");
+                expect(res.body.result.state).to.deep.equal({ code: "29", name: "test_state_1", id: "4a6d77a1-6653-4e30-9be8-93371b6b53b5",
+                type: "state" });
+                expect(res.body.result.city).to.deep.equal({ code: "2909", name: "test_district_2", id: "3ac37fb2-d833-45bf-a579-a2656b0cce62",
+                type: "district", parentId: "4a6d77a1-6653-4e30-9be8-93371b6b53b5" });
                 done();
             });
     });
+
+
 });
 
 describe("FAQS API", () => {
