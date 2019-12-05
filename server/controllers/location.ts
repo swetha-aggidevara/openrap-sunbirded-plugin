@@ -229,4 +229,18 @@ export class Location {
         }
     }
 
+    public async get(req, res) {
+        logger.debug(`ReqId = "${req.headers["X-msgid"]}": Location get method is called`);
+        try {
+            logger.info(`ReqId = "${req.headers["X-msgid"]}": Getting location from location DB`);
+            const locationData = await this.settingSDK.get("location");
+            return res.send(Response.success("api.location.read", locationData, req));
+        } catch (err) {
+            logger.error(`ReqId = "${req.headers["X-msgid"]}": Received error while getting location from location database and err.message: ${err.message} ${err}`);
+            const status = err.status || 500;
+            res.status(status);
+            return res.send(Response.error("api.location.read", status));
+        }
+    }
+
 }
