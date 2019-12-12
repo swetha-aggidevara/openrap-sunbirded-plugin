@@ -15,13 +15,15 @@ export enum CONTENT_DOWNLOAD_STATUS {
     Completed = "COMPLETED",
     Extracted = "EXTRACTED",
     Indexed = "INDEXED",
-    Failed = "FAILED"
+    Failed = "FAILED",
+    Paused = "PAUSED",
 }
 enum API_DOWNLOAD_STATUS {
     inprogress = "INPROGRESS",
     submitted = "SUBMITTED",
     completed = "COMPLETED",
-    failed = "FAILED"
+    failed = "FAILED",
+    paused = "PAUSED",
 }
 
 let dbName = "content_download";
@@ -165,7 +167,7 @@ export default class ContentDownload {
         (async () => {
             logger.debug(`ReqId = "${req.headers['X-msgid']}": ContentDownload List method is called`);
             try {
-                let status = [API_DOWNLOAD_STATUS.submitted, API_DOWNLOAD_STATUS.inprogress, API_DOWNLOAD_STATUS.completed, API_DOWNLOAD_STATUS.failed];
+                let status = [API_DOWNLOAD_STATUS.submitted, API_DOWNLOAD_STATUS.inprogress, API_DOWNLOAD_STATUS.completed, API_DOWNLOAD_STATUS.failed, API_DOWNLOAD_STATUS.paused];
                 if (!_.isEmpty(_.get(req, 'body.request.filters.status'))) {
                     status = _.get(req, 'body.request.filters.status');
                 }
@@ -173,6 +175,7 @@ export default class ContentDownload {
                 let inprogress = [];
                 let failed = [];
                 let completed = [];
+                let paused = [];
                 let contentListArray = [];
                 logger.debug(`ReqId = "${req.headers['X-msgid']}": Check download status is submitted or not`);
                 if (_.indexOf(status, API_DOWNLOAD_STATUS.submitted) !== -1) {
@@ -329,10 +332,49 @@ export default class ContentDownload {
                     }
                 }
 
+                // paused -  get from the content downloadDB and download queue
+                logger.debug(`ReqId = "${req.headers['X-msgid']}": Check download status is paused or not`);
+                if (_.indexOf(status, API_DOWNLOAD_STATUS.paused) !== -1) {
+                    logger.info(`ReqId = "${req.headers['X-msgid']}": download status is paused`);
+                    logger.debug(`ReqId = "${req.headers['X-msgid']}": Find paused contents in ContentDb`)
+                    let paused_CDB = await this.databaseSdk.find(dbName, {
+                        "selector": {
+                            "status": CONTENT_DOWNLOAD_STATUS.Paused,
+                            "createdOn": {
+                                "$gt": null
+                            },
+                        },
+                        "limit": 50,
+                        "sort": [
+                            {
+                                "createdOn": "desc"
+                            }
+                        ]
+                    });
+                    if (!_.isEmpty(paused_CDB.docs)) {
+                        logger.info(`ReqId = "${req.headers['X-msgid']}": Found paused Contents: ${paused_CDB.docs.length}`)
+                        paused = _.map(paused_CDB.docs, (doc) => {
+                            return {
+                                "id": doc.downloadId,
+                                "contentId": doc.contentId,
+                                "resourceId": _.get(doc, 'queueMetaData.resourceId'),
+                                "mimeType": doc.queueMetaData.mimeType,
+                                "name": doc.name,
+                                "status": ImportStatus[5],
+                                "createdOn": doc.createdOn,
+                                "pkgVersion": _.get(doc, 'queueMetaData.pkgVersion'),
+                                "contentType": _.get(doc, 'queueMetaData.contentType'),
+                                "totalSize": doc.size,
+                                "addedUsing": "download"
+                            };
+                        })
+                    }
+                }
+
 
                 logger.info(`ReqId = "${req.headers['X-msgid']}": Received all downloaded Contents`);
                 const importJobs = await this.listContentImport();
-                contentListArray = _.concat(submitted, inprogress, failed, completed, importJobs.importList)
+                contentListArray = _.concat(submitted, inprogress, failed, completed, paused, importJobs.importList)
 
                 return res.send(Response.success("api.content.download.list", {
                     response: {
@@ -397,5 +439,70 @@ export default class ContentDownload {
             contentImportJobs.importList.push(jobObj)
         });
         return contentImportJobs;
+    }
+
+    public async pause(req: any, res: any) {
+        try {
+            const downloadId = _.get(req, "params.downloadId");
+            await this.downloadManager.pause(downloadId);
+            const dbResp = await this.databaseSdk.find(dbName, {
+                selector: { downloadId },
+            });
+
+            await this.databaseSdk.update(dbName, dbResp.docs[0]._id, {
+                updatedOn: Date.now(),
+                status: CONTENT_DOWNLOAD_STATUS.Paused,
+            });
+            return res.send(Response.success("api.content.pause.download", downloadId, req));
+        } catch (error) {
+            logger.error(`ReqId = "${req.headers["X-msgid"]}": Received error while pausing download,  where error = ${JSON.stringify(error)}`);
+            const status = _.toNumber(_.get(error, "status")) || 500;
+            res.status(status);
+            return res.send(
+                Response.error("api.content.pause.download", status, _.get(error, "message"), _.get(error, "code")),
+            );
+        }
+    }
+
+    public async resume(req: any, res: any) {
+        try {
+            const response = await this.downloadManager.resume(req.params.downloadId);
+            return res.send(Response.success("api.content.resume.download", { result: response }, req));
+        } catch (error) {
+            logger.error(`ReqId = "${req.headers["X-msgid"]}": Received error while resuming download,  where error = ${JSON.stringify(error)}`);
+            const status = _.toNumber(_.get(error, "status")) || 500;
+            res.status(status);
+            return res.send(
+                Response.error("api.content.resume.download", status, _.get(error, "message"), _.get(error, "code")),
+            );
+        }
+    }
+
+    public async cancel(req: any, res: any) {
+        try {
+            const response = await this.downloadManager.cancel(req.params.downloadId);
+            return res.send(Response.success("api.content.cancel.download", { result: response }, req));
+        } catch (error) {
+            logger.error(`ReqId = "${req.headers["X-msgid"]}": Received error while canceling download,  where error = ${JSON.stringify(error)}`);
+            const status = _.toNumber(_.get(error, "status")) || 500;
+            res.status(status);
+            return res.send(
+                Response.error("api.content.cancel.download", status, _.get(error, "message"), _.get(error, "code")),
+            );
+        }
+    }
+
+    public async retry(req: any, res: any) {
+        try {
+            const response = await this.downloadManager.retry(req.params.downloadId);
+            return res.send(Response.success("api.content.retry.download", { result: response }, req));
+        } catch (error) {
+            logger.error(`ReqId = "${req.headers["X-msgid"]}": Received error while retrying download,  where error = ${JSON.stringify(error)}`);
+            const status = _.toNumber(_.get(error, "status")) || 500;
+            res.status(status);
+            return res.send(
+                Response.error("api.content.retry.download", status, _.get(error, "message"), _.get(error, "code")),
+            );
+        }
     }
 }
