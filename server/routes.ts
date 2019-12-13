@@ -178,7 +178,6 @@ export class Router {
       "/api/data/v1/form/read",
       (req, res, next) => {
         logger.debug(`Received API call to read formdata`);
-
         logger.debug(`ReqId = "${req.headers["X-msgid"]}": Check proxy`);
         if (enableProxy(req)) {
           logger.info(`Proxy is Enabled `);
