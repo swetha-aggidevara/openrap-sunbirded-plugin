@@ -91,11 +91,13 @@ const parseEcar = async () => {
   } catch (err) {
     sendMessage("IMPORT_ERROR", getErrorObj(err, "UNHANDLED_PARSE_ECAR_ERROR"));
   }
-}
+};
+
 const extractZipEntry = async (identifier: string, contentBasePath: string[], entry: string, syncFunc: Function)
   : Promise<boolean | any> => {
   const zipEntry = (identifier === contentImportData.contentId) ? entry : identifier + "/" + entry;
-  const entryObj = zipEntries[zipEntry] || zipEntries["/" + zipEntry];
+  const entryObj = zipEntries[zipEntry] || zipEntries["/" + zipEntry]
+    || zipEntries[entry] || zipEntries["/" + entry]; // last two checks to support mobile
   if (!entryObj) {
     return false;
   }
@@ -107,6 +109,7 @@ const extractZipEntry = async (identifier: string, contentBasePath: string[], en
   syncFunc(entryObj.compressedSize);
   return entryObj;
 };
+
 const extractEcar = async () => {
   try {
     const corruptContent = [];
