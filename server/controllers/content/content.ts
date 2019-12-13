@@ -21,7 +21,8 @@ export enum DOWNLOAD_STATUS {
     COMPLETED = "DOWNLOADING",
     EXTRACTED = "DOWNLOADING",
     INDEXED = "DOWNLOADED",
-    FAILED = "FAILED"
+    FAILED = "FAILED",
+    PAUSED = "PAUSED",
 }
 const INTERVAL_TO_CHECKUPDATE = 1
 export default class Content {
@@ -301,6 +302,7 @@ export default class Content {
             await this.searchDownloadingContent(listOfContentIds, reqId)
                 .then(data => {
                     logger.info(`ReqId = "${reqId}": Found the ${data.docs.length} contents in Content_Download Db`)
+                    data.docs = _.uniqBy(_.orderBy(data.docs, ["updatedOn"], ["desc"]), "contentId");
                     for (let doc of data.docs) {
                         for (let content of contents) {
                             if (doc.contentId === content.identifier) {

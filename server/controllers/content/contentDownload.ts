@@ -17,6 +17,7 @@ export enum CONTENT_DOWNLOAD_STATUS {
     Indexed = "INDEXED",
     Failed = "FAILED",
     Paused = "PAUSED",
+    Canceled = "CANCELED",
 }
 enum API_DOWNLOAD_STATUS {
     inprogress = "INPROGRESS",
@@ -24,6 +25,7 @@ enum API_DOWNLOAD_STATUS {
     completed = "COMPLETED",
     failed = "FAILED",
     paused = "PAUSED",
+    canceled = "CANCELED",
 }
 
 let dbName = "content_download";
@@ -455,8 +457,8 @@ export default class ContentDownload {
             });
             return res.send(Response.success("api.content.pause.download", downloadId, req));
         } catch (error) {
-            logger.error(`ReqId = "${req.headers["X-msgid"]}": Received error while pausing download,  where error = ${JSON.stringify(error)}`);
-            const status = _.toNumber(_.get(error, "status")) || 500;
+            logger.error(`ReqId = "${req.headers["X-msgid"]}": Received error while pausing download,  where error = ${error}`);
+            const status = _.get(error, "status") || 500;
             res.status(status);
             return res.send(
                 Response.error("api.content.pause.download", status, _.get(error, "message"), _.get(error, "code")),
@@ -466,11 +468,20 @@ export default class ContentDownload {
 
     public async resume(req: any, res: any) {
         try {
-            const response = await this.downloadManager.resume(req.params.downloadId);
-            return res.send(Response.success("api.content.resume.download", { result: response }, req));
+            const downloadId = _.get(req, "params.downloadId");
+            await this.downloadManager.resume(downloadId);
+            const dbResp = await this.databaseSdk.find(dbName, {
+                selector: { downloadId },
+            });
+
+            await this.databaseSdk.update(dbName, dbResp.docs[0]._id, {
+                updatedOn: Date.now(),
+                status: CONTENT_DOWNLOAD_STATUS.Submitted,
+            });
+            return res.send(Response.success("api.content.resume.download", downloadId, req));
         } catch (error) {
-            logger.error(`ReqId = "${req.headers["X-msgid"]}": Received error while resuming download,  where error = ${JSON.stringify(error)}`);
-            const status = _.toNumber(_.get(error, "status")) || 500;
+            logger.error(`ReqId = "${req.headers["X-msgid"]}": Received error while resuming download,  where error = ${error}`);
+            const status = _.get(error, "status") || 500;
             res.status(status);
             return res.send(
                 Response.error("api.content.resume.download", status, _.get(error, "message"), _.get(error, "code")),
@@ -480,11 +491,19 @@ export default class ContentDownload {
 
     public async cancel(req: any, res: any) {
         try {
-            const response = await this.downloadManager.cancel(req.params.downloadId);
-            return res.send(Response.success("api.content.cancel.download", { result: response }, req));
+            const downloadId = _.get(req, "params.downloadId");
+            await this.downloadManager.cancel(downloadId);
+            const dbResp = await this.databaseSdk.find(dbName, {
+                selector: { downloadId },
+            });
+            await this.databaseSdk.update(dbName, dbResp.docs[0]._id, {
+                updatedOn: Date.now(),
+                status: CONTENT_DOWNLOAD_STATUS.Canceled,
+            });
+            return res.send(Response.success("api.content.cancel.download", downloadId, req));
         } catch (error) {
             logger.error(`ReqId = "${req.headers["X-msgid"]}": Received error while canceling download,  where error = ${JSON.stringify(error)}`);
-            const status = _.toNumber(_.get(error, "status")) || 500;
+            const status = _.get(error, "status") || 500;
             res.status(status);
             return res.send(
                 Response.error("api.content.cancel.download", status, _.get(error, "message"), _.get(error, "code")),
@@ -494,11 +513,20 @@ export default class ContentDownload {
 
     public async retry(req: any, res: any) {
         try {
-            const response = await this.downloadManager.retry(req.params.downloadId);
-            return res.send(Response.success("api.content.retry.download", { result: response }, req));
+            const downloadId = _.get(req, "params.downloadId");
+            await this.downloadManager.retry(downloadId);
+            const dbResp = await this.databaseSdk.find(dbName, {
+                selector: { downloadId },
+            });
+
+            await this.databaseSdk.update(dbName, dbResp.docs[0]._id, {
+                updatedOn: Date.now(),
+                status: CONTENT_DOWNLOAD_STATUS.Submitted,
+            });
+            return res.send(Response.success("api.content.retry.download", downloadId, req));
         } catch (error) {
             logger.error(`ReqId = "${req.headers["X-msgid"]}": Received error while retrying download,  where error = ${JSON.stringify(error)}`);
-            const status = _.toNumber(_.get(error, "status")) || 500;
+            const status = _.get(error, "status") || 500;
             res.status(status);
             return res.send(
                 Response.error("api.content.retry.download", status, _.get(error, "message"), _.get(error, "code")),
