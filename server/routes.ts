@@ -613,7 +613,6 @@ export class Router {
     app.post(
       "/api/data/v1/location/save", location.saveLocation.bind(location)
     );
-
     app.get("/api/data/v1/location/read", location.get.bind(location));
 
     app.get("/learner/data/v1/system/settings/get/custodianOrgId", (req, res) => {
