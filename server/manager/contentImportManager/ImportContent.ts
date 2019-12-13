@@ -17,10 +17,11 @@ export class ImportContent {
   private manifestJson: any;
   private interrupt;
 
-  constructor(private pluginId: string, private contentImportData: IContentImport, private cb) {
-    this.dbSDK.initialize(this.pluginId);
+  constructor(private contentImportData: IContentImport, private cb) {
+    this.dbSDK.initialize(manifest.id);
     this.fileSDK = containerAPI.getFileSDKInstance(manifest.id);
   }
+
   public async startImport(step = this.contentImportData.importStep) {
     this.workerProcessRef = childProcess.fork(path.join(__dirname, "contentImportHelper"));
     this.handleChildProcessMessage();
@@ -57,11 +58,13 @@ export class ImportContent {
       }
     }
   }
+
   public cleanUpAfterErrorOrCancel() {
     this.fileSDK.remove(path.join("ecars", this.contentImportData._id + ".ecar")).catch((err) => logger.debug(`Error while deleting file ${path.join("ecars", this.contentImportData._id + ".ecar")}`));
     this.fileSDK.remove(path.join("content", this.contentImportData._id)).catch((err) => logger.debug(`Error while deleting folder ${path.join("content", this.contentImportData._id)}`));
     // TODO: delete content folder if there"s no record in db;
   }
+
   public async cancel() {
     this.interrupt = true; // to stop message from child process
     logger.log("canceling running import job for", this.contentImportData._id);
@@ -76,6 +79,7 @@ export class ImportContent {
     await this.handleKillSignal();
     return true;
   }
+
   public async pause() {
     logger.log("pausing running import job for", this.contentImportData._id);
     this.interrupt = true; // to stop message from child process
@@ -89,16 +93,18 @@ export class ImportContent {
     await this.handleKillSignal();
     return true;
   }
-  /**
+
+  /*
    * _id, _rev, ImportStep, ImportStatus should not be copied from child.
    * Parent will handle status update and import progress
-  **/
+  */
   private saveDataFromWorker(contentImportData: IContentImport) {
     this.contentImportData = {
       ...this.contentImportData,
       ..._.pick(contentImportData, ["childNodes", "contentId", "mimeType", "extractedEcarEntries", "artifactUnzipped", "progress", "contentSize", "pkgVersion"]),
     };
   }
+
   private async extractEcar() {
     try {
       if (this.contentImportData.importStep !== ImportSteps.extractEcar) {
@@ -243,6 +249,7 @@ export class ImportContent {
       }
     });
   }
+
   private handleWorkerCloseEvents() {
     this.workerProcessRef.on("exit", (code, signal) => {
       logger.log(this.contentImportData._id, "Child process exited with", code, signal);
@@ -254,6 +261,7 @@ export class ImportContent {
       }
     });
   }
+
   private async handleUnexpectedChildProcessExit(code, signal) {
     logger.error("Unexpected exit of child process for importId",
       this.contentImportData._id, "with signal and code", code, signal);
@@ -263,6 +271,7 @@ export class ImportContent {
     await this.syncStatusToDb();
     this.cleanUpAfterErrorOrCancel();
   }
+
   private async handleChildProcessError(err: ErrorObj) {
     logger.error(this.contentImportData._id, "Got error while importing ecar with importId:", err);
     this.contentImportData.failedCode = err.errCode;
@@ -272,26 +281,28 @@ export class ImportContent {
     this.cb(err, this.contentImportData);
     this.cleanUpAfterErrorOrCancel();
   }
+
   // TODO: Revision and compaction to be handled
   private async syncStatusToDb() {
     logger.info(this.contentImportData._id, "progress with import step",
       this.contentImportData.progress, this.contentImportData.importStep);
     this.contentImportData.updatedOn = Date.now();
     const dbResponse = await this.dbSDK.update("content_manager", this.contentImportData._id, this.contentImportData)
-    .catch( async (err) => {
-      logger.error("syncStatus error for", this.contentImportData._id, "with status and code", err.status, err.name);
-      if (err.status === 409 && err.name === "conflict") {
-        const jobDb: IContentImport = await this.dbSDK.get("content_manager", this.contentImportData._id);
-        if (jobDb && jobDb._rev) {
-          this.contentImportData._rev = jobDb._rev;
-          return await this.dbSDK.update("content_manager", this.contentImportData._id, this.contentImportData);
+      .catch(async (err) => {
+        logger.error("syncStatus error for", this.contentImportData._id, "with status and code", err.status, err.name);
+        if (err.status === 409 && err.name === "conflict") {
+          const jobDb: IContentImport = await this.dbSDK.get("content_manager", this.contentImportData._id);
+          if (jobDb && jobDb._rev) {
+            this.contentImportData._rev = jobDb._rev;
+            return await this.dbSDK.update("content_manager", this.contentImportData._id, this.contentImportData);
+          }
         }
-      }
-    });
+      });
     if (dbResponse && dbResponse.rev) {
       this.contentImportData._rev = dbResponse.rev;
     }
   }
+
   private async getContentsFromDB(contentIds: string[]) {
     const dbResults = await this.dbSDK.find("content", {
       selector: {
@@ -302,6 +313,7 @@ export class ImportContent {
     }).catch((err) => undefined);
     return _.get(dbResults, "docs") ? dbResults.docs : [];
   }
+
   private async handleKillSignal() {
     return new Promise((resolve, reject) => {
       this.workerProcessRef.on("message", async (data) => {
@@ -321,6 +333,7 @@ export class ImportContent {
       });
     });
   }
+
   private createHierarchy(items: any[], parent: any, tree?: any[]): any {
     tree = typeof tree !== "undefined" ? tree : [];
     parent = typeof parent !== "undefined" ? parent : { visibility: "Default" };

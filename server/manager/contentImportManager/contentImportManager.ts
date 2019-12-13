@@ -20,16 +20,11 @@ export class ContentImportManager {
 
   @Inject private dbSDK: DatabaseSDK;
   private runningImportJobs: IRunningImportJobs[] = [];
-  private pluginId;
   public async initialize(pluginId, contentFilesPath, downloadsFolderPath) {
-    this.pluginId = pluginId;
-    this.dbSDK.initialize(this.pluginId);
+    this.dbSDK.initialize(manifest.id);
   }
   /*
-  this method will be called when app initializes, all task related to import should be called after this
-  method completes it updates all in-progress state content to RECONCILE status
-  then checkImportQueue will be called, checkImportQueue will pick RECONCILE on priority and completes
-  import task the task
+  method to reconcile import which dint complete when app was closed last time
   */
   public async reconcile() {
     const inProgressJob = await this.dbSDK.find("content_manager", { // TODO:Query needs to be optimized
@@ -56,6 +51,7 @@ export class ContentImportManager {
     }
     this.checkImportQueue();
   }
+
   public async registerImportJob(ecarPaths: string[]): Promise<string[]> {
     logger.info("registerImportJob started for ", ecarPaths);
     ecarPaths = await this.getUnregisteredEcars(ecarPaths);
@@ -91,6 +87,7 @@ export class ContentImportManager {
     this.checkImportQueue();
     return dbData.map((data) => data._id);
   }
+
   public async pauseImport(importId: string) {
     const importDbResults: IContentImport = await this.dbSDK.get("content_manager", importId)
       .catch((err) => logger.error("pauseImport error while fetching job details for ", importId));
@@ -131,7 +128,7 @@ export class ContentImportManager {
     const importDbResults: IContentImport = await this.dbSDK.get("content_manager", importId)
       .catch((err) => logger.error("cancelImport error while fetching job details for ", importId));
     if (!importDbResults || _.includes([ImportStatus.canceled, ImportStatus.canceling,
-        ImportStatus.completed, ImportStatus.failed], importDbResults.status)) {
+    ImportStatus.completed, ImportStatus.failed], importDbResults.status)) {
       throw "INVALID_OPERATION";
     }
     this.logAuditEvent(importDbResults, ImportStatus[ImportStatus.canceled], ImportStatus[importDbResults.status]);
@@ -144,13 +141,14 @@ export class ContentImportManager {
       _.remove(this.runningImportJobs, (job) => job._id === inProgressJob._id);
     } else {
       importDbResults.status = ImportStatus.canceled;
-      const jobReference = new ImportContent(this.pluginId, importDbResults, () => logger.log("cleanup"));
+      const jobReference = new ImportContent(importDbResults, () => logger.log("cleanup"));
       jobReference.cleanUpAfterErrorOrCancel();
       await this.dbSDK.update("content_manager", importId, importDbResults)
         .catch((err) => logger.error("cancelImport error while updating job details for ", importId));
     }
     this.checkImportQueue();
   }
+
   public async retryImport(importId: string) {
     const importDbResults: IContentImport = await this.dbSDK.get("content_manager", importId)
       .catch((err) => logger.error("retryImport error while fetching job details for ", importId));
@@ -174,6 +172,7 @@ export class ContentImportManager {
       });
     });
   }
+
   private logSubmitAuditEvent(id, filePath, props) {
     const telemetryEvent = {
       context: {
@@ -192,6 +191,7 @@ export class ContentImportManager {
     };
     telemetryInstance.audit(telemetryEvent);
   }
+
   private async checkImportQueue(status: ImportStatus[] = DEFAULT_CHECK_IMPORT_STATUS) {
     const dbResponse = await this.dbSDK.find("content_manager", { // TODO:Query needs to be optimized
       selector: {
@@ -203,7 +203,7 @@ export class ContentImportManager {
           $in: status,
         },
       },
-      sort: [ "status"],
+      sort: ["status"],
     }).catch((err) => {
       logger.log("Error while fetching queued jobs", err);
       return { docs: [] };
@@ -226,8 +226,7 @@ export class ContentImportManager {
       if (!jobRunning) {
         this.logAuditEvent(queuedJobs[queuedJobIndex], ImportStatus[ImportStatus.inProgress],
           ImportStatus[queuedJobs[queuedJobIndex].status]);
-        const jobReference = new ImportContent(this.pluginId,
-          queuedJobs[queuedJobIndex], this.importJobCompletionCb.bind(this));
+        const jobReference = new ImportContent(queuedJobs[queuedJobIndex], this.importJobCompletionCb.bind(this));
         jobReference.startImport();
         this.runningImportJobs.push({
           _id: queuedJobs[queuedJobIndex]._id,
@@ -238,6 +237,7 @@ export class ContentImportManager {
     }
     logger.info("exited while loop", queuedJobIndex, this.runningImportJobs.length);
   }
+
   private logAuditEvent(contentImport: IContentImport, state, prevstate) {
     const telemetryEvent: any = {
       context: {
@@ -266,6 +266,7 @@ export class ContentImportManager {
     }
     telemetryInstance.audit(telemetryEvent);
   }
+
   private async importJobCompletionCb(err: any, data: IContentImport) {
     _.remove(this.runningImportJobs, (job) => job._id === data._id);
     if (err) {
@@ -284,7 +285,7 @@ export class ContentImportManager {
         type: IAddedUsingType.import,
         status: {
           $in: [ImportStatus.inProgress, ImportStatus.inQueue, ImportStatus.reconcile,
-            ImportStatus.resume, ImportStatus.paused, ImportStatus.pausing],
+          ImportStatus.resume, ImportStatus.paused, ImportStatus.pausing],
         },
       },
     });

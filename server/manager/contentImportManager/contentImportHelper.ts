@@ -180,10 +180,12 @@ const removeFile = (location) => {
   return fileSDK.remove(location)
     .catch((err) => process.send({ message: "LOG", logType: "error", logBody: [contentImportData._id, "error while deleting ecar folder", location] }));
 };
+
 const unzipFile = async (src, dest = path.dirname(src)) => {
   await fileSDK.unzip(src, dest, false)
     .catch((err) => process.send({ message: "LOG", logType: "error", logBody: [contentImportData._id, "error while unzip file", src] }));
 };
+
 const unzipArtifacts = async (artifactToBeUnzipped = [], artifactToBeUnzippedSize) => {
   const syncFunc = syncCloser(ImportProgress.EXTRACT_ARTIFACT, 9, artifactToBeUnzippedSize);
   for (const artifact of artifactToBeUnzipped) {
@@ -214,6 +216,7 @@ const sendMessage = (message: string, err?: ErrorObj) => {
   }
   process.send(messageObj);
 };
+
 process.on("message", (data) => {
   if (_.includes([ImportSteps.copyEcar, ImportSteps.parseEcar, ImportSteps.extractEcar], data.message)) {
     contentImportData = data.contentImportData;
