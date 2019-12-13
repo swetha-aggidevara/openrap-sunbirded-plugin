@@ -58,8 +58,8 @@ export class ImportContent {
     }
   }
   public cleanUpAfterErrorOrCancel() {
-    this.fileSDK.remove(path.join("ecars", this.contentImportData._id + ".ecar")).catch((err) => logger.debug(`Error while deleting folder ${path.join("ecars", this.contentImportData._id + ".ecar")}`));
-    this.fileSDK.remove(path.join("ecars", this.contentImportData._id + ".ecar")).catch((err) => logger.debug(`Error while deleting folder ${path.join("content", this.contentImportData._id)}`));
+    this.fileSDK.remove(path.join("ecars", this.contentImportData._id + ".ecar")).catch((err) => logger.debug(`Error while deleting file ${path.join("ecars", this.contentImportData._id + ".ecar")}`));
+    this.fileSDK.remove(path.join("content", this.contentImportData._id)).catch((err) => logger.debug(`Error while deleting folder ${path.join("content", this.contentImportData._id)}`));
     // TODO: delete content folder if there"s no record in db;
   }
   public async cancel() {

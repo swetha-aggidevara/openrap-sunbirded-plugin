@@ -151,6 +151,19 @@ export class ContentImportManager {
     }
     this.checkImportQueue();
   }
+  public async retryImport(importId: string) {
+    const importDbResults: IContentImport = await this.dbSDK.get("content_manager", importId)
+      .catch((err) => logger.error("retryImport error while fetching job details for ", importId));
+    if (!importDbResults || !_.includes([ImportStatus.failed], importDbResults.status)) {
+      throw "INVALID_OPERATION";
+    }
+    this.logAuditEvent(importDbResults, ImportStatus[ImportStatus.resume], ImportStatus[importDbResults.status]);
+    importDbResults.status = ImportStatus.inQueue;
+    await this.dbSDK.update("content_manager", importId, importDbResults)
+      .catch((err) => logger.error("retryImport error while updating job details for ", importId));
+    this.checkImportQueue();
+  }
+
   private getEcarSize(filePath): Promise<number> {
     return new Promise((resolve, reject) => {
       fs.stat(filePath, (err, stats) => {
