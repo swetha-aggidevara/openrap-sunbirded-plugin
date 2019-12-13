@@ -463,6 +463,7 @@ export default class ContentDownload {
             return res.send(
                 Response.error("api.content.pause.download", status, _.get(error, "message"), _.get(error, "code")),
             );
+            
         }
     }
 
