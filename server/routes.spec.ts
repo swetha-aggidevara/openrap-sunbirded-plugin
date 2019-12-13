@@ -1077,7 +1077,7 @@ describe("Read and update content / collection", () => {
         });
     }).timeout(10000);
 
-    it("#update CONTENT inside collection", (done) => {
+    xit("#update CONTENT inside collection", (done) => {
         supertest(app)
             .post("/api/content/v1/update/do_112835335135993856149")
             .send({ request: { parentId: "do_112835337547972608153" } })
