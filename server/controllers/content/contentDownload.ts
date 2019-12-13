@@ -502,7 +502,7 @@ export default class ContentDownload {
             });
             return res.send(Response.success("api.content.cancel.download", downloadId, req));
         } catch (error) {
-            logger.error(`ReqId = "${req.headers["X-msgid"]}": Received error while canceling download,  where error = ${JSON.stringify(error)}`);
+            logger.error(`ReqId = "${req.headers["X-msgid"]}": Received error while canceling download,  where error = ${error}`);
             const status = _.get(error, "status") || 500;
             res.status(status);
             return res.send(
@@ -525,7 +525,7 @@ export default class ContentDownload {
             });
             return res.send(Response.success("api.content.retry.download", downloadId, req));
         } catch (error) {
-            logger.error(`ReqId = "${req.headers["X-msgid"]}": Received error while retrying download,  where error = ${JSON.stringify(error)}`);
+            logger.error(`ReqId = "${req.headers["X-msgid"]}": Received error while retrying download,  where error = ${error}`);
             const status = _.get(error, "status") || 500;
             res.status(status);
             return res.send(
