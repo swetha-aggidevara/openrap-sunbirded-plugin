@@ -581,6 +581,10 @@ export class Router {
     desktopAppUpdate.getDesktopAppUpate.bind(desktopAppUpdate)
     );
 
+    app.get( "/api/app/v1/info",
+    desktopAppUpdate.getAppInfo.bind(desktopAppUpdate)
+    );
+
     let user = new User(manifest);
     app.post( "/api/desktop/user/v1/create",
       user.create.bind(user)
