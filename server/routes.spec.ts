@@ -769,6 +769,18 @@ describe("App Update", () => {
                 done();
             });
     });
+
+    it("#app INFO", (done) => {
+        process.env.RELEASE_DATE = "16 December 2019";
+        supertest(app)
+            .get("/api/app/v1/info")
+            .expect(200)
+            .end((err, res) => {
+                    expect(res.body.result.languages).to.equal("English, Hindi");
+                    expect(res.body.result.releaseDate).to.equal(process.env.RELEASE_DATE);
+                    done();
+            });
+    });
 });
 
 describe("Test Page assemble with and without referrer", () => {
