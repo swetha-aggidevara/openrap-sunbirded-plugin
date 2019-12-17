@@ -756,17 +756,15 @@ describe("App Update", () => {
             });
     });
 
-    it("#app update (ERROR)", (done) => {
-        process.env.APP_VERSION = "1.0.0";
+    it("#app INFO", (done) => {
+        process.env.RELEASE_DATE = "16 December 2019";
         supertest(app)
-            .get("/api/desktop/v1/update")
-            .expect(500)
+            .get("/api/app/v1/info")
+            .expect(200)
             .end((err, res) => {
-                expect(res.body.params.status).to.equal("failed");
-                expect(res.body.id).to.equal("api.desktop.update").to.be.a("string");
-                expect(res.body.ver).to.equal("1.0").to.be.a("string");
-                expect(res.body.responseCode).to.equal("INTERNAL_SERVER_ERROR");
-                done();
+                    expect(res.body.result.languages).to.equal("English, Hindi");
+                    expect(res.body.result.releaseDate).to.equal(process.env.RELEASE_DATE);
+                    done();
             });
     });
 });

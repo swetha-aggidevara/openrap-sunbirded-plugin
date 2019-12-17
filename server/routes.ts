@@ -576,7 +576,7 @@ export class Router {
       contentUpdate.contentUpdate(req, res);
     });
 
-    let desktopAppUpdate = new DesktopAppUpdate();
+    let desktopAppUpdate = new DesktopAppUpdate(manifest);
     app.get( "/api/desktop/v1/update",
     desktopAppUpdate.getDesktopAppUpate.bind(desktopAppUpdate)
     );
