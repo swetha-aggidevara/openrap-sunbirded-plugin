@@ -184,14 +184,14 @@ export default class ContentDownload {
                     // submitted - get from the content downloadDB and merge with data
                     logger.info(`ReqId = "${req.headers['X-msgid']}": download status is submitted`);
                     logger.debug(`ReqId = "${req.headers['X-msgid']}": Find submitted contents in ContentDb`)
-                    let submitted_CDB = await this.databaseSdk.find(dbName, {
+                    const submittedDbData = await this.databaseSdk.find(dbName, {
                         "selector": {
                             "status": CONTENT_DOWNLOAD_STATUS.Submitted
                         }
                     });
-                    logger.info(`ReqId = "${req.headers['X-msgid']}": Found Submitted Contents: ${submitted_CDB.docs.length}`)
-                    if (!_.isEmpty(submitted_CDB.docs)) {
-                        submitted = _.map(submitted_CDB.docs, (doc) => {
+                    logger.info(`ReqId = "${req.headers['X-msgid']}": Found Submitted Contents: ${submittedDbData.docs.length}`)
+                    if (!_.isEmpty(submittedDbData.docs)) {
+                        submitted = _.map(submittedDbData.docs, (doc) => {
                             return {
                                 "id": doc.downloadId,
                                 "contentId": doc.contentId,
@@ -212,7 +212,7 @@ export default class ContentDownload {
                 if (_.indexOf(status, API_DOWNLOAD_STATUS.completed) !== -1) {
                     logger.info(`ReqId = "${req.headers['X-msgid']}": download status is completed`);
                     logger.debug(`ReqId = "${req.headers['X-msgid']}": Find completed contents in ContentDb`)
-                    let completed_CDB = await this.databaseSdk.find(dbName, {
+                    const completedDbData = await this.databaseSdk.find(dbName, {
                         "selector": {
                             "status": CONTENT_DOWNLOAD_STATUS.Indexed,
                             "updatedOn": {
@@ -229,9 +229,9 @@ export default class ContentDownload {
                             }
                         ]
                     });
-                    if (!_.isEmpty(completed_CDB.docs)) {
-                        logger.info(`ReqId = "${req.headers['X-msgid']}": Found Submitted Contents: ${completed_CDB.docs.length}`)
-                        completed = _.map(completed_CDB.docs, (doc) => {
+                    if (!_.isEmpty(completedDbData.docs)) {
+                        logger.info(`ReqId = "${req.headers['X-msgid']}": Found Submitted Contents: ${completedDbData.docs.length}`)
+                        completed = _.map(completedDbData.docs, (doc) => {
                             return {
                                 "id": doc.downloadId,
                                 "contentId": doc.contentId,
@@ -253,12 +253,12 @@ export default class ContentDownload {
                 logger.debug(`ReqId = "${req.headers['X-msgid']}": Check download status is inprogress or not`);
                 if (_.indexOf(status, API_DOWNLOAD_STATUS.inprogress) !== -1) {
                     logger.info(`ReqId = "${req.headers['X-msgid']}": download status is inprogress`);
-                    let inprogressItems = await this.downloadManager.list(["INPROGRESS"]);
+                    const inprogressItems = await this.downloadManager.list(["INPROGRESS"]);
                     if (!_.isEmpty(inprogressItems)) {
                         let downloadIds = _.map(inprogressItems, 'id');
                         submitted = _.filter(submitted, (s) => { return _.indexOf(downloadIds, s.id) === -1 });
                         logger.debug(`ReqId = "${req.headers['X-msgid']}": Find inprogress contents in ContentDb`)
-                        let itemIn_CDB = await this.databaseSdk.find(dbName, {
+                        const inProgressDbData = await this.databaseSdk.find(dbName, {
                             "selector": {
                                 "downloadId": {
                                     "$in": downloadIds
@@ -273,9 +273,9 @@ export default class ContentDownload {
                                 }
                             ]
                         });
-                        logger.info(`ReqId = "${req.headers['X-msgid']}": Found inprogress Contents: ${itemIn_CDB.docs.length}`)
+                        logger.info(`ReqId = "${req.headers['X-msgid']}": Found inprogress Contents: ${inProgressDbData.docs.length}`)
                         _.forEach(inprogressItems, (item) => {
-                            let contentItem = _.find(itemIn_CDB.docs, { downloadId: item.id })
+                            let contentItem = _.find(inProgressDbData.docs, { downloadId: item.id })
                             inprogress.push({
                                 contentId: _.get(contentItem, 'contentId'),
                                 id: item.id,
@@ -297,7 +297,7 @@ export default class ContentDownload {
                 if (_.indexOf(status, API_DOWNLOAD_STATUS.failed) !== -1) {
                     logger.info(`ReqId = "${req.headers['X-msgid']}": download status is failed`);
                     logger.debug(`ReqId = "${req.headers['X-msgid']}": Find Failed contents in ContentDb`)
-                    let failed_CDB = await this.databaseSdk.find(dbName, {
+                    const failedDbData = await this.databaseSdk.find(dbName, {
                         "selector": {
                             "status": CONTENT_DOWNLOAD_STATUS.Failed,
                             "updatedOn": {
@@ -314,9 +314,9 @@ export default class ContentDownload {
                             }
                         ]
                     });
-                    if (!_.isEmpty(failed_CDB.docs)) {
-                        logger.info(`ReqId = "${req.headers['X-msgid']}": Found inprogress Contents: ${failed_CDB.docs.length}`)
-                        failed = _.map(failed_CDB.docs, (doc) => {
+                    if (!_.isEmpty(failedDbData.docs)) {
+                        logger.info(`ReqId = "${req.headers['X-msgid']}": Found inprogress Contents: ${failedDbData.docs.length}`)
+                        failed = _.map(failedDbData.docs, (doc) => {
                             return {
                                 "id": doc.downloadId,
                                 "contentId": doc.contentId,
@@ -339,7 +339,7 @@ export default class ContentDownload {
                 if (_.indexOf(status, API_DOWNLOAD_STATUS.paused) !== -1) {
                     logger.info(`ReqId = "${req.headers['X-msgid']}": download status is paused`);
                     logger.debug(`ReqId = "${req.headers['X-msgid']}": Find paused contents in ContentDb`)
-                    let paused_CDB = await this.databaseSdk.find(dbName, {
+                    const pausedDbData = await this.databaseSdk.find(dbName, {
                         "selector": {
                             "status": CONTENT_DOWNLOAD_STATUS.Paused,
                             "createdOn": {
@@ -353,9 +353,9 @@ export default class ContentDownload {
                             }
                         ]
                     });
-                    if (!_.isEmpty(paused_CDB.docs)) {
-                        logger.info(`ReqId = "${req.headers['X-msgid']}": Found paused Contents: ${paused_CDB.docs.length}`)
-                        paused = _.map(paused_CDB.docs, (doc) => {
+                    if (!_.isEmpty(pausedDbData.docs)) {
+                        logger.info(`ReqId = "${req.headers['X-msgid']}": Found paused Contents: ${pausedDbData.docs.length}`)
+                        paused = _.map(pausedDbData.docs, (doc) => {
                             return {
                                 "id": doc.downloadId,
                                 "contentId": doc.contentId,
