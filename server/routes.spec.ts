@@ -801,7 +801,7 @@ describe("App Update", () => {
     });
 
     it("#app INFO ERROR", (done) => {
-        const HTTPServiceSpy = spy.on(HTTPService, "post", (data) => of({data:
+        const HTTPServiceSpy = spy.on(HTTPService, "post", (data) => throwError({data:
             {result: mockData.app_update_error.result}}));
         process.env.RELEASE_DATE = "16 December 2019";
         supertest(app)
@@ -811,7 +811,7 @@ describe("App Update", () => {
                 expect(res.body.result.deviceId).to.be.a("string");
                 expect(res.body.result.languages).to.equal("English, Hindi");
                 expect(res.body.result.releaseDate).to.equal(process.env.RELEASE_DATE);
-                expect(res.body.result.updateInfo).to.contain(mockData.app_update_error.result);
+                expect(res.body.result).not.to.haveOwnProperty("updateInfo");
                 done();
             });
     });
