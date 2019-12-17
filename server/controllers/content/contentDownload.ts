@@ -169,7 +169,9 @@ export default class ContentDownload {
         (async () => {
             logger.debug(`ReqId = "${req.headers['X-msgid']}": ContentDownload List method is called`);
             try {
-                let status = [API_DOWNLOAD_STATUS.submitted, API_DOWNLOAD_STATUS.inprogress, API_DOWNLOAD_STATUS.completed, API_DOWNLOAD_STATUS.failed, API_DOWNLOAD_STATUS.paused];
+                let status = [API_DOWNLOAD_STATUS.submitted, API_DOWNLOAD_STATUS.inprogress,
+                API_DOWNLOAD_STATUS.completed, API_DOWNLOAD_STATUS.failed,
+                API_DOWNLOAD_STATUS.paused, API_DOWNLOAD_STATUS.canceled];
                 if (!_.isEmpty(_.get(req, 'body.request.filters.status'))) {
                     status = _.get(req, 'body.request.filters.status');
                 }
@@ -178,6 +180,7 @@ export default class ContentDownload {
                 let failed = [];
                 let completed = [];
                 let paused = [];
+                let canceled = [];
                 let contentListArray = [];
                 logger.debug(`ReqId = "${req.headers['X-msgid']}": Check download status is submitted or not`);
                 if (_.indexOf(status, API_DOWNLOAD_STATUS.submitted) !== -1) {
@@ -334,6 +337,45 @@ export default class ContentDownload {
                     }
                 }
 
+                // cancelled -  get from the content downloadDB
+                logger.debug(`ReqId = "${req.headers['X-msgid']}": Check download status is canceled or not`);
+                if (_.indexOf(status, API_DOWNLOAD_STATUS.canceled) !== -1) {
+                    logger.info(`ReqId = "${req.headers['X-msgid']}": download status is canceled`);
+                    logger.debug(`ReqId = "${req.headers['X-msgid']}": Find canceled contents in ContentDb`)
+                    const canceledDbData = await this.databaseSdk.find(dbName, {
+                        "selector": {
+                            "status": CONTENT_DOWNLOAD_STATUS.Canceled,
+                            "createdOn": {
+                                "$gt": null
+                            },
+                        },
+                        "limit": 50,
+                        "sort": [
+                            {
+                                "createdOn": "desc"
+                            }
+                        ]
+                    });
+                    if (!_.isEmpty(canceledDbData.docs)) {
+                        logger.info(`ReqId = "${req.headers['X-msgid']}": Found canceled Contents: ${canceledDbData.docs.length}`)
+                        canceled = _.map(canceledDbData.docs, (doc) => {
+                            return {
+                                "id": doc.downloadId,
+                                "contentId": doc.contentId,
+                                "resourceId": _.get(doc, 'queueMetaData.resourceId'),
+                                "mimeType": doc.queueMetaData.mimeType,
+                                "name": doc.name,
+                                "status": ImportStatus[7],
+                                "createdOn": doc.createdOn,
+                                "pkgVersion": _.get(doc, 'queueMetaData.pkgVersion'),
+                                "contentType": _.get(doc, 'queueMetaData.contentType'),
+                                "totalSize": doc.size,
+                                "addedUsing": "download"
+                            };
+                        })
+                    }
+                }
+
                 // paused -  get from the content downloadDB and download queue
                 logger.debug(`ReqId = "${req.headers['X-msgid']}": Check download status is paused or not`);
                 if (_.indexOf(status, API_DOWNLOAD_STATUS.paused) !== -1) {
@@ -376,7 +418,8 @@ export default class ContentDownload {
 
                 logger.info(`ReqId = "${req.headers['X-msgid']}": Received all downloaded Contents`);
                 const importJobs = await this.listContentImport();
-                contentListArray = _.concat(submitted, inprogress, failed, completed, paused, importJobs.importList)
+                contentListArray = _.concat(submitted, inprogress, failed, completed,
+                    canceled, paused, importJobs.importList);
 
                 return res.send(Response.success("api.content.download.list", {
                     response: {
