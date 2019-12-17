@@ -591,9 +591,13 @@ export class Router {
       contentUpdate.contentUpdate(req, res);
     });
 
-    let desktopAppUpdate = new DesktopAppUpdate();
+    let desktopAppUpdate = new DesktopAppUpdate(manifest);
     app.get( "/api/desktop/v1/update",
-    desktopAppUpdate.getDesktopAppUpate.bind(desktopAppUpdate)
+    desktopAppUpdate.getDesktopAppUpdate.bind(desktopAppUpdate)
+    );
+
+    app.get( "/api/app/v1/info",
+    desktopAppUpdate.getAppInfo.bind(desktopAppUpdate)
     );
 
     let user = new User(manifest);
