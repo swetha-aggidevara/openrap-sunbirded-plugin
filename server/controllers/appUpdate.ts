@@ -15,7 +15,7 @@ const systemInfo = {
     s390: "64bit",
     s390x: "64bit",
     win32: "windows",
-    linux: "linux"
+    linux: "linux",
 };
 
 export default class Appupdate {
