@@ -28,7 +28,7 @@ export default class Appupdate {
     public async getDeviceId(manifest) {
         this.deviceId = await containerAPI.getSystemSDKInstance(manifest.id).getDeviceId();
     }
-    public async getDesktopAppUpate(req, res) {
+    public async getDesktopAppUpdate(req, res) {
         try {
             const data = await this.checkForUpdate();
             logger.info(`ReqId = "${req.headers["X-msgid"]}": result: ${data} found from desktop app update api`);
