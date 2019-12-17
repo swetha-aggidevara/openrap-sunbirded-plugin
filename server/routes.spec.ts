@@ -769,6 +769,52 @@ describe("App Update", () => {
                 done();
             });
     });
+
+    it("#app INFO", (done) => {
+        const HTTPServiceSpy = spy.on(HTTPService, "post", (data) => of({data: {result: mockData.appUpdate}}));
+        process.env.RELEASE_DATE = "16 December 2019";
+        supertest(app)
+            .get("/api/app/v1/info")
+            .expect(200)
+            .end((err, res) => {
+                expect(res.body.result.deviceId).to.be.a("string");
+                expect(res.body.result.languages).to.equal("English, Hindi");
+                expect(res.body.result.releaseDate).to.equal(process.env.RELEASE_DATE);
+                expect(res.body.result.updateInfo).to.contain(mockData.appUpdate);
+                done();
+            });
+    });
+
+    it("#app INFO ", (done) => {
+        const HTTPServiceSpy = spy.on(HTTPService, "post", (data) => of({data: {result: mockData.not_updated}}));
+        process.env.RELEASE_DATE = "16 December 2019";
+        supertest(app)
+            .get("/api/app/v1/info")
+            .expect(200)
+            .end((err, res) => {
+                expect(res.body.result.deviceId).to.be.a("string");
+                expect(res.body.result.languages).to.equal("English, Hindi");
+                expect(res.body.result.releaseDate).to.equal(process.env.RELEASE_DATE);
+                expect(res.body.result.updateInfo).to.contain(mockData.not_updated);
+                done();
+            });
+    });
+
+    it("#app INFO ERROR", (done) => {
+        const HTTPServiceSpy = spy.on(HTTPService, "post", (data) => throwError({data:
+            {result: mockData.app_update_error.result}}));
+        process.env.RELEASE_DATE = "16 December 2019";
+        supertest(app)
+            .get("/api/app/v1/info")
+            .expect(200)
+            .end((err, res) => {
+                expect(res.body.result.deviceId).to.be.a("string");
+                expect(res.body.result.languages).to.equal("English, Hindi");
+                expect(res.body.result.releaseDate).to.equal(process.env.RELEASE_DATE);
+                expect(res.body.result).not.to.haveOwnProperty("updateInfo");
+                done();
+            });
+    });
 });
 
 describe("Test Page assemble with and without referrer", () => {

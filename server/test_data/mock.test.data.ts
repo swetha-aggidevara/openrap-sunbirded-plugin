@@ -69,3 +69,17 @@ export const appUpdate = {
 export const not_updated = {
             updateAvailable: false
 }
+export const app_update_error = {
+  'id': 'api.desktop.update',
+  'ver': '1.0',
+  'ts': '2019-10-25T09:39:51.560Z',
+  'params': {
+    'resmsgid': '9652a082-9677-4ccf-91e9-f138fd80c410',
+    'msgid': 'c246387b-a3a6-4a98-b150-73b1bbab7665',
+    'status': 'failed',
+    'err': 'ERR_INTERNAL_SERVER_ERROR',
+    'errmsg': 'Error while processing the request'
+  },
+  'responseCode': 'INTERNAL_SERVER_ERROR',
+  'result': {}
+}
