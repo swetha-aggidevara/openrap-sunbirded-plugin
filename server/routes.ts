@@ -562,6 +562,21 @@ export class Router {
     app.post("/api/content/v1/download/:id", (req, res) => {
       contentDownload.download(req, res);
     });
+    app.post("/api/content/v1/download/pause/:downloadId",
+      contentDownload.pause.bind(contentDownload),
+    );
+
+    app.post("/api/content/v1/download/resume/:downloadId",
+      contentDownload.resume.bind(contentDownload),
+    );
+
+    app.post("/api/content/v1/download/cancel/:downloadId",
+      contentDownload.cancel.bind(contentDownload),
+    );
+
+    app.post("/api/content/v1/download/retry/:downloadId",
+      contentDownload.retry.bind(contentDownload),
+    );
 
     telemetry = new Telemetry(manifest);
 

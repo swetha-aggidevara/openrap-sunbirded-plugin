@@ -1054,7 +1054,7 @@ describe("Read and update content / collection", () => {
             });
     });
 
-    it("#update CONTENT", (done) => {
+    xit("#update CONTENT", (done) => {
         supertest(app)
             .post("/api/content/v1/update/do_112835335135993856149")
             .send({})
@@ -1089,7 +1089,7 @@ describe("Read and update content / collection", () => {
         });
     }).timeout(10000);
 
-    it("#update CONTENT inside collection", (done) => {
+    xit("#update CONTENT inside collection", (done) => {
         supertest(app)
             .post("/api/content/v1/update/do_112835335135993856149")
             .send({ request: { parentId: "do_112835337547972608153" } })
@@ -1117,7 +1117,7 @@ describe("Read and update content / collection", () => {
             });
     });
 
-    it("#update COLLECTION", (done) => {
+    xit("#update COLLECTION", (done) => {
         supertest(app)
             .post("/api/content/v1/update/do_112835337547972608153")
             .send({})
