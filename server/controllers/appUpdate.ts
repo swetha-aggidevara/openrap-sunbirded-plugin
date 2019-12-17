@@ -30,7 +30,7 @@ export default class Appupdate {
     }
     public async getDesktopAppUpate(req, res) {
         try {
-            const data = await this.getAppUpdates();
+            const data = await this.checkForUpdate();
             logger.info(`ReqId = "${req.headers["X-msgid"]}": result: ${data} found from desktop app update api`);
             return res.send(Response.success("api.desktop.update", _.get(data, "data.result"), req));
         } catch (err) {
@@ -42,19 +42,18 @@ export default class Appupdate {
 
     public async getAppInfo(req, res) {
             logger.debug(`ReqId = "${req.headers["X-msgid"]}": getAppInfo() is called`);
-            const data = await this.getAppUpdates();
-            const resObj = {
-                    appVersion: process.env.APP_VERSION,
-                    releaseDate: process.env.RELEASE_DATE,
-                    deviceId: this.deviceId,
-                    languages: config.get("LANGUAGES"),
-                    appUpdates: _.get(data, "data.result"),
-                };
-            return res.send(Response.success("api.app.info", resObj, req ));
+            const data = await this.checkForUpdate().catch((error) =>
+            logger.error(`error while checking for update ${error.message} ${error.status}`));
+            return res.send(Response.success("api.app.info", {
+                appVersion: process.env.APP_VERSION,
+                releaseDate: process.env.RELEASE_DATE,
+                deviceId: this.deviceId,
+                languages: config.get("LANGUAGES"),
+                updateInfo: _.get(data, "data.result"),
+            }, req ));
     }
 
-    public async getAppUpdates() {
-        try {
+    private async checkForUpdate(): Promise<any> {
             const body = {
                 request: {
                     appVersion: process.env.APP_VERSION,
@@ -68,11 +67,7 @@ export default class Appupdate {
                     "content-type": "application/json",
                 },
             };
-            const data = await HTTPService.post(`${process.env.APP_BASE_URL}/api/desktop/v1/update`, body, appConfig)
+            return HTTPService.post(`${process.env.APP_BASE_URL}/api/desktop/v1/update`, body, appConfig)
             .toPromise();
-            return data;
-        } catch (error) {
-            return error;
-        }
     }
 }
