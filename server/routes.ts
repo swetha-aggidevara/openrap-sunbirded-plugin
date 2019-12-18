@@ -565,6 +565,21 @@ export class Router {
     app.post("/api/content/v1/download/:id", (req, res) => {
       contentDownload.download(req, res);
     });
+    app.post("/api/content/v1/download/pause/:downloadId",
+      contentDownload.pause.bind(contentDownload),
+    );
+
+    app.post("/api/content/v1/download/resume/:downloadId",
+      contentDownload.resume.bind(contentDownload),
+    );
+
+    app.post("/api/content/v1/download/cancel/:downloadId",
+      contentDownload.cancel.bind(contentDownload),
+    );
+
+    app.post("/api/content/v1/download/retry/:downloadId",
+      contentDownload.retry.bind(contentDownload),
+    );
 
     telemetry = new Telemetry(manifest);
 
@@ -579,9 +594,13 @@ export class Router {
       contentUpdate.contentUpdate(req, res);
     });
 
-    let desktopAppUpdate = new DesktopAppUpdate();
+    let desktopAppUpdate = new DesktopAppUpdate(manifest);
     app.get( "/api/desktop/v1/update",
-    desktopAppUpdate.getDesktopAppUpate.bind(desktopAppUpdate)
+    desktopAppUpdate.getDesktopAppUpdate.bind(desktopAppUpdate)
+    );
+
+    app.get( "/api/app/v1/info",
+    desktopAppUpdate.getAppInfo.bind(desktopAppUpdate)
     );
 
     let user = new User(manifest);

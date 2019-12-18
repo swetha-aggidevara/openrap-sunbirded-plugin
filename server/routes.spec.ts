@@ -769,6 +769,52 @@ describe("App Update", () => {
                 done();
             });
     });
+
+    it("#app INFO", (done) => {
+        const HTTPServiceSpy = spy.on(HTTPService, "post", (data) => of({data: {result: mockData.appUpdate}}));
+        process.env.RELEASE_DATE = "16 December 2019";
+        supertest(app)
+            .get("/api/app/v1/info")
+            .expect(200)
+            .end((err, res) => {
+                expect(res.body.result.deviceId).to.be.a("string");
+                expect(res.body.result.languages).to.equal("English, Hindi");
+                expect(res.body.result.releaseDate).to.equal(process.env.RELEASE_DATE);
+                expect(res.body.result.updateInfo).to.contain(mockData.appUpdate);
+                done();
+            });
+    });
+
+    it("#app INFO ", (done) => {
+        const HTTPServiceSpy = spy.on(HTTPService, "post", (data) => of({data: {result: mockData.not_updated}}));
+        process.env.RELEASE_DATE = "16 December 2019";
+        supertest(app)
+            .get("/api/app/v1/info")
+            .expect(200)
+            .end((err, res) => {
+                expect(res.body.result.deviceId).to.be.a("string");
+                expect(res.body.result.languages).to.equal("English, Hindi");
+                expect(res.body.result.releaseDate).to.equal(process.env.RELEASE_DATE);
+                expect(res.body.result.updateInfo).to.contain(mockData.not_updated);
+                done();
+            });
+    });
+
+    it("#app INFO ERROR", (done) => {
+        const HTTPServiceSpy = spy.on(HTTPService, "post", (data) => throwError({data:
+            {result: mockData.app_update_error.result}}));
+        process.env.RELEASE_DATE = "16 December 2019";
+        supertest(app)
+            .get("/api/app/v1/info")
+            .expect(200)
+            .end((err, res) => {
+                expect(res.body.result.deviceId).to.be.a("string");
+                expect(res.body.result.languages).to.equal("English, Hindi");
+                expect(res.body.result.releaseDate).to.equal(process.env.RELEASE_DATE);
+                expect(res.body.result).not.to.haveOwnProperty("updateInfo");
+                done();
+            });
+    });
 });
 
 describe("Test Page assemble with and without referrer", () => {
@@ -1042,7 +1088,7 @@ describe("Read and update content / collection", () => {
             });
     });
 
-    it("#update CONTENT", (done) => {
+    xit("#update CONTENT", (done) => {
         supertest(app)
             .post("/api/content/v1/update/do_112835335135993856149")
             .send({})
@@ -1077,7 +1123,7 @@ describe("Read and update content / collection", () => {
         });
     }).timeout(10000);
 
-    it("#update CONTENT inside collection", (done) => {
+    xit("#update CONTENT inside collection", (done) => {
         supertest(app)
             .post("/api/content/v1/update/do_112835335135993856149")
             .send({ request: { parentId: "do_112835337547972608153" } })
@@ -1105,7 +1151,7 @@ describe("Read and update content / collection", () => {
             });
     });
 
-    it("#update COLLECTION", (done) => {
+    xit("#update COLLECTION", (done) => {
         supertest(app)
             .post("/api/content/v1/update/do_112835337547972608153")
             .send({})
