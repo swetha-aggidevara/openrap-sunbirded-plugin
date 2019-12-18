@@ -39,7 +39,7 @@ export class Router {
         const refererUrl = new url.URL(req.get("referer"));
         let pathName = refererUrl.pathname;
         let isMyDownloads = false;
-        if (req.query.isMyDownloads) {
+        if (_.get(req, 'query.isMyDownloads')) {
           isMyDownloads = req.query.isMyDownloads.toLowerCase() == 'true' ? true : false;
         }
         isProxyEnabled = isMyDownloads || _.startsWith(pathName, "/browse");
