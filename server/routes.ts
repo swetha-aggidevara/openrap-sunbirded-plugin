@@ -476,8 +476,9 @@ export class Router {
         logger.debug(`Received API call to search content`);
         logger.debug(`ReqId = "${req.headers["X-msgid"]}": Check proxy`);
 
-        const role = _.get(req,'query.role') || 'offline';
-        if (role === 'online') {
+        let online = _.get(req, 'query.online');
+        online = Boolean(online.toLowerCase() === 'true');
+        if (online) {
           logger.info(`Proxy is Enabled `);
           logger.debug(
             `ReqId = "${req.headers["X-msgid"]}": Update requestbody`
