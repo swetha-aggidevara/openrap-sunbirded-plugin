@@ -15,7 +15,7 @@ const telemetryEnv = "ContentImportManager";
 const telemetryInstance = containerAPI.getTelemetrySDKInstance().getInstance();
 logger.info("System is running on", os.cpus().length, "cpus");
 const maxRunningImportJobs = 1 || os.cpus().length;
-const DEFAULT_CHECK_IMPORT_STATUS = [ImportStatus.reconcile, ImportStatus.resume, ImportStatus.inQueue];
+const DEFAULT_IMPORT_CHECK_STATUS = [ImportStatus.reconcile, ImportStatus.resume, ImportStatus.inQueue];
 export class ContentImportManager {
 
   @Inject private dbSDK: DatabaseSDK;
@@ -38,16 +38,14 @@ export class ContentImportManager {
       logger.log("reconcile error while fetching inProgress content from DB", err.message);
       return { docs: [] };
     });
-    logger.info("list of inProgress jobs found while reconcile", inProgressJob.docs.length);
+    logger.info("length of inProgress jobs found while reconcile", inProgressJob.docs.length);
     if (inProgressJob.docs.length) {
       const updateQuery: IContentImport[] = _.map(inProgressJob.docs, (job: IContentImport) => {
         job.status = ImportStatus.reconcile;
         return job;
       });
       await this.dbSDK.bulk("content_manager", updateQuery)
-        .catch((err) => {
-          logger.log("reconcile error while updating status to DB", err.message);
-        });
+        .catch((err) => logger.log("reconcile error while updating status to DB", err.message));
     }
     this.checkImportQueue();
   }
@@ -55,9 +53,8 @@ export class ContentImportManager {
   public async registerImportJob(ecarPaths: string[]): Promise<string[]> {
     logger.info("registerImportJob started for ", ecarPaths);
     ecarPaths = await this.getUnregisteredEcars(ecarPaths);
-    logger.info("after unique check", ecarPaths);
+    logger.info("Unregistered Ecars:", ecarPaths);
     if (!ecarPaths || !ecarPaths.length) {
-      logger.debug("no unique ecar found, exiting registerImportJob");
       throw {
         errCode: "ECARS_ADDED_ALREADY",
         errMessage: "All ecar are added to content manager",
@@ -192,7 +189,7 @@ export class ContentImportManager {
     telemetryInstance.audit(telemetryEvent);
   }
 
-  private async checkImportQueue(status: ImportStatus[] = DEFAULT_CHECK_IMPORT_STATUS) {
+  private async checkImportQueue(status: ImportStatus[] = DEFAULT_IMPORT_CHECK_STATUS) {
     const dbResponse = await this.dbSDK.find("content_manager", { // TODO:Query needs to be optimized
       selector: {
         type: IAddedUsingType.import,
