@@ -9,7 +9,7 @@ import { logger } from "@project-sunbird/ext-framework-server/logger";
 import { containerAPI } from "OpenRAP/dist/api";
 import { manifest } from "../../manifest";
 import { IAddedUsingType } from "../../controllers/content/IContent";
-import { ImportContent } from "./ImportContent";
+import { ImportContent } from "./contentImport";
 import { Inject } from "typescript-ioc";
 const telemetryEnv = "ContentImportManager";
 const telemetryInstance = containerAPI.getTelemetrySDKInstance().getInstance();

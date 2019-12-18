@@ -2,7 +2,7 @@ import * as childProcess from "child_process";
 import { IContentImport, ImportStatus, ImportSteps, ErrorObj } from "./IContentImport";
 import { Inject } from "typescript-ioc";
 import * as path from "path";
-import DatabaseSDK from "./../../sdk/database";
+import DatabaseSDK from "../../sdk/database";
 import { logger } from "@project-sunbird/ext-framework-server/logger";
 import { containerAPI } from "OpenRAP/dist/api";
 import { manifest } from "../../manifest";
