@@ -34,17 +34,13 @@ export class Router {
       .getInstance();
     const enableProxy = req => {
       logger.debug(`ReqId = "${req.headers["X-msgid"]}": Checking the proxy`);
-      let isProxyEnabled = false;
+      let flag = false;
       if (req.get("referer")) {
         const refererUrl = new url.URL(req.get("referer"));
         let pathName = refererUrl.pathname;
-        let isMyDownloads = false;
-        if (_.get(req, 'query.isMyDownloads')) {
-          isMyDownloads = req.query.isMyDownloads.toLowerCase() == 'true' ? true : false;
-        }
-        isProxyEnabled = isMyDownloads || _.startsWith(pathName, "/browse");
+        flag = _.startsWith(pathName, "/browse");
       }
-      return isProxyEnabled;
+      return flag;
     };
 
     const updateRequestBody = req => {
@@ -478,9 +474,10 @@ export class Router {
       "/api/content/v1/search",
       (req, res, next) => {
         logger.debug(`Received API call to search content`);
-
         logger.debug(`ReqId = "${req.headers["X-msgid"]}": Check proxy`);
-        if (enableProxy(req)) {
+
+        const role = _.get(req,'query.role') || 'offline';
+        if (role === 'online') {
           logger.info(`Proxy is Enabled `);
           logger.debug(
             `ReqId = "${req.headers["X-msgid"]}": Update requestbody`
