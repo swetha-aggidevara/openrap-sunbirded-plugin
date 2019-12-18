@@ -34,13 +34,17 @@ export class Router {
       .getInstance();
     const enableProxy = req => {
       logger.debug(`ReqId = "${req.headers["X-msgid"]}": Checking the proxy`);
-      let flag = false;
+      let isProxyEnabled = false;
       if (req.get("referer")) {
         const refererUrl = new url.URL(req.get("referer"));
         let pathName = refererUrl.pathname;
-        flag = _.startsWith(pathName, "/browse");
+        let isMyDownloads = false;
+        if (req.query.isMyDownloads) {
+          isMyDownloads = req.query.isMyDownloads.toLowerCase() == 'true' ? true : false;
+        }
+        isProxyEnabled = isMyDownloads || _.startsWith(pathName, "/browse");
       }
-      return flag;
+      return isProxyEnabled;
     };
 
     const updateRequestBody = req => {
