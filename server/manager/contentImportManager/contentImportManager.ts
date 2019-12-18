@@ -1,16 +1,16 @@
+import * as fs from "fs";
 import * as  _ from "lodash";
-import * as uuid from "uuid";
 import * as os from "os";
-import { IContentImport, ImportStatus, ImportSteps, handelError } from "./IContentImport"
-import { Inject } from "typescript-ioc";
 import * as path from "path";
+import * as uuid from "uuid";
+import { handelError, IContentImport, ImportStatus, ImportSteps } from "./IContentImport";
 import DatabaseSDK from "./../../sdk/database";
 import { logger } from "@project-sunbird/ext-framework-server/logger";
 import { containerAPI } from "OpenRAP/dist/api";
 import { manifest } from "../../manifest";
 import { IAddedUsingType } from "../../controllers/content/IContent";
-import * as  fs from "fs";
 import { ImportContent } from "./ImportContent";
+import { Inject } from "typescript-ioc";
 const telemetryEnv = "ContentImportManager";
 const telemetryInstance = containerAPI.getTelemetrySDKInstance().getInstance();
 logger.info("System is running on", os.cpus().length, "cpus");

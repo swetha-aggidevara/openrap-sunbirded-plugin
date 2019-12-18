@@ -47,6 +47,12 @@ export interface IContentImport {
   extractedEcarEntries: object;
   artifactUnzipped: object;
   childNodes?: string[];
+  contentAdded?: string[];
+  contentSkipped?: IContentSkipped[];
+}
+export interface IContentSkipped {
+  id: string;
+  reason: string;
 }
 export interface IContentManifest {
   archive: {

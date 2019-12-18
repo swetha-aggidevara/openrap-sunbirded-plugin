@@ -101,7 +101,7 @@ export class ImportContent {
   private saveDataFromWorker(contentImportData: IContentImport) {
     this.contentImportData = {
       ...this.contentImportData,
-      ..._.pick(contentImportData, ["childNodes", "contentId", "mimeType", "extractedEcarEntries", "artifactUnzipped", "progress", "contentSize", "pkgVersion"]),
+      ..._.pick(contentImportData, ["childNodes", "contentId", "mimeType", "extractedEcarEntries", "artifactUnzipped", "progress", "contentSize", "pkgVersion", "contentSkipped", "contentAdded"]),
     };
   }
 
@@ -144,6 +144,7 @@ export class ImportContent {
       await this.saveContentsToDb(dbContents);
       this.contentImportData.importStep = ImportSteps.complete;
       this.contentImportData.status = ImportStatus.completed;
+      logger.info("--------import complete-------", JSON.stringify(this.contentImportData));
       await this.syncStatusToDb();
       this.cb(null, this.contentImportData);
     } catch (err) {
@@ -163,51 +164,48 @@ export class ImportContent {
     logger.info(this.contentImportData._id, "saving contents to db");
     this.manifestJson = await this.fileSDK.readJSON(
       path.join(path.join(this.fileSDK.getAbsPath("content"), this.contentImportData.contentId), "manifest.json"));
-    const parent = _.get(this.manifestJson, "archive.items[0]");
-    parent._id = parent.identifier;
-    const dbParent: any = _.find(dbContents, { identifier: parent.identifier });
-    if (dbParent) {
-      parent._rev = dbParent._rev;
+    const resources = _.reduce(_.get(this.manifestJson, "archive.items"), (acc, item) => {
+      const parentContent = item.identifier === this.contentImportData.contentId;
+      if (item.mimeType === "application/vnd.ekstep.content-collection" && !parentContent) {
+        logger.info("Skipped writing to db for content", item.identifier, "reason: collection and not parent");
+        return acc; // db entry not required for collection which are not parent
+      }
+      const dbResource: any = _.find(dbContents, { identifier: item.identifier });
+      const artifactAdded = parentContent ? true : _.includes(this.contentImportData.contentAdded, item.identifier);
+      if ((dbResource && _.get(dbResource, "desktopAppMetadata.artifactAdded") && !artifactAdded)) {
+        logger.info("Skipped writing to db for content", item.identifier, "reason: content already added to db and no changes required or artifact not present",
+        parentContent, artifactAdded, !dbResource);
+        // content added with artifact already or added without artifact but ecar has no artifact for this content
+        return acc; // then return
+      }
+      item._id = item.identifier;
+      item.baseDir = `content/${item.identifier}`;
+      item.desktopAppMetadata = {
+        addedUsing: IAddedUsingType.import,
+        createdOn: Date.now(),
+        updatedOn: Date.now(),
+        artifactAdded,
+      };
+      item.appIcon = item.appIcon ? `content/${item.appIcon}` : item.appIcon;
+      if (dbResource) {
+        item._rev = dbResource._rev;
+        item.visibility = dbResource.visibility;
+        item.desktopAppMetadata.createdOn = dbResource.desktopAppMetadata.createdOn;
+      }
+      if (parentContent && item.mimeType === "application/vnd.ekstep.content-collection") {
+        const itemsClone = _.cloneDeep(_.get(this.manifestJson, "archive.items"));
+        item.children = this.createHierarchy(itemsClone, item);
+      }
+      acc.push(item);
+      logger.info("Writing to db for content", { id: item.identifier, parentContent, artifactAdded,
+        notInDb: !dbResource});
+      return acc;
+    }, []);
+    if (!resources.length) {
+      logger.info("Skipping bulk update for ImportId", this.contentImportData._id);
+      return true;
     }
-    parent.baseDir = `content/${parent.identifier}`;
-    parent.desktopAppMetadata = {
-      addedUsing: IAddedUsingType.import,
-      createdOn: Date.now(),
-      updatedOn: Date.now(),
-    };
-    let resources = [];
-    if (this.contentImportData.mimeType === "application/vnd.ekstep.content-collection") {
-      const itemsClone = _.cloneDeep(_.get(this.manifestJson, "archive.items"));
-      parent.children = this.createHierarchy(itemsClone, parent);
-      resources = _.filter(_.get(this.manifestJson, "archive.items"), (item) => (item.mimeType !== "application/vnd.ekstep.content-collection"))
-        .map((resource) => {
-          resource._id = resource.identifier;
-          resource.baseDir = `content/${resource.identifier}`;
-          resource.desktopAppMetadata = {
-            addedUsing: IAddedUsingType.import,
-            createdOn: Date.now(),
-            updatedOn: Date.now(),
-          };
-          resource.appIcon = resource.appIcon ? `content/${resource.appIcon}` : resource.appIcon;
-          const dbResource: any = _.find(dbContents, { identifier: parent.identifier });
-          if (dbResource) {
-            resource._rev = dbResource._rev;
-            resource.visibility = dbResource.visibility;
-          }
-          return resource;
-        });
-    }
-    await this.dbSDK.bulk("content", [parent, ...resources]);
-  }
-
-  private async importComplete() {
-    if (this.contentImportData.importStep !== ImportSteps.complete) {
-      this.contentImportData.importStep = ImportSteps.complete;
-      this.contentImportData.status = ImportStatus.completed;
-      await this.syncStatusToDb();
-    }
-    this.cb(null, this.contentImportData);
-    this.workerProcessRef.kill();
+    await this.dbSDK.bulk("content", resources);
   }
 
   private async copyEcar() {
@@ -234,8 +232,6 @@ export class ImportContent {
         this.extractEcar();
       } else if (data.message === ImportSteps.extractEcar) {
         this.processContents();
-      } else if (data.message === ImportSteps.complete) {
-        this.importComplete();
       } else if (data.message === "DATA_SYNC") {
         this.syncStatusToDb();
       } else if (data.message === "LOG") {

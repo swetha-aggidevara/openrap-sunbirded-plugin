@@ -1,4 +1,4 @@
-import { IContentImport, ImportSteps, ImportProgress, getErrorObj, handelError, ErrorObj } from "./IContentImport"
+import { ErrorObj, getErrorObj, handelError, IContentImport, ImportProgress, ImportSteps } from "./IContentImport"
 import * as  StreamZip from "node-stream-zip";
 import * as  fs from "fs";
 import * as  _ from "lodash";
@@ -7,7 +7,7 @@ import { manifest } from "../../manifest";
 import { containerAPI } from "OpenRAP/dist/api";
 import config from "../../config";
 import { Subject } from "rxjs";
-import { throttleTime } from "rxjs/operators";
+import { debounceTime, throttleTime } from "rxjs/operators";
 const collectionMimeType = "application/vnd.ekstep.content-collection";
 let zipHandler, zipEntries, dbContents, manifestJson, contentImportData: IContentImport;
 const fileSDK = containerAPI.getFileSDKInstance(manifest.id);
@@ -18,7 +18,7 @@ const syncCloser = (initialProgress, percentage, totalSize = contentImportData.c
   initialProgress = initialProgress ? initialProgress : contentImportData.progress;
   let completed = 1;
   const syncData$ = new Subject<number>();
-  const subscription = syncData$.pipe(throttleTime(2500)).subscribe((data) => {
+  const subscription = syncData$.pipe(debounceTime(2500)).subscribe((data) => {
     const newProgress = ((completed / totalSize) * percentage);
     contentImportData.progress = initialProgress + newProgress;
     sendMessage("DATA_SYNC");
@@ -96,8 +96,8 @@ const parseEcar = async () => {
 const extractZipEntry = async (identifier: string, contentBasePath: string[], entry: string, syncFunc: Function)
   : Promise<boolean | any> => {
   const zipEntry = (identifier === contentImportData.contentId) ? entry : identifier + "/" + entry;
-  const entryObj = zipEntries[zipEntry] || zipEntries["/" + zipEntry]
-    || zipEntries[entry] || zipEntries["/" + entry]; // last two checks to support mobile
+  const entryObj = zipEntries[zipEntry] || zipEntries["/" + zipEntry] ||
+  (!_.includes(["manifest.json", "hierarchy.json"], entry) && zipEntries["/" + entry]); // last checks to support mobile
   if (!entryObj) {
     return false;
   }
@@ -112,7 +112,8 @@ const extractZipEntry = async (identifier: string, contentBasePath: string[], en
 
 const extractEcar = async () => {
   try {
-    const corruptContent = [];
+    contentImportData.contentSkipped = [];
+    contentImportData.contentAdded = [];
     zipHandler = zipHandler ||
       await loadZipHandler(path.join(ecarFolder, contentImportData._id + ".ecar")).catch(handelError("LOAD_ECAR"));
     manifestJson = manifestJson || await fileSDK.readJSON(path.join(contentFolder, contentImportData._id, "manifest.json"));
@@ -128,20 +129,24 @@ const extractEcar = async () => {
         [contentImportData.contentId, content.identifier] : [content.identifier];
       await fileSDK.mkdir(path.join("content", path.join(...contentBasePath)));
       await extractZipEntry(content.identifier, contentBasePath, content.appIcon, syncFunc);
-      const manifestExtracted = await extractZipEntry(content.identifier, contentBasePath, "manifest.json", syncFunc);
-      if (!manifestExtracted) { // exit if manifest is missing
-        corruptContent.push({ id: content.identifier, reason: "MANIFEST_MISSING" });
-        return;
+      await extractZipEntry(content.identifier, contentBasePath, "manifest.json", syncFunc);
+      if (collection) {
+        if (parent) { // extract hierarchy file for parent if its a collection
+          await extractZipEntry(content.identifier, contentBasePath, "hierarchy.json", syncFunc);
+        }
+        return; // exit if content is collection
       }
-      if (collection || (content.artifactUrl && !path.extname(content.artifactUrl))) { // exit if content is collection
+      if (content.artifactUrl && !path.extname(content.artifactUrl)) { // exit if online only content
+        contentImportData.contentAdded.push(content.identifier);
         return;
       }
       const artifactExtracted = await extractZipEntry(content.identifier, contentBasePath,
         content.artifactUrl, syncFunc);
       if (!artifactExtracted) { // exit if artifact is missing
-        corruptContent.push({ id: content.identifier, reason: "ARTIFACT_MISSING" });
+        contentImportData.contentSkipped.push({ id: content.identifier, reason: "ARTIFACT_MISSING" });
         return;
       }
+      contentImportData.contentAdded.push(content.identifier);
       if (artifactExtracted.name.endsWith(".zip")) { // append zip entry along with size to unzip later
         artifactToBeUnzippedSize += artifactExtracted.compressedSize;
         artifactToBeUnzipped.push({
@@ -151,14 +156,15 @@ const extractEcar = async () => {
       }
     };
     for (const content of _.get(manifestJson, "archive.items")) { // loop items in manifest and extract its contents
-      const dbContent = _.find(dbContents, { identifier: content.identifier });
-      if (!dbContent) { // if content already imported do nothing
+      const dbContent: any = _.find(dbContents, { identifier: content.identifier });
+      if (!dbContent || content.pkgVersion > dbContent.pkgVersion
+        || !_.get(dbContent, "desktopAppMetadata.artifactAdded")) { // if content not imported or new ver available
         await extractContent(content, (content.identifier === contentImportData.contentId),
           (content.mimeType === collectionMimeType));
+      } else {
+        contentImportData.contentSkipped.push({ id: content.identifier, reason: "CONTENT_IMPORTED_ALREADY" });
       }
     }
-    await extractZipEntry(contentImportData.contentId, [contentImportData.contentId],
-      "hierarchy.json", syncFunc); // extract hierarchy file for parent if its a collection
     syncFunc().unsubscribe();
     process.send({ message: "LOG", logType: "info", logBody: [contentImportData._id, "ecar extracted"] });
     await unzipArtifacts(artifactToBeUnzipped, artifactToBeUnzippedSize)
