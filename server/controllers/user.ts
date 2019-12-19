@@ -47,4 +47,30 @@ export default class User {
             );
         }
     }
+    public async update(req, res) {
+        logger.debug(`ReqId =  ${req.headers["X-msgid"]}: update user  method is called `);
+
+        try {
+            const reqObj = _.get(req.body, "request");
+            reqObj._id = _.get(reqObj, "identifier");
+            logger.info(`ReqId =  ${req.headers["X-msgid"]}: updating user  data in user Sdk`);
+            await this.userSDK.update(reqObj);
+            res.status(200);
+            return res.send(Response.success("api.desktop.user.update", {identifier: reqObj._id}, req));
+        } catch (err) {
+            logger.error(
+                `ReqId = "${req.headers[
+                "X-msgid"
+                ]}": Received error while updating in user  database and err.message: ${err.message} ${err}`,
+            );
+            if (err.status === 404) {
+                res.status(404);
+                return res.send(Response.error("api.desktop.user.update", 404));
+            } else {
+                const status = err.status || 500;
+                res.status(status);
+                return res.send(Response.error("api.desktop.user.update", status));
+            }
+        }
+    }
 }
