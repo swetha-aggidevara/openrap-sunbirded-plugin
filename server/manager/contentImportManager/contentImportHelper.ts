@@ -80,6 +80,7 @@ const parseEcar = async () => {
     }
     contentImportData.contentId = parent.identifier;
     contentImportData.mimeType = parent.mimeType;
+    contentImportData.contentType = parent.contentType;
     contentImportData.pkgVersion = _.toString(parent.pkgVersion) || "1.0";
     if (contentImportData.mimeType === "application/vnd.ekstep.content-collection") {
       contentImportData.childNodes = _.filter(_.get(manifestJson, "archive.items"),

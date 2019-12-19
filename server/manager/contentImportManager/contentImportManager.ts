@@ -9,9 +9,10 @@ import { logger } from "@project-sunbird/ext-framework-server/logger";
 import { containerAPI } from "OpenRAP/dist/api";
 import { manifest } from "../../manifest";
 import { IAddedUsingType } from "../../controllers/content/IContent";
+import { TelemetryHelper } from "../../helper";
 import { ImportContent } from "./contentImport";
 import { Inject } from "typescript-ioc";
-const telemetryEnv = "ContentImportManager";
+const telemetryEnv = "Content";
 const telemetryInstance = containerAPI.getTelemetrySDKInstance().getInstance();
 logger.info("System is running on", os.cpus().length, "cpus");
 const maxRunningImportJobs = 1 || os.cpus().length;
@@ -19,6 +20,7 @@ const DEFAULT_IMPORT_CHECK_STATUS = [ImportStatus.reconcile, ImportStatus.resume
 export class ContentImportManager {
 
   @Inject private dbSDK: DatabaseSDK;
+  @Inject private telemetryHelper: TelemetryHelper;
   private runningImportJobs: IRunningImportJobs[] = [];
   public async initialize(pluginId, contentFilesPath, downloadsFolderPath) {
     this.dbSDK.initialize(manifest.id);
@@ -170,6 +172,19 @@ export class ContentImportManager {
     });
   }
 
+  private async constructShareEvent(data) {
+    const telemetryShareItems = [{
+      id: _.get(data, "contentId"),
+      type: _.get(data, "contentType"),
+      ver: _.toString(_.get(data, "pkgVersion")),
+      origin: {
+        id: await containerAPI.getSystemSDKInstance(manifest.id).getDeviceId(),
+        type: "Device",
+      },
+    }];
+    this.telemetryHelper.logShareEvent(telemetryShareItems, "In");
+  }
+
   private logSubmitAuditEvent(id, filePath, props) {
     const telemetryEvent = {
       context: {
@@ -270,6 +285,9 @@ export class ContentImportManager {
       this.logAuditEvent(data, ImportStatus[ImportStatus.failed], ImportStatus[ImportStatus.inProgress]);
       logger.error("Import job failed for", data._id, " with err", err);
     } else {
+      // Adding telemetry share event
+      this.constructShareEvent(data);
+
       this.logAuditEvent(data, ImportStatus[ImportStatus.completed], ImportStatus[ImportStatus.inProgress]);
       logger.log("Import job completed for", data._id);
     }

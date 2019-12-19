@@ -15,6 +15,8 @@ import { containerAPI } from "OpenRAP/dist/api";
 import * as TreeModel from "tree-model";
 import { HTTPService } from "@project-sunbird/ext-framework-server/services";
 import { ExportContent } from "../../manager/contentExportManager"
+import { manifest } from "../../manifest";
+import { TelemetryHelper } from "../../helper";
 
 export enum DOWNLOAD_STATUS {
     SUBMITTED = "DOWNLOADING",
@@ -31,16 +33,18 @@ export default class Content {
     @Inject
     private databaseSdk: DatabaseSDK;
 
+    @Inject private telemetryHelper: TelemetryHelper;
+
     @Inject
     private contentImportManager: ContentImportManager;
 
     private fileSDK;
 
-    constructor(manifest: Manifest) {
-        this.databaseSdk.initialize(manifest.id);
-        this.fileSDK = containerAPI.getFileSDKInstance(manifest.id);
+    constructor(maniFest: Manifest) {
+        this.databaseSdk.initialize(maniFest.id);
+        this.fileSDK = containerAPI.getFileSDKInstance(maniFest.id);
         this.contentImportManager.initialize(
-            manifest.id,
+            maniFest.id,
             this.fileSDK.getAbsPath(this.contentsFilesPath),
             this.fileSDK.getAbsPath(this.ecarsFolderPath)
         );
@@ -253,6 +257,10 @@ export default class Content {
                 res.status(500);
                 return res.send(Response.error("api.content.export", 500));
             }
+            // Adding telemetry share event
+            const exportedChildContentCount = childNode.length - data.skippedContent.length;
+            this.constructShareEvent(content, exportedChildContentCount);
+
             res.status(200);
             res.send(Response.success(`api.content.export`, {
                     response: {
@@ -261,6 +269,24 @@ export default class Content {
                 }, req));
         });
     }
+
+    private async constructShareEvent(data, childCount) {
+        const transfers = 1 + childCount;
+        const telemetryShareItems = [{
+            id: _.get(data, "contentId"),
+            type: _.get(data, "contentType"),
+            ver: _.toString(_.get(data, "pkgVersion")),
+            params: [
+                { transfers: _.toString(transfers) },
+                { size: _.toString(_.get(data, "size")) },
+            ],
+            origin: {
+                id: await containerAPI.getSystemSDKInstance(manifest.id).getDeviceId(),
+                type: "Device",
+            },
+        }];
+        this.telemetryHelper.logShareEvent(telemetryShareItems, "Out");
+      }
 
     /* This method converts the buffer data to json and if any error will catch and return the buffer data */
 
