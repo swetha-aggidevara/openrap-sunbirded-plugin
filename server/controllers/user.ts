@@ -48,12 +48,12 @@ export default class User {
         }
     }
     public async update(req, res) {
-        logger.debug(`ReqId =  ${req.headers["X-msgid"]}: update user content preferences method is called `);
+        logger.debug(`ReqId =  ${req.headers["X-msgid"]}: update user  method is called `);
 
         try {
             const reqObj = _.get(req.body, "request");
             reqObj._id = _.get(reqObj, "identifier");
-            logger.info(`ReqId =  ${req.headers["X-msgid"]}: updating user content preferences data in user Sdk`);
+            logger.info(`ReqId =  ${req.headers["X-msgid"]}: updating user  data in user Sdk`);
             await this.userSDK.update(reqObj);
             res.status(200);
             return res.send(Response.success("api.desktop.user.update", {identifier: reqObj._id}, req));
@@ -61,7 +61,7 @@ export default class User {
             logger.error(
                 `ReqId = "${req.headers[
                 "X-msgid"
-                ]}": Received error while updating in user content preferences database and err.message: ${err.message} ${err}`,
+                ]}": Received error while updating in user  database and err.message: ${err.message} ${err}`,
             );
             if (err.status === 404) {
                 res.status(404);
