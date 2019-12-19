@@ -1209,10 +1209,11 @@ describe("Read and update content / collection", () => {
 
 });
 
-describe("Search for content", () => {
-    it("#Search Content", (done) => {
+describe.only("Search for content", () => {
+    it("#Offline Search Content", (done) => {
         supertest(app)
             .post("/api/content/v1/search")
+            .query({online: false})
             .send({ request: { filters: { channel: "505c7c48ac6dc1edc9b08f21db5a571d", contentType: ["Collection", "TextBook", "LessonPlan", "Resource"] }, limit: 20, query: "maths",  softConstraints: { badgeAssertions: 98, board: 99, channel: 100 }, mode: "soft", facets: ["board", "medium", "gradeLevel", "subject", "contentType"], offset: 0 } })
             .expect(200)
             .end((err, res) => {
@@ -1226,11 +1227,11 @@ describe("Search for content", () => {
             });
     });
 
-    it("#Set referrer to Search Content", (done) => {
+    it("#Online Search Content", (done) => {
         supertest(app)
             .post("/api/content/v1/search")
+            .query({online: true})
             .send({ request: { filters: { channel: "505c7c48ac6dc1edc9b08f21db5a571d", contentType: ["Collection", "TextBook", "LessonPlan", "Resource"] }, limit: 20, query: "maths",  softConstraints: { badgeAssertions: 98, board: 99, channel: 100 }, mode: "soft", facets: ["board", "medium", "gradeLevel", "subject", "contentType"], offset: 0 } })
-            .set("Referer", `${process.env.APP_BASE_URL}/browse`)
             .expect(200)
             .end((err, res) => {
                 if (res.statusCode >= 500) { logger.error(err); return done(); }
@@ -1243,10 +1244,10 @@ describe("Search for content", () => {
             });
     });
 
-    it("#Set Referrer for Search Content (ERROR)", (done) => {
+    it("#Online Search Content (ERROR)", (done) => {
         supertest(app)
             .post("/api/content/v1/search")
-            .set("Referer", `${process.env.APP_BASE_URL}/browse`)
+            .query({online: true})
             .send({})
             .expect(500)
             .end((err, res) => {
@@ -1258,9 +1259,10 @@ describe("Search for content", () => {
     });
     });
 
-    it("#Search Content return empty list", (done) => {
+    it("#Offline Search Content return empty list", (done) => {
                 supertest(app)
                     .post("/api/content/v1/search")
+                    .query({online: false})
                     .send({})
                     .expect(200)
                     .end((err, res) => {
@@ -1272,9 +1274,10 @@ describe("Search for content", () => {
                     });
         });
 
-    it("#Search Content query", (done) => {
+    it("#Offline Search Content query", (done) => {
         supertest(app)
             .post("/api/content/v1/search")
+            .query({online: false})
             .send({ request: { filters: { channel: "505c7c48ac6dc1edc9b08f21db5a571d", contentType: ["Collection", "TextBook", "LessonPlan", "Resource"] }, limit: 20, softConstraints: { badgeAssertions: 98, board: 99, channel: 100 }, mode: "soft", facets: ["board", "medium", "gradeLevel", "subject", "contentType"], offset: 0, query: "kp" } })
             .expect(200)
             .end((err, res) => {
