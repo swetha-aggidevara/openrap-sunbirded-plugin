@@ -49,13 +49,12 @@ export default class User {
     }
     public async update(req, res) {
         logger.debug(`ReqId =  ${req.headers["X-msgid"]}: update user content preferences method is called `);
-        const contentData = _.get(req.body, "request");
+
         try {
-            const reqObj = contentData;
-            reqObj._id = _.get(contentData, "identifier");
-            const userSDK = containerAPI.getUserSdkInstance();
+            const reqObj = _.get(req.body, "request");
+            reqObj._id = _.get(reqObj, "identifier");
             logger.info(`ReqId =  ${req.headers["X-msgid"]}: updating user content preferences data in user Sdk`);
-            const response = await userSDK.update(reqObj);
+            await this.userSDK.update(reqObj);
             res.status(200);
             return res.send(Response.success("api.desktop.user.update", {identifier: reqObj._id}, req));
         } catch (err) {
