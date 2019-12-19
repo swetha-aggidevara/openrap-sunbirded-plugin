@@ -196,12 +196,12 @@ export class ExportContent {
   }
   private getManifestBuffer(manifestJson) {
     const manifestData = {
-      id: "ekstep.content.archive",
+      id: "content.archive",
       ver: manifestJson.pkgVersion || "1.0",
       ts: new Date(),
       params: { resmsgid: uuid() },
       archive: {
-        count: 1,
+        count: _.get(manifestJson, "archive.items.length") || 1,
         ttl: 24,
         items: [manifestJson],
       },
