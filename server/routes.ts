@@ -474,9 +474,11 @@ export class Router {
       "/api/content/v1/search",
       (req, res, next) => {
         logger.debug(`Received API call to search content`);
-
         logger.debug(`ReqId = "${req.headers["X-msgid"]}": Check proxy`);
-        if (enableProxy(req)) {
+
+        const online = Boolean(_.get(req, 'query.online') && req.query.online.toLowerCase() === 'true');
+
+        if (online) {
           logger.info(`Proxy is Enabled `);
           logger.debug(
             `ReqId = "${req.headers["X-msgid"]}": Update requestbody`
@@ -592,26 +594,26 @@ export class Router {
     });
 
     let desktopAppUpdate = new DesktopAppUpdate(manifest);
-    app.get( "/api/desktop/v1/update",
-    desktopAppUpdate.getDesktopAppUpdate.bind(desktopAppUpdate)
+    app.get("/api/desktop/v1/update",
+      desktopAppUpdate.getDesktopAppUpdate.bind(desktopAppUpdate)
     );
 
-    app.get( "/api/app/v1/info",
-    desktopAppUpdate.getAppInfo.bind(desktopAppUpdate)
+    app.get("/api/app/v1/info",
+      desktopAppUpdate.getAppInfo.bind(desktopAppUpdate)
     );
 
     let user = new User(manifest);
-    app.post( "/api/desktop/user/v1/create",
+    app.post("/api/desktop/user/v1/create",
       user.create.bind(user)
     );
 
-    app.get( "/api/desktop/user/v1/read",
+    app.get("/api/desktop/user/v1/read",
       user.read.bind(user)
     );
 
     let location = new Location(manifest);
     app.post(
-      "/api/data/v1/location/search",location.proxyToAPI.bind(location), location.search.bind(location)
+      "/api/data/v1/location/search", location.proxyToAPI.bind(location), location.search.bind(location)
     );
     app.post(
       "/api/data/v1/location/save", location.saveLocation.bind(location)
