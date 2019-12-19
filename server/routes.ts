@@ -129,7 +129,9 @@ export class Router {
         "/browse/*",
         "/search/*",
         "/help-center",
-        "/help-center/*"
+        "/help-center/*",
+        "/profile",
+        "/profile/*",
       ],
       async (req, res) => {
         const locals = await this.getLocals(manifest);
@@ -612,6 +614,9 @@ export class Router {
 
     app.get("/api/desktop/user/v1/read",
       user.read.bind(user)
+    );
+    app.post(
+      "/api/desktop/user/v1/update", user.update.bind(user),
     );
 
     let location = new Location(manifest);
