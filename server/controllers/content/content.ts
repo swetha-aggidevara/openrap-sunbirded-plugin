@@ -166,75 +166,84 @@ export default class Content {
             });
     }
 
-    async import(req: any, res: any) {
-        const ecarFilePaths = req.body
+    public async import(req: any, res: any) {
+        const ecarFilePaths = req.body;
         if (!ecarFilePaths) {
             return res.status(400).send(Response.error(`api.content.import`, 400, "MISSING_ECAR_PATH"));
         }
-        this.contentImportManager.registerImportJob(ecarFilePaths).then(jobIds => {
-            res.send(Response.success('api.content.import', {
-                importedJobIds: jobIds
-            }, req))
-        }).catch(err => {
+        this.contentImportManager.registerImportJob(ecarFilePaths).then((jobIds) => {
+            res.send(Response.success("api.content.import", {
+                importedJobIds: jobIds,
+            }, req));
+        }).catch((err) => {
             res.status(500);
-            res.send(Response.error(`api.content.import`, 400, err.errMessage || err.message, err.code))
+            res.send(Response.error(`api.content.import`, 400, err.errMessage || err.message, err.code));
         });
     }
-    async pauseImport(req: any, res: any) {
-        this.contentImportManager.pauseImport(req.params.importId).then(jobIds => {
-            res.send(Response.success('api.content.import', {
-                jobIds
-            }, req))
-        }).catch(err => {
+    public async pauseImport(req: any, res: any) {
+        this.contentImportManager.pauseImport(req.params.importId).then((jobIds) => {
+            res.send(Response.success("api.content.import", {
+                jobIds,
+            }, req));
+        }).catch((err) => {
             res.status(500);
-            res.send(Response.error(`api.content.import`, 400, err.message))
+            res.send(Response.error(`api.content.import`, 400, err.message));
         });
     }
-    async resumeImport(req: any, res: any) {
-        this.contentImportManager.resumeImport(req.params.importId).then(jobIds => {
-            res.send(Response.success('api.content.import', {
-                jobIds
-            }, req))
-        }).catch(err => {
+    public async resumeImport(req: any, res: any) {
+        this.contentImportManager.resumeImport(req.params.importId).then((jobIds) => {
+            res.send(Response.success("api.content.import", {
+                jobIds,
+            }, req));
+        }).catch((err) => {
             res.status(500);
-            res.send(Response.error(`api.content.import`, 400, err.message))
-        });;
+            res.send(Response.error(`api.content.import`, 400, err.message));
+        });
     }
-    async cancelImport(req: any, res: any) {
-        await this.contentImportManager.cancelImport(req.params.importId).then(jobIds => {
-            res.send(Response.success('api.content.import', {
-                jobIds
-            }, req))
-        }).catch(err => {
+    public async cancelImport(req: any, res: any) {
+        await this.contentImportManager.cancelImport(req.params.importId).then((jobIds) => {
+            res.send(Response.success("api.content.import", {
+                jobIds,
+            }, req));
+        }).catch((err) => {
             res.status(500);
-            res.send(Response.error(`api.content.import`, 400, err.message))
-        });;
+            res.send(Response.error(`api.content.import`, 400, err.message));
+        });
     }
-
-    async export(req: any, res: any): Promise<any> {
-        let id = req.params.id;
-        let destFolder = req.query.destFolder;
-        logger.debug(`ReqId = "${req.headers['X-msgid']}": Get Content: ${id} from ContentDB`)
-        let content = await this.databaseSdk.get('content', id);
+    public async retryImport(req: any, res: any) {
+        this.contentImportManager.resumeImport(req.params.importId).then((jobIds) => {
+            res.send(Response.success("api.content.retry", {
+                jobIds,
+            }, req));
+        }).catch((err) => {
+            res.status(500);
+            res.send(Response.error(`api.content.retry`, 400, err.message));
+        });
+    }
+    public async export(req: any, res: any): Promise<any> {
+        const id = req.params.id;
+        const destFolder = req.query.destFolder;
+        logger.debug(`ReqId = "${req.get("X-msgid")}": Get Content: ${id} from ContentDB`);
+        const content = await this.databaseSdk.get("content", id);
         let childNode = [];
-        if (content.mimeType === 'application/vnd.ekstep.content-collection') {
-            let dbChildResponse = await this.databaseSdk.find('content',
+        if (content.mimeType === "application/vnd.ekstep.content-collection") {
+            const dbChildResponse = await this.databaseSdk.find("content",
                 {
                     selector: {
                         $and: [
                             {
                                 _id: {
-                                    $in: content.childNodes
-                                }
+                                    $in: content.childNodes,
+                                },
                             },
                             {
                                 mimeType: {
-                                    $nin: ['application/vnd.ekstep.content-collection']
-                                }
-                            }
-                        ]
-                    }
-                }
+                                    $nin: ["application/vnd.ekstep.content-collection"]
+                                },
+                            },
+                        ],
+                    },
+                },
             );
             childNode = dbChildResponse.docs;
         }
@@ -242,13 +251,13 @@ export default class Content {
         contentExport.export((err, data) => {
             if (err) {
                 res.status(500);
-                return res.send(Response.error('api.content.export', 500));
+                return res.send(Response.error("api.content.export", 500));
             }
             res.status(200);
             res.send(Response.success(`api.content.export`, {
                     response: {
-                        ecarFilePath: data.ecarFilePath
-                    }
+                        ecarFilePath: data.ecarFilePath,
+                    },
                 }, req));
         });
     }

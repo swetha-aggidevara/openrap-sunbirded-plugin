@@ -550,7 +550,10 @@ export class Router {
       "/api/content/v1/import/cancel/:importId",
       content.cancelImport.bind(content)
     );
-
+    app.post(
+      "/api/content/v1/import/retry/:importId",
+      content.retryImport.bind(content),
+    );
     app.get(
       "/api/content/v1/export/:id",
       this.setConnectionTimeout(1200000),

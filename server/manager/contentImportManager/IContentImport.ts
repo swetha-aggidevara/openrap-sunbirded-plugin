@@ -3,7 +3,7 @@ export enum ImportSteps {
   parseEcar = "PARSE_ECAR",
   extractEcar = "EXTRACT_ECAR",
   processContents = "PROCESS_CONTENTS",
-  complete = "COMPLETE"
+  complete = "COMPLETE",
 }
 export enum ImportProgress {
   "COPY_ECAR" = 1,
@@ -11,7 +11,7 @@ export enum ImportProgress {
   "EXTRACT_ECAR" = 26,
   "EXTRACT_ARTIFACT" = 90,
   "PROCESS_CONTENTS" = 99,
-  "COMPLETE" = 100
+  "COMPLETE" = 100,
 }
 // Caution: reordering the enum might break the import flow
 export enum ImportStatus {
@@ -24,7 +24,7 @@ export enum ImportStatus {
   canceling,
   canceled,
   completed,
-  failed
+  failed,
 }
 
 export interface IContentImport {
@@ -44,27 +44,33 @@ export interface IContentImport {
   failedReason?: string;
   ecarSourcePath: string;
   importStep?: ImportSteps;
-  extractedEcarEntries: Object;
-  artifactUnzipped: Object;
-  childNodes?: Array<string>;
+  extractedEcarEntries: object;
+  artifactUnzipped: object;
+  childNodes?: string[];
+  contentAdded?: string[];
+  contentSkipped?: IContentSkipped[];
+}
+export interface IContentSkipped {
+  id: string;
+  reason: string;
 }
 export interface IContentManifest {
   archive: {
-    items: Array<any>;
+    items: any[];
   };
 }
 export class ErrorObj {
-  constructor(public errCode: string, public errMessage: string){
+  constructor(public errCode: string, public errMessage: string) {
   }
 }
 export const getErrorObj = (error, errCode = "UNHANDLED_ERROR") => {
-  if(error instanceof ErrorObj){
+  if (error instanceof ErrorObj) {
     return error;
   }
   return new ErrorObj(errCode, error.message);
-}
+};
 export const handelError = (errCode) => {
   return (error: Error) => {
     throw getErrorObj(error, errCode);
-  }
-}
+  };
+};
