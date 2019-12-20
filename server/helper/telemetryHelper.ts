@@ -1,11 +1,10 @@
 import * as _ from "lodash";
 import { containerAPI } from "OpenRAP/dist/api";
-const telemetryEnv = "Content";
 const telemetryInstance = containerAPI.getTelemetrySDKInstance().getInstance();
 
 export default class TelemetryHelper {
 
-    public logShareEvent(shareItems: object[], dir: string) {
+    public logShareEvent(shareItems: object[], dir: string, telemetryEnv: string) {
         const telemetryEvent: any = {
             context: {
                 env: telemetryEnv,
@@ -19,7 +18,7 @@ export default class TelemetryHelper {
         telemetryInstance.share(telemetryEvent);
     }
 
-    public logSearchEvent(edata: {}) {
+    public logSearchEvent(edata: {}, telemetryEnv: string) {
         const telemetryEvent: any = {
             context: {
                 env: telemetryEnv,

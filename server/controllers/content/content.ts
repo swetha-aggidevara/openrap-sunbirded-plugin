@@ -281,7 +281,7 @@ export default class Content {
             correlationid: _.get(res, "params.msgid"),
             size: _.get(res, "result.count"),
         };
-        this.telemetryHelper.logSearchEvent(edata);
+        this.telemetryHelper.logSearchEvent(edata, "Content");
     }
 
     private async constructShareEvent(data, childCount) {
@@ -299,7 +299,7 @@ export default class Content {
                 type: "Device",
             },
         }];
-        this.telemetryHelper.logShareEvent(telemetryShareItems, "Out");
+        this.telemetryHelper.logShareEvent(telemetryShareItems, "Out", "Content");
     }
 
     /* This method converts the buffer data to json and if any error will catch and return the buffer data */

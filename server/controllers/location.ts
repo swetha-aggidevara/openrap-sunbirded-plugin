@@ -7,12 +7,14 @@ import * as _ from "lodash";
 import { containerAPI } from "OpenRAP/dist/api";
 import * as path from "path";
 import { Inject } from "typescript-ioc";
+import TelemetryHelper from "../helper/telemetryHelper";
 import DatabaseSDK from "../sdk/database/index";
 import Response from "./../utils/response";
 import { ILocation } from "./ILocation";
 
 export class Location {
     @Inject private databaseSdk: DatabaseSDK;
+    @Inject private telemetryHelper: TelemetryHelper;
 
     private fileSDK;
     private settingSDK;
@@ -81,7 +83,9 @@ export class Location {
                 response: locationType === "district" ? response[0] : response,
             };
             logger.info(`ReqId =  ${req.headers["X-msgid"]}: got data from db`);
-            return res.send(Response.success("api.location.search", resObj, req));
+            const responseObj = Response.success("api.location.search", resObj, req);
+            this.constructSearchEdata(req, responseObj);
+            return res.send(responseObj);
         }).catch((err) => {
             logger.error(
                 `ReqId = "${req.headers[
@@ -135,7 +139,9 @@ export class Location {
             };
 
             logger.debug(`ReqId =  ${req.headers["X-msgid"]}: fetchLocationFromOffline method is calling `);
-            return res.send(Response.success("api.location.search", resObj, req));
+            const responseObj = Response.success("api.location.search", resObj, req);
+            this.constructSearchEdata(req, responseObj);
+            return res.send(responseObj);
         } catch (err) {
             logger.error(`ReqId =  ${req.headers["X-msgid"]}: Error Received while getting data from Online ${err}`);
             next();
@@ -241,6 +247,16 @@ export class Location {
             res.status(status);
             return res.send(Response.error("api.location.read", status));
         }
+    }
+    private constructSearchEdata(req, res) {
+        const edata = {
+            type: "location",
+            query: _.get(req, "body.request.query"),
+            filters: _.get(req, "body.request.filters"),
+            correlationid: _.get(res, "params.msgid"),
+            size: _.get(res, "result.response").length,
+        };
+        this.telemetryHelper.logSearchEvent(edata, "Location");
     }
 
 }

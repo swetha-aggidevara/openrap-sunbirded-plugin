@@ -65,7 +65,7 @@ export class Router {
         correlationid: _.get(proxyData, "params.msgid"),
         size: _.get(proxyData, "result.count"),
       };
-      telemetryHelper.logSearchEvent(edata);
+      telemetryHelper.logSearchEvent(edata, "Content");
     };
 
     const logTelemetryEvent = (req, res, next) => {

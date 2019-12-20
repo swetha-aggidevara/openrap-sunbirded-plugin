@@ -176,7 +176,7 @@ export default class ContentDownload {
             type: _.get(content, "data.result.content.contentType"),
             ver: _.toString(_.get(content, "data.result.content.pkgVersion")),
         }];
-        this.telemetryHelper.logShareEvent(telemetryShareItems, "In");
+        this.telemetryHelper.logShareEvent(telemetryShareItems, "In", "Content");
     }
 
     list(req: any, res: any): any {

@@ -182,7 +182,7 @@ export class ContentImportManager {
         type: "Device",
       },
     }];
-    this.telemetryHelper.logShareEvent(telemetryShareItems, "In");
+    this.telemetryHelper.logShareEvent(telemetryShareItems, "In", "Content");
   }
 
   private logSubmitAuditEvent(id, filePath, props) {
