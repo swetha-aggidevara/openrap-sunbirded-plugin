@@ -18,12 +18,13 @@ logger.info("System is running on", os.cpus().length, "cpus");
 const maxRunningImportJobs = 1 || os.cpus().length;
 const DEFAULT_IMPORT_CHECK_STATUS = [ImportStatus.reconcile, ImportStatus.resume, ImportStatus.inQueue];
 export class ContentImportManager {
-
+  private deviceId: string;
   @Inject private dbSDK: DatabaseSDK;
   @Inject private telemetryHelper: TelemetryHelper;
   private runningImportJobs: IRunningImportJobs[] = [];
   public async initialize(pluginId, contentFilesPath, downloadsFolderPath) {
     this.dbSDK.initialize(manifest.id);
+    this.getDeviceId();
   }
   /*
   method to reconcile import which dint complete when app was closed last time
@@ -50,6 +51,10 @@ export class ContentImportManager {
         .catch((err) => logger.log("reconcile error while updating status to DB", err.message));
     }
     this.checkImportQueue();
+  }
+
+  public async getDeviceId() {
+    this.deviceId = await containerAPI.getSystemSDKInstance(manifest.id).getDeviceId();
   }
 
   public async registerImportJob(ecarPaths: string[]): Promise<string[]> {
@@ -178,7 +183,7 @@ export class ContentImportManager {
       type: _.get(data, "contentType"),
       ver: _.toString(_.get(data, "pkgVersion")),
       origin: {
-        id: await containerAPI.getSystemSDKInstance(manifest.id).getDeviceId(),
+        id: this.deviceId,
         type: "Device",
       },
     }];
