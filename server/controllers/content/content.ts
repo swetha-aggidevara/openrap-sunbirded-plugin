@@ -15,7 +15,6 @@ import { containerAPI } from "OpenRAP/dist/api";
 import * as TreeModel from "tree-model";
 import { HTTPService } from "@project-sunbird/ext-framework-server/services";
 import { ExportContent } from "../../manager/contentExportManager"
-import { manifest } from "../../manifest";
 import TelemetryHelper from "../../helper/telemetryHelper";
 import { response } from "express";
 
@@ -41,11 +40,11 @@ export default class Content {
 
     private fileSDK;
 
-    constructor(maniFest: Manifest) {
-        this.databaseSdk.initialize(maniFest.id);
-        this.fileSDK = containerAPI.getFileSDKInstance(maniFest.id);
+    constructor(private manifest: Manifest) {
+        this.databaseSdk.initialize(manifest.id);
+        this.fileSDK = containerAPI.getFileSDKInstance(manifest.id);
         this.contentImportManager.initialize(
-            maniFest.id,
+            manifest.id,
             this.fileSDK.getAbsPath(this.contentsFilesPath),
             this.fileSDK.getAbsPath(this.ecarsFolderPath)
         );
@@ -295,7 +294,7 @@ export default class Content {
                 { size: _.toString(_.get(data, "size")) },
             ],
             origin: {
-                id: await containerAPI.getSystemSDKInstance(manifest.id).getDeviceId(),
+                id: await containerAPI.getSystemSDKInstance(this.manifest.id).getDeviceId(),
                 type: "Device",
             },
         }];
