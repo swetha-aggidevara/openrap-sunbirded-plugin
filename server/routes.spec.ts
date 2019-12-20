@@ -472,6 +472,62 @@ describe("User API", () => {
                 done();
             });
     });
+    it("#User update success", (done) => {
+        supertest(app)
+            .post("/api/desktop/user/v1/update")
+            .send({ request: {
+            _id: "9783dc11-206c-4a3e-917a-cf4853ce23a2",
+            framework: { board: "english", medium: ["english"], gradeLevel: ["class 5"] } } })
+            .expect(200)
+            .end((err, res) => {
+                if (res.statusCode >= 500) { logger.error(err); return done(); }
+                if (err && res.statusCode >= 400) { return done(); }
+                expect(res.body.params.status).to.equal("successful");
+                expect(res.body.id).to.equal("api.desktop.user.update").to.be.a("string");
+                expect(res.body.result.id).not.to.be.empty;
+                done();
+            });
+    });
+    it("#User update 500 internal server error", (done) => {
+        supertest(app)
+            .post("/api/desktop/user/v1/update")
+            .send()
+            .expect(500)
+            .end((err, res) => {
+                if (res.statusCode >= 500) { logger.error(err); return done(); }
+                if (err && res.statusCode >= 400) { return done(); }
+                expect(res.body.params.status).to.equal("failed");
+                expect(res.body.id).to.equal("api.desktop.user.update").to.be.a("string");
+                done();
+            });
+    });
+
+    it("#User update bad request", (done) => {
+        supertest(app)
+            .post("/api/desktop/user/v1/update")
+            .send({ request: {
+            framework: { board: "english", medium: ["english"], gradeLevel: ["class 5"] } } })
+            .expect(400)
+            .end((err, res) => {
+                if (res.statusCode >= 500) { logger.error(err); return done(); }
+                if (err && res.statusCode >= 400) { return done(); }
+                expect(res.body.params.err).to.equal("ERR_BAD_REQUEST");
+                expect(res.body.id).to.equal("api.desktop.user.update").to.be.a("string");
+                done();
+            });
+    });
+
+    it("#User update  404 (ERROR)", (done) => {
+        supertest(app)
+           .post("/api/desktop/user/v1/update")
+           .expect(404)
+           .end((err, res) => {
+               expect(res.body.params.status).to.equal("failed");
+               expect(res.body.id).to.equal("api.desktop.user.update");
+               expect(res.body.responseCode).to.equal("INTERNAL_SERVER_ERROR");
+               done();
+           });
+    });
 
 });
 
@@ -777,6 +833,7 @@ describe("App Update", () => {
             .get("/api/app/v1/info")
             .expect(200)
             .end((err, res) => {
+                expect(res.body.result.termsOfUseUrl).to.be.a("string").and.to.equal(`${process.env.APP_BASE_URL}/term-of-use.html`);
                 expect(res.body.result.deviceId).to.be.a("string");
                 expect(res.body.result.languages).to.equal("English, Hindi");
                 expect(res.body.result.releaseDate).to.equal(process.env.RELEASE_DATE);

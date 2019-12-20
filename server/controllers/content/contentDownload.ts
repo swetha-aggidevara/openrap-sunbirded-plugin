@@ -9,6 +9,7 @@ import { HTTPService } from "@project-sunbird/ext-framework-server/services";
 import * as path from "path";
 import { ImportStatus, IContentImport } from "../../manager/contentImportManager"
 import { IAddedUsingType } from '../../controllers/content/IContent';
+import TelemetryHelper from "../../helper/telemetryHelper";
 const sessionStartTime = Date.now();
 export enum CONTENT_DOWNLOAD_STATUS {
     Submitted = "SUBMITTED",
@@ -37,6 +38,8 @@ export default class ContentDownload {
     @Inject
     private databaseSdk: DatabaseSDK;
 
+    @Inject private telemetryHelper: TelemetryHelper;
+
     private downloadManager;
     private pluginId;
 
@@ -55,6 +58,8 @@ export default class ContentDownload {
                 let content = await HTTPService.get(`${process.env.APP_BASE_URL}/api/content/v1/read/${req.params.id}`, {}).toPromise()
                 logger.info(`ReqId = "${req.headers['X-msgid']}": Content: ${_.get(content, 'data.result.content.identifier')} found from content read api`);
                 if (_.get(content, 'data.result.content.mimeType')) {
+                    // Adding telemetry share event
+                    this.constructShareEvent(content);
                     // check if the content is type collection
                     logger.debug(`ReqId = "${req.headers['X-msgid']}": check if the content is of type collection`)
                     if (_.get(content, 'data.result.content.mimeType') !== "application/vnd.ekstep.content-collection") {
@@ -163,6 +168,15 @@ export default class ContentDownload {
                 return res.send(Response.error("api.content.download", 500))
             }
         })()
+    }
+
+    private constructShareEvent(content) {
+        const telemetryShareItems = [{
+            id: _.get(content, "data.result.content.identifier"),
+            type: _.get(content, "data.result.content.contentType"),
+            ver: _.toString(_.get(content, "data.result.content.pkgVersion")),
+        }];
+        this.telemetryHelper.logShareEvent(telemetryShareItems, "In", "Content");
     }
 
     list(req: any, res: any): any {

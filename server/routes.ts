@@ -23,6 +23,7 @@ import DesktopAppUpdate from "./controllers/appUpdate";
 import { Location } from './controllers/location';
 import User from "./controllers/user";
 import Response from "./utils/response";
+import TelemetryHelper from "./helper/telemetryHelper";
 
 let telemetry;
 
@@ -53,6 +54,18 @@ export class Router {
         };
       }
       return req;
+    };
+
+    const constructSearchEdata = (req, proxyData) => {
+      const telemetryHelper = new TelemetryHelper();
+      const edata = {
+        type: "content",
+        query: _.get(req, "body.request.query"),
+        filters: _.get(req, "body.request.filters"),
+        correlationid: _.get(proxyData, "params.msgid"),
+        size: _.get(proxyData, "result.count"),
+      };
+      telemetryHelper.logSearchEvent(edata, "Content");
     };
 
     const logTelemetryEvent = (req, res, next) => {
@@ -129,7 +142,9 @@ export class Router {
         "/browse/*",
         "/search/*",
         "/help-center",
-        "/help-center/*"
+        "/help-center/*",
+        "/profile",
+        "/profile/*",
       ],
       async (req, res) => {
         const locals = await this.getLocals(manifest);
@@ -507,6 +522,8 @@ export class Router {
               `ReqId = "${req.headers["X-msgid"]}": Convert buffer data to json`
             );
             const proxyData = content.convertBufferToJson(proxyResData, req);
+            constructSearchEdata(req, proxyData);
+
             let contents = _.get(proxyData, "result.content");
             if (!_.isEmpty(contents)) {
               logger.debug(
@@ -550,7 +567,10 @@ export class Router {
       "/api/content/v1/import/cancel/:importId",
       content.cancelImport.bind(content)
     );
-
+    app.post(
+      "/api/content/v1/import/retry/:importId",
+      content.retryImport.bind(content),
+    );
     app.get(
       "/api/content/v1/export/:id",
       this.setConnectionTimeout(1200000),
@@ -609,6 +629,9 @@ export class Router {
 
     app.get("/api/desktop/user/v1/read",
       user.read.bind(user)
+    );
+    app.post(
+      "/api/desktop/user/v1/update", user.update.bind(user),
     );
 
     let location = new Location(manifest);
