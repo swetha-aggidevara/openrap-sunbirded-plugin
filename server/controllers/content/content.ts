@@ -16,7 +16,8 @@ import * as TreeModel from "tree-model";
 import { HTTPService } from "@project-sunbird/ext-framework-server/services";
 import { ExportContent } from "../../manager/contentExportManager"
 import { manifest } from "../../manifest";
-import { TelemetryHelper } from "../../helper";
+import TelemetryHelper from "../../helper/telemetryHelper";
+import { response } from "express";
 
 export enum DOWNLOAD_STATUS {
     SUBMITTED = "DOWNLOADING",
@@ -150,7 +151,9 @@ export default class Content {
                     };
                 }
 
-                return res.send(Response.success('api.content.search', resObj, req));
+                const responseObj = Response.success('api.content.search', resObj, req);
+                this.constructSearchEdata(req, responseObj);
+                return res.send(responseObj);
             })
             .catch(err => {
                 console.log(err);
@@ -270,6 +273,17 @@ export default class Content {
         });
     }
 
+    private constructSearchEdata(req, res) {
+        const edata = {
+            type: "content",
+            query: _.get(req, "body.request.query"),
+            filters: _.get(req, "body.request.filters"),
+            correlationid: _.get(res, "params.msgid"),
+            size: _.get(res, "result.count"),
+        };
+        this.telemetryHelper.logSearchEvent(edata);
+    }
+
     private async constructShareEvent(data, childCount) {
         const transfers = 1 + childCount;
         const telemetryShareItems = [{
@@ -286,7 +300,7 @@ export default class Content {
             },
         }];
         this.telemetryHelper.logShareEvent(telemetryShareItems, "Out");
-      }
+    }
 
     /* This method converts the buffer data to json and if any error will catch and return the buffer data */
 

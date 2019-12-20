@@ -1,8 +1,9 @@
+import * as _ from "lodash";
 import { containerAPI } from "OpenRAP/dist/api";
 const telemetryEnv = "Content";
 const telemetryInstance = containerAPI.getTelemetrySDKInstance().getInstance();
 
-export class TelemetryHelper {
+export default class TelemetryHelper {
 
     public logShareEvent(shareItems: object[], dir: string) {
         const telemetryEvent: any = {
@@ -18,4 +19,21 @@ export class TelemetryHelper {
         telemetryInstance.share(telemetryEvent);
     }
 
+    public logSearchEvent(edata: {}) {
+        const telemetryEvent: any = {
+            context: {
+                env: telemetryEnv,
+            },
+            edata: {
+                type: _.get(edata, "type"),
+                query: _.get(edata, "query") || "",
+                filters: _.get(edata, "filters") || {},
+                sort: _.get(edata, "sort") || {},
+                correlationid:  _.get(edata, "correlationid") || "",
+                size:  _.get(edata, "size"),
+                topn:  _.get(edata, "topn") || [{}],
+            },
+        };
+        telemetryInstance.search(telemetryEvent);
+    }
 }

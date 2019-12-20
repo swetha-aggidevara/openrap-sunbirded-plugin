@@ -9,7 +9,7 @@ import { HTTPService } from "@project-sunbird/ext-framework-server/services";
 import * as path from "path";
 import { ImportStatus, IContentImport } from "../../manager/contentImportManager"
 import { IAddedUsingType } from '../../controllers/content/IContent';
-import { TelemetryHelper } from "../../helper";
+import TelemetryHelper from "../../helper/telemetryHelper";
 const sessionStartTime = Date.now();
 export enum CONTENT_DOWNLOAD_STATUS {
     Submitted = "SUBMITTED",
