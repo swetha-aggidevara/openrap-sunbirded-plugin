@@ -219,7 +219,7 @@ export default class Content {
         });
     }
     public async retryImport(req: any, res: any) {
-        this.contentImportManager.resumeImport(req.params.importId).then((jobIds) => {
+        this.contentImportManager.retryImport(req.params.importId).then((jobIds) => {
             res.send(Response.success("api.content.retry", {
                 jobIds,
             }, req));
