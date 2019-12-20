@@ -9,19 +9,22 @@ import { logger } from "@project-sunbird/ext-framework-server/logger";
 import { containerAPI } from "OpenRAP/dist/api";
 import { manifest } from "../../manifest";
 import { IAddedUsingType } from "../../controllers/content/IContent";
+import TelemetryHelper from "../../helper/telemetryHelper";
 import { ImportContent } from "./contentImport";
 import { Inject } from "typescript-ioc";
-const telemetryEnv = "ContentImportManager";
+const telemetryEnv = "Content";
 const telemetryInstance = containerAPI.getTelemetrySDKInstance().getInstance();
 logger.info("System is running on", os.cpus().length, "cpus");
 const maxRunningImportJobs = 1 || os.cpus().length;
 const DEFAULT_IMPORT_CHECK_STATUS = [ImportStatus.reconcile, ImportStatus.resume, ImportStatus.inQueue];
 export class ContentImportManager {
-
+  private deviceId: string;
   @Inject private dbSDK: DatabaseSDK;
+  @Inject private telemetryHelper: TelemetryHelper;
   private runningImportJobs: IRunningImportJobs[] = [];
   public async initialize(pluginId, contentFilesPath, downloadsFolderPath) {
     this.dbSDK.initialize(manifest.id);
+    this.getDeviceId();
   }
   /*
   method to reconcile import which dint complete when app was closed last time
@@ -48,6 +51,10 @@ export class ContentImportManager {
         .catch((err) => logger.log("reconcile error while updating status to DB", err.message));
     }
     this.checkImportQueue();
+  }
+
+  public async getDeviceId() {
+    this.deviceId = await containerAPI.getSystemSDKInstance(manifest.id).getDeviceId();
   }
 
   public async registerImportJob(ecarPaths: string[]): Promise<string[]> {
@@ -170,6 +177,19 @@ export class ContentImportManager {
     });
   }
 
+  private async constructShareEvent(data) {
+    const telemetryShareItems = [{
+      id: _.get(data, "contentId"),
+      type: _.get(data, "contentType"),
+      ver: _.toString(_.get(data, "pkgVersion")),
+      origin: {
+        id: this.deviceId,
+        type: "Device",
+      },
+    }];
+    this.telemetryHelper.logShareEvent(telemetryShareItems, "In", "Content");
+  }
+
   private logSubmitAuditEvent(id, filePath, props) {
     const telemetryEvent = {
       context: {
@@ -270,6 +290,9 @@ export class ContentImportManager {
       this.logAuditEvent(data, ImportStatus[ImportStatus.failed], ImportStatus[ImportStatus.inProgress]);
       logger.error("Import job failed for", data._id, " with err", err);
     } else {
+      // Adding telemetry share event
+      this.constructShareEvent(data);
+
       this.logAuditEvent(data, ImportStatus[ImportStatus.completed], ImportStatus[ImportStatus.inProgress]);
       logger.log("Import job completed for", data._id);
     }

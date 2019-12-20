@@ -101,7 +101,7 @@ export class ImportContent {
   private saveDataFromWorker(contentImportData: IContentImport) {
     this.contentImportData = {
       ...this.contentImportData,
-      ..._.pick(contentImportData, ["childNodes", "contentId", "mimeType", "extractedEcarEntries", "artifactUnzipped", "progress", "contentSize", "pkgVersion", "contentSkipped", "contentAdded"]),
+      ..._.pick(contentImportData, ["childNodes", "contentId", "mimeType", "extractedEcarEntries", "artifactUnzipped", "progress", "contentSize", "pkgVersion", "contentSkipped", "contentAdded", "contentType"]),
     };
   }
 

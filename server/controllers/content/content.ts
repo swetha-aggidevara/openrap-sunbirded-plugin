@@ -15,6 +15,8 @@ import { containerAPI } from "OpenRAP/dist/api";
 import * as TreeModel from "tree-model";
 import { HTTPService } from "@project-sunbird/ext-framework-server/services";
 import { ExportContent } from "../../manager/contentExportManager"
+import TelemetryHelper from "../../helper/telemetryHelper";
+import { response } from "express";
 
 export enum DOWNLOAD_STATUS {
     SUBMITTED = "DOWNLOADING",
@@ -26,17 +28,20 @@ export enum DOWNLOAD_STATUS {
 }
 const INTERVAL_TO_CHECKUPDATE = 1
 export default class Content {
+    private deviceId: string;
     private contentsFilesPath: string = 'content';
     private ecarsFolderPath: string = 'ecars';
     @Inject
     private databaseSdk: DatabaseSDK;
+
+    @Inject private telemetryHelper: TelemetryHelper;
 
     @Inject
     private contentImportManager: ContentImportManager;
 
     private fileSDK;
 
-    constructor(manifest: Manifest) {
+    constructor(private manifest: Manifest) {
         this.databaseSdk.initialize(manifest.id);
         this.fileSDK = containerAPI.getFileSDKInstance(manifest.id);
         this.contentImportManager.initialize(
@@ -44,6 +49,7 @@ export default class Content {
             this.fileSDK.getAbsPath(this.contentsFilesPath),
             this.fileSDK.getAbsPath(this.ecarsFolderPath)
         );
+        this.getDeviceId();
     }
 
     searchInDB(filters, reqId, sort?) {
@@ -146,7 +152,9 @@ export default class Content {
                     };
                 }
 
-                return res.send(Response.success('api.content.search', resObj, req));
+                const responseObj = Response.success('api.content.search', resObj, req);
+                this.constructSearchEdata(req, responseObj);
+                return res.send(responseObj);
             })
             .catch(err => {
                 console.log(err);
@@ -253,6 +261,10 @@ export default class Content {
                 res.status(500);
                 return res.send(Response.error("api.content.export", 500));
             }
+            // Adding telemetry share event
+            const exportedChildContentCount = childNode.length - data.skippedContent.length;
+            this.constructShareEvent(content, exportedChildContentCount);
+
             res.status(200);
             res.send(Response.success(`api.content.export`, {
                     response: {
@@ -260,6 +272,39 @@ export default class Content {
                     },
                 }, req));
         });
+    }
+
+    public async getDeviceId() {
+        this.deviceId = await containerAPI.getSystemSDKInstance(this.manifest.id).getDeviceId();
+    }
+
+    private constructSearchEdata(req, res) {
+        const edata = {
+            type: "content",
+            query: _.get(req, "body.request.query"),
+            filters: _.get(req, "body.request.filters"),
+            correlationid: _.get(res, "params.msgid"),
+            size: _.get(res, "result.count"),
+        };
+        this.telemetryHelper.logSearchEvent(edata, "Content");
+    }
+
+    private async constructShareEvent(data, childCount) {
+        const transfers = 1 + childCount;
+        const telemetryShareItems = [{
+            id: _.get(data, "contentId"),
+            type: _.get(data, "contentType"),
+            ver: _.toString(_.get(data, "pkgVersion")),
+            params: [
+                { transfers: _.toString(transfers) },
+                { size: _.toString(_.get(data, "size")) },
+            ],
+            origin: {
+                id: this.deviceId,
+                type: "Device",
+            },
+        }];
+        this.telemetryHelper.logShareEvent(telemetryShareItems, "Out", "Content");
     }
 
     /* This method converts the buffer data to json and if any error will catch and return the buffer data */

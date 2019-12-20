@@ -39,6 +39,7 @@ export interface IContentImport {
   contentSize: number;
   contentId?: string;
   mimeType?: string;
+  contentType?: string;
   pkgVersion?: string;
   failedCode?: string;
   failedReason?: string;

@@ -23,6 +23,7 @@ import DesktopAppUpdate from "./controllers/appUpdate";
 import { Location } from './controllers/location';
 import User from "./controllers/user";
 import Response from "./utils/response";
+import TelemetryHelper from "./helper/telemetryHelper";
 
 let telemetry;
 
@@ -53,6 +54,18 @@ export class Router {
         };
       }
       return req;
+    };
+
+    const constructSearchEdata = (req, proxyData) => {
+      const telemetryHelper = new TelemetryHelper();
+      const edata = {
+        type: "content",
+        query: _.get(req, "body.request.query"),
+        filters: _.get(req, "body.request.filters"),
+        correlationid: _.get(proxyData, "params.msgid"),
+        size: _.get(proxyData, "result.count"),
+      };
+      telemetryHelper.logSearchEvent(edata, "Content");
     };
 
     const logTelemetryEvent = (req, res, next) => {
@@ -509,6 +522,8 @@ export class Router {
               `ReqId = "${req.headers["X-msgid"]}": Convert buffer data to json`
             );
             const proxyData = content.convertBufferToJson(proxyResData, req);
+            constructSearchEdata(req, proxyData);
+
             let contents = _.get(proxyData, "result.content");
             if (!_.isEmpty(contents)) {
               logger.debug(
