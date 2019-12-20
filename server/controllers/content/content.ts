@@ -28,6 +28,7 @@ export enum DOWNLOAD_STATUS {
 }
 const INTERVAL_TO_CHECKUPDATE = 1
 export default class Content {
+    private deviceId: string;
     private contentsFilesPath: string = 'content';
     private ecarsFolderPath: string = 'ecars';
     @Inject
@@ -48,6 +49,7 @@ export default class Content {
             this.fileSDK.getAbsPath(this.contentsFilesPath),
             this.fileSDK.getAbsPath(this.ecarsFolderPath)
         );
+        this.getDeviceId();
     }
 
     searchInDB(filters, reqId, sort?) {
@@ -272,6 +274,10 @@ export default class Content {
         });
     }
 
+    public async getDeviceId() {
+        this.deviceId = await containerAPI.getSystemSDKInstance(this.manifest.id).getDeviceId();
+    }
+
     private constructSearchEdata(req, res) {
         const edata = {
             type: "content",
@@ -294,7 +300,7 @@ export default class Content {
                 { size: _.toString(_.get(data, "size")) },
             ],
             origin: {
-                id: await containerAPI.getSystemSDKInstance(this.manifest.id).getDeviceId(),
+                id: this.deviceId,
                 type: "Device",
             },
         }];
