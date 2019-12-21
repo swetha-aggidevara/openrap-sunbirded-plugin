@@ -25,6 +25,7 @@ export enum DOWNLOAD_STATUS {
     INDEXED = "DOWNLOADED",
     FAILED = "FAILED",
     PAUSED = "PAUSED",
+    CANCELED = "CANCELED",
 }
 const INTERVAL_TO_CHECKUPDATE = 1
 export default class Content {
