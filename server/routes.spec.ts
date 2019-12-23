@@ -1411,6 +1411,130 @@ describe("Test Download content / collection", () => {
                 });
         }, 2000);
     }).timeout(210000);
+
+    it("#Pause Download Content", (done) => {
+        supertest(app)
+            .post("/api/content/v1/download/pause/KP_FT_1564394134764")
+            .send({})
+            .expect(200)
+            .end((err, res) => {
+                if (res.statusCode >= 500) { logger.error(err); return done(); }
+                if (err && res.statusCode >= 400) { return done(); }
+                expect(res.body.responseCode).to.equal("OK");
+                expect(res.body.id).to.equal("api.content.pause.download").to.be.a("string");
+                expect(res.body.ver).to.equal("1.0").to.be.a("string");
+                expect(res.body.result).to.have.property("downloadId");
+                done();
+            });
+    }).timeout(100000);
+
+    it("#Pause Download Content (ERROR)", (done) => {
+        supertest(app)
+            .post("/api/content/v1/download/pause/KP_FT_1564394134")
+            .send({})
+            .expect(500)
+            .end((err, res) => {
+                if (res.statusCode >= 500) { logger.error(err); return done(); }
+                if (err && res.statusCode >= 400) { return done(); }
+                expect(res.body.responseCode).to.equal("INTERNAL_SERVER_ERROR");
+                expect(res.body.id).to.equal("api.content.pause.download").to.be.a("string");
+                expect(res.body.ver).to.equal("1.0").to.be.a("string");
+                done();
+            });
+    }).timeout(100000);
+
+    it("#Resume Download Content", (done) => {
+        supertest(app)
+            .post("/api/content/v1/download/resume/KP_FT_1564394134764")
+            .send({})
+            .expect(200)
+            .end((err, res) => {
+                if (res.statusCode >= 500) { logger.error(err); return done(); }
+                if (err && res.statusCode >= 400) { return done(); }
+                expect(res.body.responseCode).to.equal("OK");
+                expect(res.body.id).to.equal("api.content.resume.download").to.be.a("string");
+                expect(res.body.ver).to.equal("1.0").to.be.a("string");
+                expect(res.body.result).to.have.property("downloadId");
+                done();
+            });
+    }).timeout(100000);
+
+    it("#Resume Download Content (ERROR)", (done) => {
+        supertest(app)
+            .post("/api/content/v1/download/resume/KP_FT_1564394134")
+            .send({})
+            .expect(500)
+            .end((err, res) => {
+                if (res.statusCode >= 500) { logger.error(err); return done(); }
+                if (err && res.statusCode >= 400) { return done(); }
+                expect(res.body.responseCode).to.equal("INTERNAL_SERVER_ERROR");
+                expect(res.body.id).to.equal("api.content.resume.download").to.be.a("string");
+                expect(res.body.ver).to.equal("1.0").to.be.a("string");
+                done();
+            });
+    }).timeout(100000);
+
+    it("#Cancel Download Content", (done) => {
+        supertest(app)
+            .post("/api/content/v1/download/cancel/KP_FT_1564394134764")
+            .send({})
+            .expect(200)
+            .end((err, res) => {
+                if (res.statusCode >= 500) { logger.error(err); return done(); }
+                if (err && res.statusCode >= 400) { return done(); }
+                expect(res.body.responseCode).to.equal("OK");
+                expect(res.body.id).to.equal("api.content.cancel.download").to.be.a("string");
+                expect(res.body.ver).to.equal("1.0").to.be.a("string");
+                expect(res.body.result).to.have.property("downloadId");
+                done();
+            });
+    }).timeout(100000);
+
+    it("#Cancel Download Content (ERROR)", (done) => {
+        supertest(app)
+            .post("/api/content/v1/download/cancel/KP_FT_1564394134")
+            .send({})
+            .expect(500)
+            .end((err, res) => {
+                if (res.statusCode >= 500) { logger.error(err); return done(); }
+                if (err && res.statusCode >= 400) { return done(); }
+                expect(res.body.responseCode).to.equal("INTERNAL_SERVER_ERROR");
+                expect(res.body.id).to.equal("api.content.cancel.download").to.be.a("string");
+                expect(res.body.ver).to.equal("1.0").to.be.a("string");
+                done();
+            });
+    }).timeout(100000);
+
+    it("#Retry Download Content", (done) => {
+        supertest(app)
+            .post("/api/content/v1/download/retry/KP_FT_1564394134764")
+            .send({})
+            .expect(200)
+            .end((err, res) => {
+                if (res.statusCode >= 500) { logger.error(err); return done(); }
+                if (err && res.statusCode >= 400) { return done(); }
+                expect(res.body.responseCode).to.equal("OK");
+                expect(res.body.id).to.equal("api.content.retry.download").to.be.a("string");
+                expect(res.body.ver).to.equal("1.0").to.be.a("string");
+                expect(res.body.result).to.have.property("downloadId");
+                done();
+            });
+    }).timeout(100000);
+
+    it("#Retry Download Content (ERROR)", (done) => {
+        supertest(app)
+            .post("/api/content/v1/download/retry/KP_FT_1564394134")
+            .send({})
+            .expect(500)
+            .end((err, res) => {
+                if (res.statusCode >= 500) { logger.error(err); return done(); }
+                if (err && res.statusCode >= 400) { return done(); }
+                expect(res.body.responseCode).to.equal("INTERNAL_SERVER_ERROR");
+                expect(res.body.id).to.equal("api.content.retry.download").to.be.a("string");
+                expect(res.body.ver).to.equal("1.0").to.be.a("string");
+                done();
+            });
+    }).timeout(100000);
 });
 describe("Export content / collection", () => {
     const fs = require("fs");
