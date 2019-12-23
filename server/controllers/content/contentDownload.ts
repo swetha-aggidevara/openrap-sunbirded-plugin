@@ -437,7 +437,7 @@ export default class ContentDownload {
 
                 return res.send(Response.success("api.content.download.list", {
                     response: {
-                        contents: contentListArray,
+                        contents: _.uniqBy(_.orderBy(contentListArray, ["createdOn"], ["desc"]), "contentId"),
                     }
                 }, req));
 
