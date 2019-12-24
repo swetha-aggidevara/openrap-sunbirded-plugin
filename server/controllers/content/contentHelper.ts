@@ -86,7 +86,6 @@ export const addContentListener = (pluginId) => {
                         const appIconFileName = path.basename(metaData.appIcon);
                         await fileSDK.move(path.join('content', fileName, metaData.appIcon), path.join('content', fileName, appIconFileName))
                         folderToDelete.push(path.join('content', fileName, path.dirname(metaData.appIcon)))
-                        metaData.appIcon = `content/${fileName}/${appIconFileName}`;
                     }
                     if(metaData.artifactUrl && path.extname(metaData.artifactUrl) && path.extname(metaData.artifactUrl) !== '.zip'){
                         const artifactName = path.basename(metaData.artifactUrl);

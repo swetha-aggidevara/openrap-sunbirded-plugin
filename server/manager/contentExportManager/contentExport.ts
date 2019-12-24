@@ -103,17 +103,17 @@ export class ExportContent {
       const appIcon = path.join(this.contentBaseFolder, contentDetails.identifier, appIconFileName);
       this.archiveAppend("path", appIcon, baseDestPath + contentDetails.appIcon);
     }
-    if (contentDetails.artifactUrl && path.extname(contentDetails.artifactUrl)) {
-      this.archiveAppend("createDir", null, baseDestPath + path.dirname(contentDetails.artifactUrl));
-      this.parentArchive.append(null, { name: baseDestPath + path.dirname(contentDetails.artifactUrl) + "/" });
+    if (!contentDetails.artifactUrl || (contentDetails.artifactUrl && contentDetails.contentDisposition === "online")) {
+      return; // exit for online content or artifactUrl is not present
     }
-    if (contentDetails.artifactUrl
-      && path.extname(contentDetails.artifactUrl) && path.extname(contentDetails.artifactUrl) !== ".zip") {
+    if (path.dirname(contentDetails.artifactUrl) !== ".") {
+      this.archiveAppend("createDir", null, baseDestPath + path.dirname(contentDetails.artifactUrl));
+    }
+    if (path.extname(contentDetails.artifactUrl) && path.extname(contentDetails.artifactUrl) !== ".zip") {
       const artifactUrlName = path.basename(contentDetails.artifactUrl);
       const artifactUrlPath = path.join(this.contentBaseFolder, contentDetails.identifier, artifactUrlName);
       this.archiveAppend("path", artifactUrlPath, baseDestPath + contentDetails.artifactUrl);
-    } else if (contentDetails.artifactUrl
-      && path.extname(contentDetails.artifactUrl) && path.extname(contentDetails.artifactUrl) === ".zip") {
+    } else if (path.extname(contentDetails.artifactUrl) && path.extname(contentDetails.artifactUrl) === ".zip") {
       await this.loadZipContent(contentDetails, child);
     }
   }
@@ -130,7 +130,7 @@ export class ExportContent {
         return { valid: false, reason: "APP_ICON_MISSING" };
       }
     }
-    if (contentDetails.artifactUrl && path.extname(contentDetails.artifactUrl)
+    if (contentDetails.artifactUrl && contentDetails.contentDisposition !== "online"
       && path.extname(contentDetails.artifactUrl) !== ".zip") {
       const artifactUrlName = path.basename(contentDetails.artifactUrl);
       const artifactUrlPath = path.join(this.contentBaseFolder, contentDetails.identifier, artifactUrlName);
