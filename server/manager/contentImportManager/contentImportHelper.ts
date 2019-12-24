@@ -137,7 +137,7 @@ const extractEcar = async () => {
         }
         return; // exit if content is collection
       }
-      if (content.artifactUrl && !path.extname(content.artifactUrl)) { // exit if online only content
+      if (content.artifactUrl && content.contentDisposition === "online") { // exit if online only content
         contentImportData.contentAdded.push(content.identifier);
         return;
       }

@@ -186,7 +186,6 @@ export class ImportContent {
         updatedOn: Date.now(),
         artifactAdded,
       };
-      item.appIcon = item.appIcon ? `content/${item.appIcon}` : item.appIcon;
       if (dbResource) {
         item._rev = dbResource._rev;
         item.visibility = dbResource.visibility;
