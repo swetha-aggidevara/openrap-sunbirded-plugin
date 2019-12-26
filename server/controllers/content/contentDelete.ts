@@ -43,17 +43,6 @@ export default class ContentDelete {
         });
     }
 
-    public async updateContentsInDB(contents) {
-        logger.debug(`updateContentsInDB() is called`);
-        return this.databaseSdk.bulk("content", contents).then((contentData: any) => {
-            const contentIDS = _.map(contentData, (content) => content.id);
-            deleted = contentIDS;
-        }).catch((error) => {
-            logger.error(`Received Error while updating contents to delete Error: ${error.stack}`);
-            failed.push({reason: error.message || error.errMessage});
-        });
-    }
-
     public async checkMimeType(contentsToDelete) {
         logger.debug(`checkMimeType() is called`);
         const deleteContents = [];
@@ -76,8 +65,18 @@ export default class ContentDelete {
         return {deleted, failed};
     }
 
+    public async updateContentsInDB(contents) {
+        logger.debug(`updateContentsInDB() is called`);
+        return this.databaseSdk.bulk("content", contents).then((contentData: any) => {
+            const contentIDS = _.map(contentData, (content) => content.id);
+            deleted = contentIDS;
+        }).catch((error) => {
+            logger.error(`Received Error while updating contents to delete Error: ${error.stack}`);
+            failed.push({reason: error.message || error.errMessage});
+        });
+    }
+
     public async getChildren(collection) {
-        const childContents = []
         logger.debug(`getChildren() is called`);
         const dbFilter = {
             selector: {
