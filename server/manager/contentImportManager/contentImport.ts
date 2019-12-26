@@ -184,6 +184,7 @@ export class ImportContent {
         addedUsing: IAddedUsingType.import,
         createdOn: Date.now(),
         updatedOn: Date.now(),
+        isAvailable: true,
         artifactAdded,
       };
       item.appIcon = item.appIcon ? `content/${item.appIcon}` : item.appIcon;

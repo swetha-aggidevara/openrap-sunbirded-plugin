@@ -4,10 +4,12 @@ export enum IAddedUsingType {
 }
 
 export interface IDesktopAppMetadata {
-    'ecarFile'?: string;
-    'addedUsing': IAddedUsingType;
-    'createdOn': number;
-    'updatedOn': number;
-    'updateAvailable'?: boolean;
-    'lastUpdateCheckedOn'?: number;
+    "ecarFile"?: string;
+    "addedUsing": IAddedUsingType;
+    "createdOn": number;
+    "updatedOn": number;
+    "updateAvailable"?: boolean;
+    "lastUpdateCheckedOn"?: number;
+    "isAvailable"?: boolean;
+    "artifactAdded"?: boolean;
 }

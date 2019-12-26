@@ -66,6 +66,10 @@ export default class Content {
             }
         }
         modifiedFilters['visibility'] = 'Default';
+        modifiedFilters['$or'] = [
+            {"desktopAppMetadata.isAvailable": { $exists: false}},
+            {"desktopAppMetadata.isAvailable": { $eq: true}}
+          ]
         let dbFilters = {
             selector: modifiedFilters,
             limit: parseInt(config.get('CONTENT_SEARCH_LIMIT'), 10)
