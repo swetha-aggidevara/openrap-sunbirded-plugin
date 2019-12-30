@@ -1,9 +1,10 @@
 import * as _ from "lodash";
-import { TaskQueue } from "./taskQueue";
+import { DeleteQueue } from "./deleteQueue";
+import { IDeletePath } from './IContent';
 
-process.on("message", (contents) => {
+process.on("message", (contents: IDeletePath[]) => {
   for (const content of contents) {
-    queueExecutor.pushToQueue(content);
+    queueExecutor.pushToQueue(content.path);
   }
 });
-const queueExecutor = new TaskQueue(1);
+const queueExecutor = new DeleteQueue(1);

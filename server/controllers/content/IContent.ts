@@ -11,5 +11,15 @@ export interface IDesktopAppMetadata {
     "updateAvailable"?: boolean;
     "lastUpdateCheckedOn"?: number;
     "isAvailable"?: boolean;
-    "artifactAdded"?: boolean;
+}
+export interface IContentDelete {
+    _id: string;
+    _rev?: string;
+    identifier: string;
+    mimeType?: string;
+    desktopAppMetadata: IDesktopAppMetadata;
+    childNodes?: string[];
+}
+export interface IDeletePath {
+    path?: string;
 }

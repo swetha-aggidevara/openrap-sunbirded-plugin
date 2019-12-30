@@ -19,7 +19,6 @@ let app;
 let importId;
 
 initialzeEnv.init();
-
 before("StartServer", async () => {
     await server.startServer().then((res) => {
         app = res;
@@ -1457,6 +1456,54 @@ describe("Export content / collection", () => {
             });
     }).timeout(1000);
 });
+
+describe("Delete content / collection", () => {
+
+
+    it(`#Delete content`, (done) => {
+        supertest(app)
+        .post("/api/content/v1/delete")
+        .send({request: {contents: ["KP_FT_1564394134764"]}})
+        .expect("Content-Type", "application/json; charset=utf-8")
+        .expect(200)
+        .end((err, res) => {
+                expect(res.body.id).to.equal("api.content.delete");
+                expect(res.body.result.deleted).to.contain("KP_FT_1564394134764").to.be.an("array");
+                expect(res.body.result.failed).to.be.an("array");
+                done();
+            });
+    });
+
+    it(`#Delete collection`, (done) => {
+            supertest(app)
+            .post("/api/content/v1/delete")
+            .send({request: {contents: ["KP_FT_1563858046256"]}})
+            .expect("Content-Type", "application/json; charset=utf-8")
+            .expect(200)
+            .end((err, res) => {
+                    expect(res.body.id).to.equal("api.content.delete");
+                    expect(res.body.result.deleted).to.contain("KP_FT_1563858046256").to.be.an("array");
+                    expect(res.body.result.failed).to.be.an("array");
+                    done();
+                });
+    });
+
+    it(`#Delete content (ERROR)`, (done) => {
+            supertest(app)
+            .post("/api/content/v1/delete")
+            .send()
+            .expect("Content-Type", "application/json; charset=utf-8")
+            .expect(200)
+            .end((err, res) => {
+                expect(res.body.id).to.equal("api.content.delete");
+                expect(res.body.params.errmsg).to.equal("MISSING_CONTENTS");
+                expect(res.body.result).not.to.have.property("deleted");
+                expect(res.body.result).not.to.have.property("failed");
+                });
+    });
+});
+
+
 after("Disconnect Server", (done) => {
     server.close();
     done();

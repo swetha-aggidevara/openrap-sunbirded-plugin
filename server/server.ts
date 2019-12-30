@@ -130,8 +130,10 @@ export class Server extends BaseServer {
       this.fileSDK.getAbsPath(this.contentFilesPath),
       this.fileSDK.getAbsPath(this.ecarsFolderPath)
     );
-    await this.contentImportManager.reconcile();
-    await this.contentDelete.deleteReconciliation();
+    setTimeout(async () => {
+      await this.contentImportManager.reconcile();
+      await this.contentDelete.reconciliation();
+    }, 120000);
     // delete contents in temp directory
     await this.fileSDK
       .remove("temp")
