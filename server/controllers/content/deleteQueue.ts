@@ -15,7 +15,7 @@ export class DeleteQueue {
         this.running = 0;
     }
     public pushToQueue(path) {
-        if (!_.includes(this.queue, path) && this.checkPath(path)) {
+        if (this.checkPath(path)) {
             this.queue.push(path);
             this.next();
         }
@@ -35,6 +35,7 @@ export class DeleteQueue {
         }
     }
     private checkPath(path) {
-        return _.includes(path, "content/do_");
+        const regex = /content\/\w*/;
+        return path.match(regex) && !_.includes(this.queue, path);
     }
   }
