@@ -1506,7 +1506,7 @@ describe("Delete content / collection", () => {
                     clearInterval(interval);
                     done();
                 });
-        }, 200);
+        }, 2000);
     }).timeout(21000);
 
     it(`#Delete collection`, (done) => {
