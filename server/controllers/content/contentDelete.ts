@@ -115,5 +115,4 @@ export default class ContentDelete {
             in deleteReconciliation is called Error: ${error.stack}`);
         });
     }
-
 }
