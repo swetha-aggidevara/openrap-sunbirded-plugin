@@ -1506,8 +1506,8 @@ describe("Delete content / collection", () => {
                     clearInterval(interval);
                     done();
                 });
-        }, 2000);
-    }).timeout(21000);
+        }, 200);
+    }).timeout(2100);
 
     it(`#Delete collection`, (done) => {
             supertest(app)
