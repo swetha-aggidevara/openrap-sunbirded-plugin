@@ -1489,7 +1489,25 @@ describe("Delete content / collection", () => {
                 expect(res.body.result).to.have.property("downloadId");
                 done();
             });
-    }).timeout(100000);
+    }).timeout(200000);
+
+    it("#Download Content List", (done) => {
+        const interval = setInterval(() => {
+            supertest(app)
+                .post("/api/content/v1/download/list")
+                .send({})
+                .expect(200)
+                .end((err, res) => {
+                    if (res.statusCode >= 500) { logger.error(err); return done(); }
+                    if (err && res.statusCode >= 400) {  return done(); }
+                    expect(res.body.result.response.contents).to.be.an("array");
+                    expect(res.body.result.response.contents[0]).to.have.property("contentId");
+                    expect(res.body.result.response.contents[0]).to.have.property("resourceId");
+                    clearInterval(interval);
+                    done();
+                });
+        }, 2000);
+    }).timeout(210000);
 
     it(`#Delete collection`, (done) => {
             supertest(app)
@@ -1503,7 +1521,7 @@ describe("Delete content / collection", () => {
                     expect(res.body.result.failed).to.be.an("array");
                     done();
                 });
-    }).timeout(10000);
+    }).timeout(100000);
 
     it(`#Delete content (ERROR)`, (done) => {
             supertest(app)
