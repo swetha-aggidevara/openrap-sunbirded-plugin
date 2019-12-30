@@ -1489,7 +1489,7 @@ describe("Delete content / collection", () => {
                 expect(res.body.result).to.have.property("downloadId");
                 done();
             });
-    }).timeout(10000);
+    }).timeout(20000);
 
     it("#Download Content List", (done) => {
         const interval = setInterval(() => {
