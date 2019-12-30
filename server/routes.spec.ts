@@ -1229,14 +1229,6 @@ describe("Read and update content / collection", () => {
             .set("Referer", `${process.env.APP_BASE_URL}/browse`)
             .expect(404)
             .end((err, res) => {
-                if (res.statusCode >= 500) {
-                    logger.error(err);
-                    return done();
-                }
-                if (err && res.statusCode >= 400) {
-                    logger.error(err);
-                    return done();
-                }
                 expect(res.body.id).to.equal("api.content.read").to.be.a("string");
                 expect(res.body.ver).to.equal("1.0").to.be.a("string");
                 expect(res.body.responseCode).to.equal("RESOURCE_NOT_FOUND");
