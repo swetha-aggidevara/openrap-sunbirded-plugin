@@ -1500,6 +1500,7 @@ describe("Delete content / collection", () => {
                 expect(res.body.params.errmsg).to.equal("MISSING_CONTENTS");
                 expect(res.body.result).not.to.have.property("deleted");
                 expect(res.body.result).not.to.have.property("failed");
+                done();
             });
     });
 });
