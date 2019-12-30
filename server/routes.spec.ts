@@ -1475,6 +1475,40 @@ describe("Delete content / collection", () => {
             });
     });
 
+    it("#Download Collection", (done) => {
+        supertest(app)
+            .post("/api/content/v1/download/KP_FT_1563858046256")
+            .send({})
+            .expect(200)
+            .end((err, res) => {
+                if (res.statusCode >= 500) { logger.error(err); return done(); }
+                if (err && res.statusCode >= 400) {  return done(); }
+                expect(res.body.responseCode).to.equal("OK");
+                expect(res.body.id).to.equal("api.content.download").to.be.a("string");
+                expect(res.body.ver).to.equal("1.0").to.be.a("string");
+                expect(res.body.result).to.have.property("downloadId");
+                done();
+            });
+    }).timeout(20000);
+
+    it("#Download Content List", (done) => {
+        const interval = setInterval(() => {
+            supertest(app)
+                .post("/api/content/v1/download/list")
+                .send({})
+                .expect(200)
+                .end((err, res) => {
+                    if (res.statusCode >= 500) { logger.error(err); return done(); }
+                    if (err && res.statusCode >= 400) {  return done(); }
+                    expect(res.body.result.response.contents).to.be.an("array");
+                    expect(res.body.result.response.contents[0]).to.have.property("contentId");
+                    expect(res.body.result.response.contents[0]).to.have.property("resourceId");
+                    clearInterval(interval);
+                    done();
+                });
+        }, 2000);
+    }).timeout(21000);
+
     it(`#Delete collection`, (done) => {
             supertest(app)
             .post("/api/content/v1/delete")
