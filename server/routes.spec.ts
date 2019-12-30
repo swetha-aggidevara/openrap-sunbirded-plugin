@@ -1475,6 +1475,22 @@ describe("Delete content / collection", () => {
             });
     });
 
+    it("#Download Collection", (done) => {
+        supertest(app)
+            .post("/api/content/v1/download/KP_FT_1563858046256")
+            .send({})
+            .expect(200)
+            .end((err, res) => {
+                if (res.statusCode >= 500) { logger.error(err); return done(); }
+                if (err && res.statusCode >= 400) {  return done(); }
+                expect(res.body.responseCode).to.equal("OK");
+                expect(res.body.id).to.equal("api.content.download").to.be.a("string");
+                expect(res.body.ver).to.equal("1.0").to.be.a("string");
+                expect(res.body.result).to.have.property("downloadId");
+                done();
+            });
+    }).timeout(100000);
+
     it(`#Delete collection`, (done) => {
             supertest(app)
             .post("/api/content/v1/delete")
@@ -1487,7 +1503,7 @@ describe("Delete content / collection", () => {
                     expect(res.body.result.failed).to.be.an("array");
                     done();
                 });
-    });
+    }).timeout(10000);
 
     it(`#Delete content (ERROR)`, (done) => {
             supertest(app)
