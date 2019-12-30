@@ -83,6 +83,7 @@ export default class ContentDownload {
                         await this.databaseSdk.insert(dbName, {
                             downloadId: downloadId,
                             contentId: _.get(content, "data.result.content.identifier"),
+                            identifier: _.get(content, "data.result.content.identifier"),
                             name: _.get(content, "data.result.content.name"),
                             status: CONTENT_DOWNLOAD_STATUS.Submitted,
                             queueMetaData: queueMetaData,
@@ -146,6 +147,7 @@ export default class ContentDownload {
                         await this.databaseSdk.insert(dbName, {
                             downloadId: downloadId,
                             contentId: _.get(content, "data.result.content.identifier"),
+                            identifier: _.get(content, "data.result.content.identifier"),
                             name: _.get(content, "data.result.content.name"),
                             status: CONTENT_DOWNLOAD_STATUS.Submitted,
                             queueMetaData: queueMetaData,
@@ -212,6 +214,7 @@ export default class ContentDownload {
                             return {
                                 "id": doc.downloadId,
                                 "contentId": doc.contentId,
+                                "identifier": doc.contentId,
                                 "resourceId": _.get(doc, 'queueMetaData.resourceId'),
                                 "mimeType": doc.queueMetaData.mimeType,
                                 "name": doc.name,
@@ -252,6 +255,7 @@ export default class ContentDownload {
                             return {
                                 "id": doc.downloadId,
                                 "contentId": doc.contentId,
+                                "identifier": doc.contentId,
                                 "resourceId": _.get(doc, 'queueMetaData.resourceId'),
                                 "mimeType": doc.queueMetaData.mimeType,
                                 "name": doc.name,
@@ -295,6 +299,7 @@ export default class ContentDownload {
                             let contentItem = _.find(inProgressDbData.docs, { downloadId: item.id })
                             inprogress.push({
                                 contentId: _.get(contentItem, 'contentId'),
+                                identifier: _.get(contentItem, 'contentId'),
                                 id: item.id,
                                 resourceId: _.get(contentItem, 'queueMetaData.resourceId'),
                                 name: _.get(contentItem, 'name') || 'Unnamed download',
@@ -337,6 +342,7 @@ export default class ContentDownload {
                             return {
                                 "id": doc.downloadId,
                                 "contentId": doc.contentId,
+                                "identifier": doc.contentId,
                                 "resourceId": _.get(doc, 'queueMetaData.resourceId'),
                                 "mimeType": doc.queueMetaData.mimeType,
                                 "name": doc.name,
@@ -376,6 +382,7 @@ export default class ContentDownload {
                             return {
                                 "id": doc.downloadId,
                                 "contentId": doc.contentId,
+                                "identifier": doc.contentId,
                                 "resourceId": _.get(doc, 'queueMetaData.resourceId'),
                                 "mimeType": doc.queueMetaData.mimeType,
                                 "name": doc.name,
@@ -415,6 +422,7 @@ export default class ContentDownload {
                             return {
                                 "id": doc.downloadId,
                                 "contentId": doc.contentId,
+                                "identifier": doc.contentId,
                                 "resourceId": _.get(doc, 'queueMetaData.resourceId'),
                                 "mimeType": doc.queueMetaData.mimeType,
                                 "name": doc.name,
@@ -481,6 +489,7 @@ export default class ContentDownload {
         _.forEach(importJobs.docs, (job: IContentImport) => {
             const jobObj = {
                 contentId: job.contentId,
+                identifier: job.contentId,
                 id: job._id,
                 resourceId: job.contentId,
                 name: job.name,
