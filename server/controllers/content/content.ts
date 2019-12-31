@@ -66,6 +66,10 @@ export default class Content {
             }
         }
         modifiedFilters['visibility'] = 'Default';
+        modifiedFilters['$or'] = [
+            {"desktopAppMetadata.isAvailable": { $exists: false}},
+            {"desktopAppMetadata.isAvailable": { $eq: true}}
+          ]
         let dbFilters = {
             selector: modifiedFilters,
             limit: parseInt(config.get('CONTENT_SEARCH_LIMIT'), 10)
@@ -355,9 +359,11 @@ export default class Content {
             }
             logger.debug(`ReqId = "${reqId}": Search downloaded and downloading  contents in DB using content Id's`)
             await this.searchDownloadingContent(listOfContentIds, reqId)
-                .then(data => {
+                .then( async (data) => {
+                    const deletedContents = await this.getDeletedContents();
                     logger.info(`ReqId = "${reqId}": Found the ${data.docs.length} contents in Content_Download Db`)
                     data.docs = _.uniqBy(_.orderBy(data.docs, ["updatedOn"], ["desc"]), "contentId");
+                    data.docs = _.differenceBy(data.docs, deletedContents.docs, "identifier");
                     for (let doc of data.docs) {
                         for (let content of contents) {
                             if (doc.contentId === content.identifier) {
@@ -448,6 +454,15 @@ export default class Content {
                 resolve(offlineContent);
             }
         })
+    }
+
+    async getDeletedContents() {
+        const dbFilter = {
+            selector: {
+                "desktopAppMetadata.isAvailable": { $eq: false}
+                    },
+            };
+        return await this.databaseSdk.find("content", dbFilter);
     }
 
 }

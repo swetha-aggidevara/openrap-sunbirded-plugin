@@ -18,6 +18,7 @@ import DatabaseSDK from "./sdk/database";
 import config from "./config";
 import { logger } from "@project-sunbird/ext-framework-server/logger";
 import { containerAPI } from "OpenRAP/dist/api";
+import  ContentDelete from "./controllers/content/contentDelete";
 import {
   addContentListener,
   reconciliation
@@ -40,6 +41,9 @@ export class Server extends BaseServer {
 
   @Inject
   private fileSDK;
+
+  @Inject
+  private contentDelete: ContentDelete;
 
   constructor(manifest: Manifest) {
     super(manifest);
@@ -64,7 +68,7 @@ export class Server extends BaseServer {
   async initialize(manifest: Manifest) {
     //registerAcrossAllSDKS()
     this.databaseSdk.initialize(manifest.id);
-
+    this.contentDelete = new ContentDelete(manifest);
     frameworkAPI.registerStaticRoute(
       this.fileSDK.getAbsPath(this.contentFilesPath),
       "/contentPlayer/preview/content"
@@ -126,7 +130,10 @@ export class Server extends BaseServer {
       this.fileSDK.getAbsPath(this.contentFilesPath),
       this.fileSDK.getAbsPath(this.ecarsFolderPath)
     );
-    await this.contentImportManager.reconcile();
+    setTimeout(async () => {
+      await this.contentImportManager.reconcile();
+      await this.contentDelete.reconciliation();
+    }, 120000);
     // delete contents in temp directory
     await this.fileSDK
       .remove("temp")

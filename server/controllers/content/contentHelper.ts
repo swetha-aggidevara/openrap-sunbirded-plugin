@@ -103,7 +103,8 @@ export const addContentListener = (pluginId) => {
                     const desktopAppMetadata: IDesktopAppMetadata = {
                         "addedUsing": IAddedUsingType.download,
                         "createdOn": Date.now(),
-                        "updatedOn": Date.now()
+                        "updatedOn": Date.now(),
+                        "isAvailable": true,
                     }
                     metaData.desktopAppMetadata = desktopAppMetadata;
                     //insert metadata to content database
