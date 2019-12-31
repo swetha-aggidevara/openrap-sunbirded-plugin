@@ -83,6 +83,11 @@ export default class ContentDelete {
                             $nin: ["application/vnd.ekstep.content-collection"],
                         },
                     },
+                    {
+                        visibility: {
+                            $eq: "Parent",
+                        },
+                    },
                 ],
             },
         };
