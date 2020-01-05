@@ -1,7 +1,5 @@
 import { logger } from "@project-sunbird/ext-framework-server/logger";
 import { Manifest } from "@project-sunbird/ext-framework-server/models";
-import * as fs from "fs";
-import * as glob from "glob";
 import * as _ from "lodash";
 import { containerAPI } from "OpenRAP/dist/api";
 import * as path from "path";
@@ -21,20 +19,37 @@ export class Organization {
   }
 
   public async insert() {
-    const organizationFiles = this.fileSDK.getAbsPath(
-      path.join("data", "organizations", "**", "*.json"),
-    );
-    const files = glob.sync(organizationFiles, {});
 
-    for (const file of files) {
-      const organization = await this.fileSDK.readJSON(file);
-      const id = path.basename(file, path.extname(file));
-      const doc = _.get(organization, "result.response.content[0]");
-      await this.databaseSdk.upsert("organization", id, doc).catch((err) => {
-        logger.error(
-          `Received error while upserting the ${id} to channel database and err.message: ${err.message}`,
-        );
-      });
+    try {
+      const files =  await this.fileSDK.readdir(path.join("data", "organizations"));
+      const oragnizationFilesBasePath = this.fileSDK.getAbsPath(path.join("data", "organizations"));
+      let organizationsList =  await this.databaseSdk.list("organization", {startkey: "_design0"});
+      organizationsList = _.get(organizationsList, "rows");
+      const organizationsListLength = organizationsList ? organizationsList.length : 0;
+      const organizationDocs = [];
+      for (const file of files) {
+        const id = path.basename(file, path.extname(file));
+        let isInserted: any = false;
+        if (organizationsListLength > 0) {
+           isInserted = _.find(organizationsList, {id});
+        }
+        if (!isInserted) {
+          logger.info(`${id} is not inserted`);
+          const organization = await this.fileSDK.readJSON(path.join(oragnizationFilesBasePath, file));
+          const doc = _.get(organization, "result.response.content[0]");
+          doc._id = id;
+          organizationDocs.push(doc);
+        } else {
+          logger.info(`${id} is inserted`);
+        }
+      }
+      if (organizationDocs.length) {
+        await this.databaseSdk.bulk("organization", organizationDocs);
+      }
+    } catch (error) {
+      logger.error(
+        `While inserting organization ${error.message} ${error.stack}`,
+      );
     }
   }
 
