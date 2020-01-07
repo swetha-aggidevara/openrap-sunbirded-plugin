@@ -368,7 +368,7 @@ export default class Content {
             logger.debug(`ReqId = "${reqId}": Search downloaded and downloading  contents in DB using content Id's`)
             const contentsInDownload = await this.searchDownloadingContent(listOfContentIds, reqId);
             const contentsInDB = await this.getOfflineContents(listOfContentIds, reqId);
-            contents =  this.changeContentStatus(contentsInDownload, contentsInDB , contents);
+            contents =  this.changeContentStatus(contentsInDownload.docs, contentsInDB.docs, contents);
             return contents;
         } catch (err) {
             logger.error(`ReqId = "${reqId}": Received  error err.message: ${err.message} ${err}`);
@@ -459,7 +459,7 @@ export default class Content {
         for (const content of offlineContents) {
             if (!_.has(content, "desktopAppMetadata.isAvailable") || content.desktopAppMetadata.isAvailable) {
                 const data = _.find(contentsInDownload, { identifier: content.identifier })
-                content.downloadStatus = !_.isEmpty(data["status"]) ? DOWNLOAD_STATUS[data["status"]] : '';
+                content.downloadStatus = !_.isEmpty(_.get(data, 'status')) ? DOWNLOAD_STATUS[data["status"]] : '';
             }
         }
         for (const content of contents) {
