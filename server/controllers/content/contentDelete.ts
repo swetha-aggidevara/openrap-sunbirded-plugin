@@ -35,7 +35,9 @@ export default class ContentDelete {
                 this.workerProcessRef = childProcess.fork(path.join(__dirname, "contentDeleteHelper"));
             }
             const failed: object[] = [];
-            let contentsToDelete = await this.content.searchInDB({ identifier: contentIDS }, req.headers["X-msgid"]);
+            const visibility = _.get(req.body, "request.visibility");
+            let contentsToDelete = await this.content.searchInDB({ identifier: contentIDS },
+                req.headers["X-msgid"], "", visibility);
             contentsToDelete = await this.getContentsToDelete(contentsToDelete.docs);
             let deleted = await this.databaseSdk.bulk("content", contentsToDelete).catch((err) => {
                     failed.push(err.message || err.errMessage);
