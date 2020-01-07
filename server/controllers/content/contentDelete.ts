@@ -1,14 +1,15 @@
-import { IContentDelete, IDeletePath } from './IContent';
 import { logger } from "@project-sunbird/ext-framework-server/logger";
 import { Manifest } from "@project-sunbird/ext-framework-server/models";
 import * as childProcess from "child_process";
 import * as _ from "lodash";
 import { containerAPI } from "OpenRAP/dist/api";
 import * as path from "path";
+import * as TreeModel from "tree-model";
 import { Inject } from "typescript-ioc";
 import DatabaseSDK from "../../sdk/database";
 import Response from "../../utils/response";
 import Content from "./content";
+import { IContentDelete, IDeletePath } from './IContent';
 
 export default class ContentDelete {
     private workerProcessRef: childProcess.ChildProcess;
@@ -66,7 +67,7 @@ export default class ContentDelete {
             content.desktopAppMetadata.isAvailable = false;
             deleteContents.push(content);
             if (content.mimeType === "application/vnd.ekstep.content-collection") {
-                const children: object[] = await this.getResources(content.childNodes);
+                const children: object[] = await this.getResources(content);
                 for (const child of children["docs"]) {
                     child.desktopAppMetadata.isAvailable = false;
                     deleteContents.push(child);
@@ -76,8 +77,17 @@ export default class ContentDelete {
         return deleteContents;
     }
 
-    public async getResources(resourceIds: string[]): Promise<object[]> {
+    public async getResources(content: {}): Promise<object[]> {
         logger.debug(`getResources() is called`);
+        const resourceIds: string[] = [];
+        const model = new TreeModel();
+        let treeModel;
+        treeModel = model.parse(content);
+        treeModel.walk(node => {
+            if (node.model.mimeType !== 'application/vnd.ekstep.content-collection') {
+                resourceIds.push(node.model.identifier);
+            }
+        });
         const dbFilter = {
             selector: {
                 $and: [

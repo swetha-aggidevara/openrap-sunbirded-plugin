@@ -284,6 +284,9 @@ export default class Content {
                         },
                     }, req));
             });
+        } else {
+            res.status(404);
+            return res.send(Response.error("api.content.export", 404));
         }
     }
 
