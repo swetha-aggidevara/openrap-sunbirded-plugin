@@ -147,7 +147,7 @@ export class ExportContent {
       if (!artifactExist) {
         return { valid: false, reason: "ARTIFACT_MISSING" };
       }
-    } else if (path.extname(contentDetails.artifactUrl) === ".zip") {
+    } else {
       let hasZipEntry: any = await this.readDirectory(path.join(this.contentBaseFolder, contentDetails.identifier));
       hasZipEntry = _.filter(hasZipEntry, (entry) => {
         if ((contentDetails.appIcon && contentDetails.appIcon.includes(entry))
@@ -157,7 +157,7 @@ export class ExportContent {
         return true;
       });
       if (!hasZipEntry.length) {
-        return { valid: false, reason: "ARTIFACT_MISSING" };
+        return { valid: false, reason: "ZIP_ARTIFACT_MISSING" };
       }
     }
     return { valid: true };
