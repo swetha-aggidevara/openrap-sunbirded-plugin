@@ -137,13 +137,27 @@ export class ExportContent {
         return { valid: false, reason: "APP_ICON_MISSING" };
       }
     }
-    if (contentDetails.artifactUrl && contentDetails.contentDisposition !== "online"
-      && path.extname(contentDetails.artifactUrl) !== ".zip") {
+    if (!contentDetails.artifactUrl || contentDetails.contentDisposition === "online") {
+      return { valid: true };
+    }
+    if (path.extname(contentDetails.artifactUrl) !== ".zip") {
       const artifactUrlName = path.basename(contentDetails.artifactUrl);
       const artifactUrlPath = path.join(this.contentBaseFolder, contentDetails.identifier, artifactUrlName);
       const artifactExist = await fse.pathExists(artifactUrlPath);
       if (!artifactExist) {
-        return { valid: false, reason: "ARTIFACT_URL_MISSING" };
+        return { valid: false, reason: "ARTIFACT_MISSING" };
+      }
+    } else if (path.extname(contentDetails.artifactUrl) === ".zip") {
+      let hasZipEntry: any = await this.readDirectory(path.join(this.contentBaseFolder, contentDetails.identifier));
+      hasZipEntry = _.filter(hasZipEntry, (entry) => {
+        if ((contentDetails.appIcon && contentDetails.appIcon.includes(entry))
+          || entry === "manifest.json") {
+          return false;
+        }
+        return true;
+      });
+      if (!hasZipEntry.length) {
+        return { valid: false, reason: "ARTIFACT_MISSING" };
       }
     }
     return { valid: true };
