@@ -50,7 +50,14 @@ export class ExportContent {
       }
       this.archiveAppend("path", appIcon, this.parentDetails.appIcon);
     }
-    this.archiveAppend("path", path.join(this.contentBaseFolder, this.parentDetails.identifier, "manifest.json"), "manifest.json");
+    this.parentManifest.archive.items = _.map(this.parentManifest.archive.items, (item) => {
+      if (item.mimeType !== "application/vnd.ekstep.content-collection") {
+        const dbContentRef = _.find(this.dbChildNodes, {identifier: item.identifier});
+        return dbContentRef ? dbContentRef : item;
+      }
+      return item;
+    });
+    this.archiveAppend("buffer", Buffer.from(JSON.stringify(this.parentManifest)), "manifest.json");
     const exist = await fse.pathExists(path.join(this.contentBaseFolder,
       this.parentDetails.identifier, "hierarchy.json"));
     if (exist) {
