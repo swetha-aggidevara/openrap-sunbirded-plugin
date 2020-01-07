@@ -1,11 +1,9 @@
 import { logger } from "@project-sunbird/ext-framework-server/logger";
 import { Manifest } from "@project-sunbird/ext-framework-server/models";
-import * as glob from "glob";
 import * as _ from "lodash";
 import { containerAPI } from "OpenRAP/dist/api";
 import * as path from "path";
-import { Config, Inject } from "typescript-ioc";
-import * as uuid from "uuid";
+import { Inject } from "typescript-ioc";
 import DatabaseSDK from "../sdk/database/index";
 import config from "./../config";
 import Response from "./../utils/response";
@@ -26,13 +24,10 @@ export class Page {
   }
 
   public async insert() {
-    const pagesFiles = this.fileSDK.getAbsPath(
-      path.join("data", "pages", "**", "*.json"),
-    );
-    const files = glob.sync(pagesFiles, {});
-
+    const files =  await this.fileSDK.readdir(path.join("data", "pages"));
+    const pagesFilesBasePath = this.fileSDK.getAbsPath(path.join("data", "pages"));
     for (const file of files) {
-      const page = await this.fileSDK.readJSON(file);
+      const page = await this.fileSDK.readJSON(path.join(pagesFilesBasePath, file));
       const doc = _.get(page, "result.response");
       const id = doc.id;
       // TODO: handle multiple inserts of same page

@@ -1,7 +1,5 @@
 import { logger } from "@project-sunbird/ext-framework-server/logger";
 import { Manifest } from "@project-sunbird/ext-framework-server/models";
-import * as fs from "fs";
-import * as glob from "glob";
 import * as _ from "lodash";
 import { containerAPI } from "OpenRAP/dist/api";
 import * as path from "path";
@@ -21,21 +19,31 @@ export class ResourceBundle {
   }
 
   public async insert() {
-    const resourceBundleFiles = this.fileSDK.getAbsPath(
-      path.join("data", "resourceBundles", "**", "*.json"),
-    );
-    const files = glob.sync(resourceBundleFiles, {});
-
-    for (const file of files) {
-      const bundle = await this.fileSDK.readJSON(file);
-      const id = path.basename(file, path.extname(file));
-      await this.databaseSdk
-        .upsert("resource_bundle", id, bundle)
-        .catch((err) => {
-          logger.error(
-            `while upserting the ${id} to resourcebundles database  ${err}`,
-          );
-        });
+    try {
+      const files =  await this.fileSDK.readdir(path.join("data", "resourceBundles"));
+      const resourceBundlesFilesBasePath = this.fileSDK.getAbsPath(path.join("data", "resourceBundles"));
+      let resourceBundlesList =  await this.databaseSdk.list("resource_bundle", {startkey: "_design0"});
+      resourceBundlesList = _.get(resourceBundlesList, "rows");
+      const resourceBundlesListLength = resourceBundlesList ? resourceBundlesList.length : 0;
+      const resourceBundleDocs = [];
+      for (const file of files) {
+        const id = path.basename(file, path.extname(file));
+        let docInfo: undefined | object;
+        if (resourceBundlesListLength > 0) {
+          docInfo = _.find(resourceBundlesList, {id});
+        }
+        const doc =  await this.fileSDK.readJSON(path.join(resourceBundlesFilesBasePath, file));
+        doc._id = id;
+        if (docInfo) {
+          doc._rev = _.get(docInfo, "value.rev");
+        }
+        resourceBundleDocs.push(doc);
+      }
+      if (resourceBundleDocs.length) {
+        await this.databaseSdk.bulk("resource_bundle", resourceBundleDocs);
+      }
+    } catch (error) {
+      logger.error(`While inserting resource bundles ${error.message} ${error.stack}`);
     }
   }
 

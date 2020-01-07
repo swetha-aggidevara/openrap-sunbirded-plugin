@@ -1,7 +1,6 @@
 import { logger } from "@project-sunbird/ext-framework-server/logger";
 import { Manifest } from "@project-sunbird/ext-framework-server/models";
 import { HTTPService } from "@project-sunbird/ext-framework-server/services";
-import * as glob from "glob";
 import * as _ from "lodash";
 import { containerAPI } from "OpenRAP/dist/api";
 import * as path from "path";
@@ -22,13 +21,13 @@ export class Faqs {
       this.faqsBasePath = this.fileSDK.getAbsPath(path.join("data", "faqs"));
   }
   public async insert() {
-    const files = glob.sync(path.join(this.faqsBasePath, "**", "*.json"), {});
+    const files = await this.fileSDK.readdir(this.faqsBasePath);
     const dbData = await this.databaseSdk.list(FAQS_DB, {limit: 1});
     logger.log("--Inserting faqs to db--", dbData.total_rows, files.length);
     if (!dbData.total_rows && files.length) {
       const bulkDocs = [];
       for (const file of files) {
-        const data: IFaqsData = await this.fileSDK.readJSON(file);
+        const data: IFaqsData = await this.fileSDK.readJSON(path.join(this.faqsBasePath, file));
         bulkDocs.push({
           _id: path.basename(file, path.extname(file)),
           data,

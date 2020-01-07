@@ -41,8 +41,14 @@ export default class ContentDelete {
                     failed.push(err.message || err.errMessage);
             });
             deleted =  _.map(deleted, (content) => content.id);
-            const contentPaths: IDeletePath[] = _.map(deleted, (id) => ({path: path.join("content", id)}));
-            this.workerProcessRef.send(contentPaths);
+            const contentPaths: IDeletePath[] = _.map(deleted, (id) => {
+                if (id) {
+                    return ({ path: path.join("content", id) });
+                }
+            });
+            if (contentPaths) {
+                this.workerProcessRef.send(contentPaths);
+            }
             res.send(Response.success("api.content.delete", {deleted, failed}, req));
             } catch (err) {
                 logger.error(`Received Error while Deleting content `, err);
@@ -83,6 +89,11 @@ export default class ContentDelete {
                             $nin: ["application/vnd.ekstep.content-collection"],
                         },
                     },
+                    {
+                        visibility: {
+                            $eq: "Parent",
+                        },
+                    },
                 ],
             },
         };
@@ -107,9 +118,14 @@ export default class ContentDelete {
             });
             const contentsToDelete: IContentDelete[] = await this.getContentsToDelete(contents.docs);
             const deleted = await this.databaseSdk.bulk("content", contentsToDelete);
-            const contentPaths: IDeletePath[] = _.map(deleted, (content) => ({path: path.join("content", content.id)}));
-            this.workerProcessRef.send(contentPaths);
-
+            const contentPaths: IDeletePath[] = _.map(deleted, (content) => {
+                if (!_.isEmpty(_.get(content, "id"))) {
+                    return ({ path: path.join("content", content.id) });
+                }
+            });
+            if (contentPaths) {
+                this.workerProcessRef.send(contentPaths);
+            }
         } catch (err) {
             logger.error(`Received Error While deleting contents In reconciliation() Error: ${err.stack}`);
         }
