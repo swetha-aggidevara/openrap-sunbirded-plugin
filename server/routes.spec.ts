@@ -157,7 +157,7 @@ describe("Test Form with and without referrer", () => {
     it("#Form", (done) => {
         supertest(app)
             .post("/api/data/v1/form/read")
-            .send({ request: { type: "content", action: "search", subType: "resourcebundle", rootOrgId: "b00bc992ef25f1a9a8d63291e20efc8d" } })
+            .send({ request: { type: "content", action: "search", subType: "resourcebundle", rootOrgId: "505c7c48ac6dc1edc9b08f21db5a571d" } })
             .expect(200)
             .end((err, res) => {
                 expect(res.body.responseCode).to.equal("OK");
