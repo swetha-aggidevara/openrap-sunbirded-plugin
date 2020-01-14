@@ -609,6 +609,9 @@ export class Router {
         telemetry.addEvents(req, res);
       }
     );
+    app.get("/api/telemetry/v1/info", telemetry.getTelemetryInfo.bind(telemetry));
+    app.post("/api/telemetry/v1/export", telemetry.exportTelemetry.bind(telemetry));
+
     let contentUpdate = new ContentUpdate(manifest);
     app.post("/api/content/v1/update/:id", (req, res) => {
       contentUpdate.contentUpdate(req, res);
