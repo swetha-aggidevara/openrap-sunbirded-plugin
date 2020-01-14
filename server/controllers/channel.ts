@@ -1,6 +1,5 @@
 import { logger } from "@project-sunbird/ext-framework-server/logger";
 import { Manifest } from "@project-sunbird/ext-framework-server/models";
-import * as glob from "glob";
 import * as _ from "lodash";
 import { containerAPI } from "OpenRAP/dist/api";
 import * as path from "path";
@@ -20,20 +19,36 @@ export class Channel {
   }
 
   public async insert() {
-    const channelFiles = this.fileSDK.getAbsPath(
-      path.join("data", "channels", "**", "*.json"),
-    );
-    const files = glob.sync(channelFiles, {});
-
-    for (const file of files) {
-      const channel = await this.fileSDK.readJSON(file);
-      const id = path.basename(file, path.extname(file));
-      const doc = _.get(channel, "result.channel");
-      await this.databaseSdk.upsert("channel", id, doc).catch((err) => {
-        logger.error(
-          `Received error while upserting the ${id} to channel database and err.message: ${err.message}`,
-        );
-      });
+    try {
+      const files =  await this.fileSDK.readdir(path.join("data", "channels"));
+      const channelsFilesBasePath = this.fileSDK.getAbsPath(path.join("data", "channels"));
+      let channelsList =  await this.databaseSdk.list("channel", {});
+      channelsList = _.get(channelsList, "rows");
+      const channelsListLength = channelsList ? channelsList.length : 0;
+      const channelDocs = [];
+      for (const file of files) {
+        const id = path.basename(file, path.extname(file));
+        let isInserted: any = false;
+        if (channelsListLength > 0) {
+           isInserted = _.find(channelsList, {id});
+        }
+        if (!isInserted) {
+          logger.info(`${id} is not inserted`);
+          const channel = await this.fileSDK.readJSON(path.join(channelsFilesBasePath, file));
+          const doc = _.get(channel, "result.channel");
+          doc._id = id;
+          channelDocs.push(doc);
+        } else {
+          logger.info(`${id} is inserted`);
+        }
+      }
+      if (channelDocs.length) {
+        await this.databaseSdk.bulk("channel", channelDocs);
+      }
+    } catch (error) {
+      logger.error(
+        `While inserting channels ${error.message} ${error.stack}`,
+      );
     }
   }
 

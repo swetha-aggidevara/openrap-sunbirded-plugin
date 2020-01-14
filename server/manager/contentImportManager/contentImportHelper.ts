@@ -137,7 +137,7 @@ const extractEcar = async () => {
         }
         return; // exit if content is collection
       }
-      if (content.artifactUrl && !path.extname(content.artifactUrl)) { // exit if online only content
+      if (content.artifactUrl && content.contentDisposition === "online") { // exit if online only content
         contentImportData.contentAdded.push(content.identifier);
         return;
       }
@@ -158,8 +158,8 @@ const extractEcar = async () => {
     };
     for (const content of _.get(manifestJson, "archive.items")) { // loop items in manifest and extract its contents
       const dbContent: any = _.find(dbContents, { identifier: content.identifier });
-      if (!dbContent || content.pkgVersion > dbContent.pkgVersion
-        || !_.get(dbContent, "desktopAppMetadata.artifactAdded")) { // if content not imported or new ver available
+      if (!dbContent || content.pkgVersion > dbContent.pkgVersion ||
+        !_.get(dbContent, "desktopAppMetadata.isAvailable")) { // if content not imported or new ver available
         await extractContent(content, (content.identifier === contentImportData.contentId),
           (content.mimeType === collectionMimeType));
       } else {

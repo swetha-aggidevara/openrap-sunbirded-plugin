@@ -18,6 +18,7 @@ import DatabaseSDK from "./sdk/database";
 import config from "./config";
 import { logger } from "@project-sunbird/ext-framework-server/logger";
 import { containerAPI } from "OpenRAP/dist/api";
+import  ContentDelete from "./controllers/content/contentDelete";
 import {
   addContentListener,
   reconciliation
@@ -29,8 +30,6 @@ export class Server extends BaseServer {
   private sunbirded_plugin_initialized = false;
   private ecarsFolderPath: string = "ecars";
   private contentFilesPath: string = "content";
-  private tempPath: string = "temp";
-  private telemetryArchivedFolderPath: string = "telemetry_archived";
 
   @Inject
   private databaseSdk: DatabaseSDK;
@@ -40,6 +39,9 @@ export class Server extends BaseServer {
 
   @Inject
   private fileSDK;
+
+  @Inject
+  private contentDelete: ContentDelete;
 
   constructor(manifest: Manifest) {
     super(manifest);
@@ -64,7 +66,7 @@ export class Server extends BaseServer {
   async initialize(manifest: Manifest) {
     //registerAcrossAllSDKS()
     this.databaseSdk.initialize(manifest.id);
-
+    this.contentDelete = new ContentDelete(manifest);
     frameworkAPI.registerStaticRoute(
       this.fileSDK.getAbsPath(this.contentFilesPath),
       "/contentPlayer/preview/content"
@@ -90,10 +92,6 @@ export class Server extends BaseServer {
       "/ecars"
     );
     frameworkAPI.registerStaticRoute(
-      this.fileSDK.getAbsPath(this.tempPath),
-      "/temp"
-    );
-    frameworkAPI.registerStaticRoute(
       path.join(__dirname, "..", "..", "public", "portal")
     );
     frameworkAPI.registerStaticRoute(
@@ -115,24 +113,19 @@ export class Server extends BaseServer {
 
     await this.fileSDK.mkdir(this.contentFilesPath);
     await this.fileSDK.mkdir(this.ecarsFolderPath);
-    await this.fileSDK.mkdir(this.telemetryArchivedFolderPath);
-
-    // listener to index content when content downloaded
-    addContentListener(manifest.id);
-    reconciliation(manifest.id);
 
     this.contentImportManager.initialize(
       manifest.id,
       this.fileSDK.getAbsPath(this.contentFilesPath),
       this.fileSDK.getAbsPath(this.ecarsFolderPath)
     );
-    await this.contentImportManager.reconcile();
-    // delete contents in temp directory
-    await this.fileSDK
-      .remove("temp")
-      .catch(err =>
-        logger.error(`while emptying temp folder on startup ${err}`)
-      );
+    setTimeout(async () => {
+
+      addContentListener(manifest.id);
+      reconciliation(manifest.id);
+      await this.contentImportManager.reconcile();
+      await this.contentDelete.reconciliation();
+    }, 120000);
     //- reIndex()
     //- reConfigure()
   }
@@ -146,15 +139,10 @@ export class Server extends BaseServer {
     const channel = new Channel(manifest);
     const form = new Form(manifest);
     const location = new Location(manifest);
-
-    await organization.insert();
-    await resourceBundle.insert();
-    await framework.insert();
-    await faqs.insert();
-    await channel.insert();
-    await form.insert();
-    await page.insert();
-    await location.insert();
+    Promise.all([organization.insert(), resourceBundle.insert(),
+      framework.insert(), faqs.insert(),
+      channel.insert(), form.insert(),
+      form.insert(), page.insert(), location.insert()]);
   }
 }
 

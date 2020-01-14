@@ -2,7 +2,6 @@ import { Manifest } from "@project-sunbird/ext-framework-server/models";
 import DatabaseSDK from "../sdk/database/index";
 
 import { logger } from "@project-sunbird/ext-framework-server/logger";
-import * as glob from "glob";
 import * as _ from "lodash";
 import { containerAPI } from "OpenRAP/dist/api";
 import * as path from "path";
@@ -20,20 +19,37 @@ export class Framework {
     this.fileSDK = containerAPI.getFileSDKInstance(manifest.id);
   }
   public async insert() {
-    const frameworkFiles = this.fileSDK.getAbsPath(
-      path.join("data", "frameworks", "**", "*.json"),
-    );
-    const files = glob.sync(frameworkFiles, {});
 
-    for (const file of files) {
-      const framework = await this.fileSDK.readJSON(file);
-      const id = path.basename(file, path.extname(file));
-      const doc = _.get(framework, "result.framework");
-      await this.databaseSdk.upsert("framework", id, doc).catch((err) => {
-        logger.error(
-          `Received error while upserting the ${id} to framework database err.message: ${err.message}`,
-        );
-      });
+    try {
+      const files =  await this.fileSDK.readdir(path.join("data", "frameworks"));
+      const frameworksFilesBasePath = this.fileSDK.getAbsPath(path.join("data", "frameworks"));
+      let frameworksList =  await this.databaseSdk.list("framework", {});
+      frameworksList = _.get(frameworksList, "rows");
+      const frameworksListLength = frameworksList ? frameworksList.length : 0;
+      const frameworkDocs = [];
+      for (const file of files) {
+        const id = path.basename(file, path.extname(file));
+        let isInserted: any = false;
+        if (frameworksListLength > 0) {
+           isInserted = _.find(frameworksList, {id});
+        }
+        if (!isInserted) {
+          logger.info(`${id} is not inserted`);
+          const framework = await this.fileSDK.readJSON(path.join(frameworksFilesBasePath, file));
+          const doc = _.get(framework, "result.framework");
+          doc._id = id;
+          frameworkDocs.push(doc);
+        } else {
+          logger.info(`${id} is inserted`);
+        }
+      }
+      if (frameworkDocs.length) {
+        await this.databaseSdk.bulk("framework", frameworkDocs);
+      }
+    } catch (error) {
+      logger.error(
+        `While inserting frameworks ${error.message} ${error.stack}`,
+      );
     }
   }
 

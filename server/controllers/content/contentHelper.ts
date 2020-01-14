@@ -86,9 +86,10 @@ export const addContentListener = (pluginId) => {
                         const appIconFileName = path.basename(metaData.appIcon);
                         await fileSDK.move(path.join('content', fileName, metaData.appIcon), path.join('content', fileName, appIconFileName))
                         folderToDelete.push(path.join('content', fileName, path.dirname(metaData.appIcon)))
-                        metaData.appIcon = `content/${fileName}/${appIconFileName}`;
                     }
-                    if(metaData.artifactUrl && path.extname(metaData.artifactUrl) && path.extname(metaData.artifactUrl) !== '.zip'){
+                    if(!metaData.artifactUrl || (metaData.artifactUrl && metaData.contentDisposition === 'online')) {
+                        // do nothing
+                    } else if(metaData.artifactUrl && path.extname(metaData.artifactUrl) && path.extname(metaData.artifactUrl) !== '.zip'){
                         const artifactName = path.basename(metaData.artifactUrl);
                         await fileSDK.move(path.join('content', fileName, metaData.artifactUrl), path.join('content', fileName, artifactName))
                         folderToDelete.push(path.join('content', fileName, path.dirname(metaData.artifactUrl)))
@@ -102,7 +103,8 @@ export const addContentListener = (pluginId) => {
                     const desktopAppMetadata: IDesktopAppMetadata = {
                         "addedUsing": IAddedUsingType.download,
                         "createdOn": Date.now(),
-                        "updatedOn": Date.now()
+                        "updatedOn": Date.now(),
+                        "isAvailable": true,
                     }
                     metaData.desktopAppMetadata = desktopAppMetadata;
                     //insert metadata to content database

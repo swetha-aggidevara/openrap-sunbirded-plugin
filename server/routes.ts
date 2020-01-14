@@ -24,6 +24,7 @@ import { Location } from './controllers/location';
 import User from "./controllers/user";
 import Response from "./utils/response";
 import TelemetryHelper from "./helper/telemetryHelper";
+import ContentDelete from "./controllers/content/contentDelete";
 
 let telemetry;
 
@@ -654,6 +655,8 @@ export class Router {
 
       return res.send(Response.success("api.system.settings.get.custodianOrgId", resObj, req));
     });
+    let contentDelete = new ContentDelete(manifest);
+    app.post("/api/content/v1/delete", contentDelete.delete.bind(contentDelete));
 
     app.use(
       "/content-plugins/*",

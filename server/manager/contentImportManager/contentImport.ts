@@ -171,10 +171,10 @@ export class ImportContent {
         return acc; // db entry not required for collection which are not parent
       }
       const dbResource: any = _.find(dbContents, { identifier: item.identifier });
-      const artifactAdded = parentContent ? true : _.includes(this.contentImportData.contentAdded, item.identifier);
-      if ((dbResource && _.get(dbResource, "desktopAppMetadata.artifactAdded") && !artifactAdded)) {
+      const isAvailable = parentContent ? true : _.includes(this.contentImportData.contentAdded, item.identifier);
+      if ((dbResource && _.get(dbResource, "desktopAppMetadata.isAvailable") && !isAvailable)) {
         logger.info("Skipped writing to db for content", item.identifier, "reason: content already added to db and no changes required or artifact not present",
-        parentContent, artifactAdded, !dbResource);
+        parentContent, isAvailable, !dbResource);
         // content added with artifact already or added without artifact but ecar has no artifact for this content
         return acc; // then return
       }
@@ -184,20 +184,19 @@ export class ImportContent {
         addedUsing: IAddedUsingType.import,
         createdOn: Date.now(),
         updatedOn: Date.now(),
-        artifactAdded,
+        isAvailable,
       };
-      item.appIcon = item.appIcon ? `content/${item.appIcon}` : item.appIcon;
       if (dbResource) {
         item._rev = dbResource._rev;
-        item.visibility = dbResource.visibility;
         item.desktopAppMetadata.createdOn = dbResource.desktopAppMetadata.createdOn;
       }
+      item.visibility = parentContent ? "Default" : item.visibility;
       if (parentContent && item.mimeType === "application/vnd.ekstep.content-collection") {
         const itemsClone = _.cloneDeep(_.get(this.manifestJson, "archive.items"));
         item.children = this.createHierarchy(itemsClone, item);
       }
       acc.push(item);
-      logger.info("Writing to db for content", { id: item.identifier, parentContent, artifactAdded,
+      logger.info("Writing to db for content", { id: item.identifier, parentContent, isAvailable,
         notInDb: !dbResource});
       return acc;
     }, []);

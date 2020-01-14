@@ -8,22 +8,31 @@
                 {
                     "index": {
                         "fields": [
-                            "board",
-                            "medium",
-                            "gradeLevel",
-                            "subject",
-                            "dialcodes"
-                        ]
-                    },
-                    "name": "search"
-                },
-                {
-                    "index": {
-                        "fields": [
                             "desktopAppMetadata.updatedOn"
                         ]
                     },
                     "name": "sort_updatedOn_index"
+                },
+                {
+                    "index": {
+                        "fields": [
+                            "desktopAppMetadata.isAvailable",
+                            "desktopAppMetadata.updatedOn",
+                            "board",
+                            "medium",
+                            "gradeLevel",
+                            "subject",
+                            "dialcodes",
+                            "keywords",
+                            "name",
+                            "description",
+                            "contentType",
+                            "description",
+                            "identifier"
+                            
+                        ]
+                    },
+                    "name": "search"
                 }
             ]
         },

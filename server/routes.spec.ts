@@ -12,7 +12,6 @@ import { ConnectToServer } from "./test_data/routes.test.server";
 const chai = require("chai"), spies = require("chai-spies");
 chai.use(spies);
 const spy = chai.spy.sandbox();
-
 const initialzeEnv = new InitializeEnv();
 const server = new ConnectToServer();
 let app;
@@ -1137,6 +1136,8 @@ describe("Read and update content / collection", () => {
             .set("Content-Type", "application/json/")
             .expect(200)
             .end((err, res) => {
+                if (res.statusCode >= 500) { logger.error(err); return done(); }
+                if (err && res.statusCode >= 400) { return done(); }
                 expect(res.body.responseCode).to.equal("OK");
                 expect(res.body.id).to.equal("api.content.read").to.be.a("string");
                 expect(res.body.ver).to.equal("1.0").to.be.a("string");
@@ -1414,6 +1415,138 @@ describe("Test Download content / collection", () => {
                 });
         }, 2000);
     }).timeout(210000);
+
+    it("#Pause Download Content", (done) => {
+        supertest(app)
+            .post("/api/content/v1/download/pause/KP_FT_1564394134764")
+            .send({})
+            .expect(200)
+            .end((err, res) => {
+                if (res.statusCode >= 500) { logger.error(err); return done(); }
+                if (err && res.statusCode >= 400) { return done(); }
+                expect(res.body.responseCode).to.equal("OK");
+                expect(res.body.id).to.equal("api.content.pause.download").to.be.a("string");
+                expect(res.body.ver).to.equal("1.0").to.be.a("string");
+                expect(res.body.result).to.have.property("downloadId");
+                done();
+            });
+    }).timeout(100000);
+
+    it("#Pause Download Content (ERROR)", (done) => {
+        supertest(app)
+            .post("/api/content/v1/download/pause/KP_FT_1564394134")
+            .send({})
+            .expect(400)
+            .end((err, res) => {
+                if (res.statusCode >= 500) { logger.error(err); return done(); }
+                if (err && res.statusCode >= 400) { return done(); }
+                expect(res.body.responseCode).to.equal("CLIENT_ERROR");
+                expect(res.body.id).to.equal("api.content.pause.download").to.be.a("string");
+                expect(res.body.ver).to.equal("1.0").to.be.a("string");
+                expect(res.body.params.errmsg).to.equal("Download Document not found with id KP_FT_1564394134").to.be.a("string");
+                expect(res.body.params.err).to.equal("DOC_NOT_FOUND").to.be.a("string");
+                done();
+            });
+    }).timeout(100000);
+
+    it("#Resume Download Content", (done) => {
+        supertest(app)
+            .post("/api/content/v1/download/resume/KP_FT_1564394134764")
+            .send({})
+            .expect(200)
+            .end((err, res) => {
+                if (res.statusCode >= 500) { logger.error(err); return done(); }
+                if (err && res.statusCode >= 400) { return done(); }
+                expect(res.body.responseCode).to.equal("OK");
+                expect(res.body.id).to.equal("api.content.resume.download").to.be.a("string");
+                expect(res.body.ver).to.equal("1.0").to.be.a("string");
+                expect(res.body.result).to.have.property("downloadId");
+                done();
+            });
+    }).timeout(100000);
+
+    it("#Resume Download Content (ERROR)", (done) => {
+        supertest(app)
+            .post("/api/content/v1/download/resume/KP_FT_1564394134")
+            .send({})
+            .expect(400)
+            .end((err, res) => {
+                if (res.statusCode >= 500) { logger.error(err); return done(); }
+                if (err && res.statusCode >= 400) { return done(); }
+                expect(res.body.responseCode).to.equal("CLIENT_ERROR");
+                expect(res.body.id).to.equal("api.content.resume.download").to.be.a("string");
+                expect(res.body.ver).to.equal("1.0").to.be.a("string");
+                expect(res.body.params.errmsg).to.equal("Download Document not found with id KP_FT_1564394134").to.be.a("string");
+                expect(res.body.params.err).to.equal("DOC_NOT_FOUND").to.be.a("string");
+                done();
+            });
+    }).timeout(100000);
+
+    it("#Cancel Download Content", (done) => {
+        supertest(app)
+            .post("/api/content/v1/download/cancel/KP_FT_1564394134764")
+            .send({})
+            .expect(200)
+            .end((err, res) => {
+                if (res.statusCode >= 500) { logger.error(err); return done(); }
+                if (err && res.statusCode >= 400) { return done(); }
+                expect(res.body.responseCode).to.equal("OK");
+                expect(res.body.id).to.equal("api.content.cancel.download").to.be.a("string");
+                expect(res.body.ver).to.equal("1.0").to.be.a("string");
+                expect(res.body.result).to.have.property("downloadId");
+                done();
+            });
+    }).timeout(100000);
+
+    it("#Cancel Download Content (ERROR)", (done) => {
+        supertest(app)
+            .post("/api/content/v1/download/cancel/KP_FT_1564394134")
+            .send({})
+            .expect(400)
+            .end((err, res) => {
+                if (res.statusCode >= 500) { logger.error(err); return done(); }
+                if (err && res.statusCode >= 400) { return done(); }
+                expect(res.body.responseCode).to.equal("CLIENT_ERROR");
+                expect(res.body.id).to.equal("api.content.cancel.download").to.be.a("string");
+                expect(res.body.ver).to.equal("1.0").to.be.a("string");
+                expect(res.body.params.errmsg).to.equal("Download Document not found with id KP_FT_1564394134").to.be.a("string");
+                expect(res.body.params.err).to.equal("DOC_NOT_FOUND").to.be.a("string");
+                done();
+            });
+    }).timeout(100000);
+
+    it("#Retry Download Content", (done) => {
+        supertest(app)
+            .post("/api/content/v1/download/retry/KP_FT_1564394134764")
+            .send({})
+            .expect(200)
+            .end((err, res) => {
+                if (res.statusCode >= 500) { logger.error(err); return done(); }
+                if (err && res.statusCode >= 400) { return done(); }
+                expect(res.body.responseCode).to.equal("OK");
+                expect(res.body.id).to.equal("api.content.retry.download").to.be.a("string");
+                expect(res.body.ver).to.equal("1.0").to.be.a("string");
+                expect(res.body.result).to.have.property("downloadId");
+                done();
+            });
+    }).timeout(100000);
+
+    it("#Retry Download Content (ERROR)", (done) => {
+        supertest(app)
+            .post("/api/content/v1/download/retry/KP_FT_1564394134")
+            .send({})
+            .expect(400)
+            .end((err, res) => {
+                if (res.statusCode >= 500) { logger.error(err); return done(); }
+                if (err && res.statusCode >= 400) { return done(); }
+                expect(res.body.responseCode).to.equal("CLIENT_ERROR");
+                expect(res.body.id).to.equal("api.content.retry.download").to.be.a("string");
+                expect(res.body.ver).to.equal("1.0").to.be.a("string");
+                expect(res.body.params.errmsg).to.equal("Download Document not found with id KP_FT_1564394134").to.be.a("string");
+                expect(res.body.params.err).to.equal("DOC_NOT_FOUND").to.be.a("string");
+                done();
+            });
+    }).timeout(100000);
 });
 describe("Export content / collection", () => {
     const fs = require("fs");
@@ -1460,6 +1593,84 @@ describe("Export content / collection", () => {
             });
     }).timeout(1000);
 });
+
+describe("Delete content / collection", () => {
+
+    it(`#Delete content`, (done) => {
+        supertest(app)
+        .post("/api/content/v1/delete")
+        .send({request: {contents: ["KP_FT_1564394134764"]}})
+        .expect("Content-Type", "application/json; charset=utf-8")
+        .expect(200)
+        .end((err, res) => {
+                expect(res.body.id).to.equal("api.content.delete");
+                expect(res.body.result.deleted).to.contain("KP_FT_1564394134764").to.be.an("array");
+                expect(res.body.result.failed).to.be.an("array");
+                done();
+            });
+    });
+
+    it(`#Delete content (ERROR)`, (done) => {
+        supertest(app)
+        .post("/api/content/v1/delete")
+        .send()
+        .expect("Content-Type", "application/json; charset=utf-8")
+        .expect(200)
+        .end((err, res) => {
+            expect(res.body.id).to.equal("api.content.delete");
+            expect(res.body.params.errmsg).to.equal("MISSING_CONTENTS");
+            expect(res.body.result).not.to.have.property("deleted");
+            expect(res.body.result).not.to.have.property("failed");
+            done();
+        });
+});
+
+    it("#Import Collections ", (done) => {
+        const filePath = [`${__dirname}/test_data/to_import_contents/TextBookTest.ecar`];
+        const req = supertest(app).post("/api/content/v1/import");
+        req.send(filePath);
+        req.expect(200);
+        req.end((err, res) => {
+            expect(res.body.id).to.equal("api.content.import").to.be.a("string");
+            expect(res.body.ver).to.equal("1.0").to.be.a("string");
+            expect(res.body.result.importedJobIds).to.be.an("array");
+            expect(res.body.result).to.have.property("importedJobIds");
+            done();
+        });
+    }).timeout(20000);
+
+    it("#Import Content List", (done) => {
+        const interval = setInterval(() => {
+            supertest(app)
+                .post("/api/content/v1/download/list")
+                .send({})
+                .expect(200)
+                .end((err, res) => {
+                        expect(res.body.result.response.contents).to.be.an("array");
+                        expect(res.body.result.response.contents[0]).to.have.property("status");
+                        expect(res.body.result.response.contents[0]).to.have.property("downloadedSize");
+                        clearInterval(interval);
+                        done();
+                });
+        }, 2000);
+    }).timeout(210000);
+
+    it(`#Delete collection`, (done) => {
+        supertest(app)
+        .post("/api/content/v1/delete")
+        .send({request: {contents: ["do_11275905761520025614"]}})
+        .expect("Content-Type", "application/json; charset=utf-8")
+        .expect(200)
+        .end((err, res) => {
+                expect(res.body.id).to.equal("api.content.delete");
+                expect(res.body.result.deleted).to.contain("do_11275905761520025614").to.be.an("array");
+                expect(res.body.result.failed).to.be.an("array");
+                done();
+            });
+    });
+});
+
+
 after("Disconnect Server", (done) => {
     server.close();
     done();
