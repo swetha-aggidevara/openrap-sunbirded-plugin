@@ -55,7 +55,7 @@ export default class Telemetry {
   public getTelemetryInfo(req, res) {
     try {
       const resObj = {
-        lastSharedDate: new Date(),
+        lastSharedDate: Date.now(),
         size: `500KB`,
       };
       return res.send(Response.success("api.telemetry.info", resObj, req));
