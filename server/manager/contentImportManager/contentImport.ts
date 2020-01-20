@@ -188,9 +188,9 @@ export class ImportContent {
       };
       if (dbResource) {
         item._rev = dbResource._rev;
-        item.visibility = dbResource.visibility;
         item.desktopAppMetadata.createdOn = dbResource.desktopAppMetadata.createdOn;
       }
+      item.visibility = parentContent ? "Default" : item.visibility;
       if (parentContent && item.mimeType === "application/vnd.ekstep.content-collection") {
         const itemsClone = _.cloneDeep(_.get(this.manifestJson, "archive.items"));
         item.children = this.createHierarchy(itemsClone, item);

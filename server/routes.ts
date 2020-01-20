@@ -446,7 +446,8 @@ export class Router {
       },
       proxy(proxyUrl, {
         proxyReqPathResolver: function (req) {
-          return `/api/course/v1/hierarchy/${req.params.id}`;
+          const queryParams = req.url.split("?")[1];
+          return queryParams ? `/api/course/v1/hierarchy/${req.params.id}?${queryParams}` : `/api/course/v1/hierarchy/${req.params.id}`;
         },
         userResDecorator: function (proxyRes, proxyResData, req) {
           return new Promise(function (resolve) {
