@@ -45,7 +45,7 @@ export default class Appupdate {
             const data = await this.checkForUpdate().catch((error) =>
             logger.error(`error while checking for update ${error.message} ${error.status}`));
             return res.send(Response.success("api.app.info", {
-                termsOfUseUrl: `${process.env.APP_BASE_URL}/term-of-use.html`,
+                termsOfUseUrl: `${process.env.TERMS_OF_URL}/termsandcond/terms-and-conditions-v4.html`,
                 version: process.env.APP_VERSION,
                 releaseDate: process.env.RELEASE_DATE,
                 deviceId: this.deviceId,
