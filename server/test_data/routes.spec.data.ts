@@ -47,6 +47,7 @@ export const env = {
     APPLICATION_PORT: "9010",
     DATABASE_PATH: "test_data/database",
     FILES_PATH: "test_data",
+    TERMS_OF_URL: 'test_url',
 };
 
 // telemetry Events mock data
