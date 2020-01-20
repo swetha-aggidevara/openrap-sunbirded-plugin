@@ -841,6 +841,7 @@ describe("App Update", () => {
             });
     });
 
+
     it("#app INFO ", (done) => {
         const HTTPServiceSpy = spy.on(HTTPService, "post", (data) => of({data: {result: mockData.not_updated}}));
         process.env.RELEASE_DATE = "16 December 2019";
