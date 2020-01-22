@@ -832,8 +832,7 @@ describe("App Update", () => {
             .get("/api/app/v1/info")
             .expect(200)
             .end((err, res) => {
-                expect(res.body.result.termsOfUseUrl).to.be.a("string").and.to.equal(`test_url/termsandcond/terms-and-conditions-v4.html`);
-                expect(res.body.result.deviceId).to.be.a("string");
+                expect(res.body.result.termsOfUseUrl).to.be.a("string").and.to.equal(`${process.env.APP_BASE_URL}/term-of-use.html`);                expect(res.body.result.deviceId).to.be.a("string");
                 expect(res.body.result.languages).to.equal("English, Hindi");
                 expect(res.body.result.releaseDate).to.equal(process.env.RELEASE_DATE);
                 expect(res.body.result.updateInfo).to.contain(mockData.appUpdate);
