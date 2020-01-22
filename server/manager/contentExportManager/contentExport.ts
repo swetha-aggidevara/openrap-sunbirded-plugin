@@ -96,8 +96,7 @@ export class ExportContent {
     if (child) {
       this.archiveAppend("createDir", null, contentDetails.identifier);
     }
-    this.archiveAppend("path", path.join(this.contentBaseFolder, contentDetails.identifier, "manifest.json"),
-        baseDestPath + "manifest.json");
+    this.archiveAppend('buffer', this.getManifestBuffer(contentDetails), baseDestPath + 'manifest.json');
     if (contentDetails.appIcon) {
       if (path.dirname(contentDetails.appIcon) !== ".") {
         this.archiveAppend("createDir", null, baseDestPath + path.dirname(contentDetails.appIcon));
