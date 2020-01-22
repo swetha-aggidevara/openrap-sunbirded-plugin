@@ -13,7 +13,7 @@ let zipHandler, zipEntries, dbContents, manifestJson, contentImportData: IConten
 const fileSDK = containerAPI.getFileSDKInstance(manifest.id);
 const contentFolder = fileSDK.getAbsPath("content");
 const ecarFolder = fileSDK.getAbsPath("ecars");
-
+const systemSDK = containerAPI.getSystemSDKInstance(manifest.id);
 const syncCloser = (initialProgress, percentage, totalSize = contentImportData.contentSize) => {
   initialProgress = initialProgress ? initialProgress : contentImportData.progress;
   let completed = 1;
@@ -32,6 +32,13 @@ const syncCloser = (initialProgress, percentage, totalSize = contentImportData.c
 
 const copyEcar = async () => {
   try {
+    const diskInfo = await systemSDK.getHardDiskInfo();
+    process.send({ message: "LOG", logType: "info",
+    logBody: [contentImportData._id, "Disk Space availability check",
+    contentImportData.contentSize, diskInfo.availableHarddisk] });
+    if (contentImportData.contentSize > diskInfo.availableHarddisk) {
+      throw getErrorObj({ message: "Disk space is low, couldn't copy Ecar" }, "LOW_DISK_SPACE");
+    }
     process.send({ message: "LOG", logType: "info", logBody: [contentImportData._id, "copping ecar from src location to ecar folder", contentImportData.ecarSourcePath, ecarFolder] });
     const syncFunc = syncCloser(ImportProgress.COPY_ECAR, 25);
     const toStream = fs.createWriteStream(path.join(ecarFolder, contentImportData._id + ".ecar"));
@@ -110,7 +117,20 @@ const extractZipEntry = async (identifier: string, contentBasePath: string[], en
   syncFunc(entryObj.compressedSize);
   return entryObj;
 };
-
+const checkSpaceAvailability = async () => {
+  const diskInfo = await systemSDK.getHardDiskInfo(); // size in bytes
+  let contentSize = 0; // size in bytes
+  for (const entry of _.values(zipHandler.entries()) as any) {
+    if (!contentImportData.extractedEcarEntries[entry.name]) {
+      contentSize += entry.size;
+    }
+  }
+  process.send({ message: "LOG", logType: "info", logBody: [contentImportData._id, "Disk Space availability check",
+  contentSize, diskInfo.availableHarddisk] });
+  if (contentSize > diskInfo.availableHarddisk) { // bytes
+    throw getErrorObj({ message: "Disk space is low, couldn't extract Ecar" }, "LOW_DISK_SPACE");
+  }
+};
 const extractEcar = async () => {
   try {
     contentImportData.contentSkipped = [];
@@ -119,6 +139,7 @@ const extractEcar = async () => {
       await loadZipHandler(path.join(ecarFolder, contentImportData._id + ".ecar")).catch(handelError("LOAD_ECAR"));
     manifestJson = manifestJson || await fileSDK.readJSON(path.join(contentFolder, contentImportData._id, "manifest.json"));
     zipEntries = zipHandler.entries();
+    await checkSpaceAvailability();
     const syncFunc = syncCloser(ImportProgress.EXTRACT_ECAR, 65);
     const artifactToBeUnzipped = [];
     let artifactToBeUnzippedSize = 0;
