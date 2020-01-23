@@ -11,6 +11,7 @@ import { debounceTime, throttleTime } from "rxjs/operators";
 const collectionMimeType = "application/vnd.ekstep.content-collection";
 let zipHandler, zipEntries, dbContents, manifestJson, contentImportData: IContentImport;
 const fileSDK = containerAPI.getFileSDKInstance(manifest.id);
+const pluginBasePath = fileSDK.getAbsPath("");
 const contentFolder = fileSDK.getAbsPath("content");
 const ecarFolder = fileSDK.getAbsPath("ecars");
 const systemSDK = containerAPI.getSystemSDKInstance(manifest.id);
@@ -29,14 +30,19 @@ const syncCloser = (initialProgress, percentage, totalSize = contentImportData.c
     return subscription;
   };
 };
+const getAvailableDiskSpace = () => {
+  return systemSDK.getHardDiskInfo().then(({availableHarddisk}) => {
+    return availableHarddisk - 5e+8; // keeping buffer of 500 mb, this can be configured
+  });
+};
 
 const copyEcar = async () => {
   try {
-    const diskInfo = await systemSDK.getHardDiskInfo();
+    const availableDiskSpace = await getAvailableDiskSpace();
     process.send({ message: "LOG", logType: "info",
     logBody: [contentImportData._id, "Disk Space availability check",
-    contentImportData.contentSize, diskInfo.availableHarddisk] });
-    if (contentImportData.contentSize > diskInfo.availableHarddisk) {
+    contentImportData.contentSize, availableDiskSpace] });
+    if (contentImportData.contentSize > availableDiskSpace) {
       throw getErrorObj({ message: "Disk space is low, couldn't copy Ecar" }, "LOW_DISK_SPACE");
     }
     process.send({ message: "LOG", logType: "info", logBody: [contentImportData._id, "copping ecar from src location to ecar folder", contentImportData.ecarSourcePath, ecarFolder] });
@@ -117,17 +123,17 @@ const extractZipEntry = async (identifier: string, contentBasePath: string[], en
   syncFunc(entryObj.compressedSize);
   return entryObj;
 };
-const checkSpaceAvailability = async () => {
-  const diskInfo = await systemSDK.getHardDiskInfo(); // size in bytes
+const checkSpaceAvailability = async (entries, extractedEntries = contentImportData.extractedEcarEntries) => {
+  const availableDiskSpace = await getAvailableDiskSpace();
   let contentSize = 0; // size in bytes
-  for (const entry of _.values(zipHandler.entries()) as any) {
-    if (!contentImportData.extractedEcarEntries[entry.name]) {
+  for (const entry of _.values(entries) as any) {
+    if (!extractedEntries[entry.name]) {
       contentSize += entry.size;
     }
   }
   process.send({ message: "LOG", logType: "info", logBody: [contentImportData._id, "Disk Space availability check",
-  contentSize, diskInfo.availableHarddisk] });
-  if (contentSize > diskInfo.availableHarddisk) { // bytes
+  contentSize, availableDiskSpace] });
+  if (contentSize > availableDiskSpace) { // bytes
     throw getErrorObj({ message: "Disk space is low, couldn't extract Ecar" }, "LOW_DISK_SPACE");
   }
 };
@@ -139,7 +145,7 @@ const extractEcar = async () => {
       await loadZipHandler(path.join(ecarFolder, contentImportData._id + ".ecar")).catch(handelError("LOAD_ECAR"));
     manifestJson = manifestJson || await fileSDK.readJSON(path.join(contentFolder, contentImportData._id, "manifest.json"));
     zipEntries = zipHandler.entries();
-    await checkSpaceAvailability();
+    await checkSpaceAvailability(zipEntries);
     const syncFunc = syncCloser(ImportProgress.EXTRACT_ECAR, 65);
     const artifactToBeUnzipped = [];
     let artifactToBeUnzippedSize = 0;
@@ -168,13 +174,15 @@ const extractEcar = async () => {
         contentImportData.contentSkipped.push({ id: content.identifier, reason: "ARTIFACT_MISSING" });
         return;
       }
-      contentImportData.contentAdded.push(content.identifier);
       if (artifactExtracted.name.endsWith(".zip")) { // append zip entry along with size to unzip later
         artifactToBeUnzippedSize += artifactExtracted.compressedSize;
         artifactToBeUnzipped.push({
+          contentId: content.identifier,
           src: path.join("content", ...contentBasePath, path.basename(artifactExtracted.name)),
           size: artifactExtracted.compressedSize,
         });
+      } else {
+        contentImportData.contentAdded.push(content.identifier);
       }
     };
     for (const content of _.get(manifestJson, "archive.items")) { // loop items in manifest and extract its contents
@@ -219,12 +227,21 @@ const unzipArtifacts = async (artifactToBeUnzipped = [], artifactToBeUnzippedSiz
   for (const artifact of artifactToBeUnzipped) {
     syncFunc(artifact.size);
     if (!contentImportData.artifactUnzipped[artifact.src]) {
-      await unzipFile(artifact.src);
-      await removeFile(artifact.src);
+      await extractZipArtifact(artifact).catch((err) => {
+        contentImportData.contentSkipped.push({ id: artifact.contentId, reason: "UNZIP_ARTIFACT_ERROR" });
+      });
       contentImportData.artifactUnzipped[artifact.src] = true;
     }
   }
   syncFunc().unsubscribe();
+};
+const extractZipArtifact = async (artifact) => {
+  const zipArtifactZipHandler: any = await loadZipHandler(path.join(pluginBasePath, artifact.src));
+  const zipArtifactEntries = zipArtifactZipHandler.entries();
+  await checkSpaceAvailability(zipArtifactEntries);
+  await unzipFile(artifact.src);
+  await removeFile(artifact.src);
+  contentImportData.contentAdded.push(artifact.contentId);
 };
 
 const loadZipHandler = async (filePath) => {
