@@ -32,7 +32,7 @@ const syncCloser = (initialProgress, percentage, totalSize = contentImportData.c
 };
 const getAvailableDiskSpace = () => {
   return systemSDK.getHardDiskInfo().then(({availableHarddisk}) => {
-    return availableHarddisk - 5e+8; // keeping buffer of 500 mb, this can be configured
+    return availableHarddisk - 3e+8; // keeping buffer of 300 mb, this can be configured
   });
 };
 
