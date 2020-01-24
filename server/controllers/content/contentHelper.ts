@@ -8,14 +8,16 @@ import * as glob from 'glob';
 import * as _ from 'lodash';
 import { STATUS } from "OpenRAP/dist/managers/DownloadManager/DownloadManager";
 import { IDesktopAppMetadata, IAddedUsingType } from './IContent';
+import * as  StreamZip from "node-stream-zip";
 
 let dbSDK = new DatabaseSDK();
 
 let dbName = "content_download";
-
+let systemSDK;
 export const addContentListener = (pluginId) => {
     dbSDK.initialize(pluginId);
     let fileSDK = containerAPI.getFileSDKInstance(pluginId);
+    systemSDK = containerAPI.getSystemSDKInstance(pluginId);
     EventManager.subscribe(`${pluginId}:download:complete`, async (data) => {
         try {
             // update the status to completed
@@ -30,6 +32,7 @@ export const addContentListener = (pluginId) => {
 
             await dbSDK.update(dbName, _id, { status: CONTENT_DOWNLOAD_STATUS.Completed, updatedOn: Date.now() });
             let failFlagCount = 0;
+            let lowMemoryError: {code: string, message: string};
             for (let file of data.files) {
                 try {
                     /*
@@ -49,13 +52,14 @@ export const addContentListener = (pluginId) => {
                     await deleteContentFolder(file, fileSDK).catch(error => {
                         logger.error(`Received Error while getting content data from db where error = ${error}`);
                     });    
-
+                    await checkSpaceAvailability(path.join(fileSDK.getAbsPath('ecars'), file.file));
                     await fileSDK.unzip(path.join('ecars', file.file), path.join('content', fileName), false)
                     await fileSDK.remove(path.join('ecars', file.file));
                     let zipFilePath = glob.sync(path.join(fileSDK.getAbsPath('content'), fileName, '**', '*.zip'), {});
                     if (zipFilePath.length > 0) {
                         // unzip the file if we have zip file
                         let filePath = path.relative(fileSDK.getAbsPath(''), zipFilePath[0]);
+                        await checkSpaceAvailability(filePath);
                         await fileSDK.unzip(filePath, path.join("content", fileName), false)
                     }
 
@@ -118,12 +122,19 @@ export const addContentListener = (pluginId) => {
                     // update content db to extracted
                     // update the status to indexed
                 } catch (error) {
+                    if (error.code === "LOW_DISK_SPACE") {
+                        lowMemoryError = error;
+                    }
                     failFlagCount++
                     logger.error(`Received error while content is extracted for id: ${data.id} and and err.message: ${error.message}`)
                 }
             }
-            if (failFlagCount === data.files.length) {
-                await dbSDK.update(dbName, _id, { status: CONTENT_DOWNLOAD_STATUS.Failed, updatedOn: Date.now() })
+            if (lowMemoryError) {
+                await dbSDK.update(dbName, _id,
+                    { failedCode: lowMemoryError.code, status: CONTENT_DOWNLOAD_STATUS.Failed, updatedOn: Date.now() })
+            } else if (failFlagCount === data.files.length) {
+                await dbSDK.update(dbName, _id,
+                    { failedCode: "UNHANDLED_ERROR", status: CONTENT_DOWNLOAD_STATUS.Failed, updatedOn: Date.now() })
             } else {
                 await dbSDK.update(dbName, _id, { status: CONTENT_DOWNLOAD_STATUS.Indexed, updatedOn: Date.now() })
             }
@@ -222,3 +233,27 @@ export const reconciliation = async (pluginId) => {
 
 
 }
+const loadZipHandler = async (filePath) => {
+    const zip = new StreamZip({ file: filePath, storeEntries: true, skipEntryNameValidation: true });
+    return new Promise((resolve, reject) => {
+        zip.on("ready", () => resolve(zip));
+        zip.on("error", reject);
+    });
+};
+const checkSpaceAvailability = async (zipPath) => {
+    const zipHandler: any = await loadZipHandler(zipPath);
+    const entries = zipHandler.entries();
+    const availableDiskSpace = await getAvailableDiskSpace();
+    let contentSize = 0; // size in bytes
+    for (const entry of _.values(entries) as any) {
+        contentSize += entry.size;
+    }
+    if (contentSize > availableDiskSpace) {
+        throw { message: "Disk space is low, couldn't extract Ecar", code: "LOW_DISK_SPACE" };
+    }
+};
+const getAvailableDiskSpace = () => {
+    return systemSDK.getHardDiskInfo().then(({availableHarddisk}) => {
+      return availableHarddisk - 3e+8; // keeping buffer of 300 mb, this can be configured
+    });
+};
