@@ -25,7 +25,8 @@ import User from "./controllers/user";
 import Response from "./utils/response";
 import TelemetryHelper from "./helper/telemetryHelper";
 import ContentDelete from "./controllers/content/contentDelete";
-
+import * as cheerio  from 'cheerio';
+import * as inline from "web-resource-inliner";
 let telemetry;
 
 const proxyUrl = process.env.APP_BASE_URL;
@@ -556,6 +557,7 @@ export class Router {
         }
       })
     );
+
     app.post("/api/content/v1/import", content.import.bind(content));
     app.post(
       "/api/content/v1/import/pause/:importId",
@@ -658,6 +660,28 @@ export class Router {
     });
     let contentDelete = new ContentDelete(manifest);
     app.post("/api/content/v1/delete", contentDelete.delete.bind(contentDelete));
+
+
+    app.get("/api/app/v1/terms_of_use", proxy(`${proxyUrl}`, {
+      proxyReqPathResolver: function () {
+          return `/term-of-use.html`;
+      }, userResDecorator: function (proxyRes, proxyResData) {
+          return new Promise(function (resolve) {
+            const proxyData = proxyResData.toString();
+            inline.html({
+                fileContent: proxyData,
+                strict: false,
+                relativeTo: process.env.APP_BASE_URL
+            }, function (err, result) {
+                const $ = cheerio.load(result);
+                $(`#header`).replaceWith(`<header id="header" style="display:none"></header>`);
+                $(`#footer`).replaceWith(`<footer id="footer" style="display:none"></footer>`);
+                $("#terms-of-use").removeClass("header-gap");
+                resolve($.html());
+            });
+          });
+      }
+  }));
 
     app.use(
       "/content-plugins/*",
