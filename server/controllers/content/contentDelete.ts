@@ -37,8 +37,24 @@ export default class ContentDelete {
             }
             const failed: object[] = [];
             const visibility = _.get(req.body, "request.visibility");
-            let contentsToDelete = await this.content.searchInDB({ identifier: contentIDS },
-                req.headers["X-msgid"], "", visibility);
+            let contentsToDelete;
+            if (visibility) {
+                const dbFilter = {
+                    selector: {
+                        _id: {
+                            $in: contentIDS,
+                        },
+                    },
+                };
+                logger.info(`finding all contentsToDelete in Queue `);
+                const contents = await this.databaseSdk.find("content", dbFilter).catch((error) => {
+                    logger.error(`Received Error while finding contents (isAvailable : false) Error: ${error.stack}`);
+                });
+                contentsToDelete = contents;
+            } else {
+                contentsToDelete = await this.content.searchInDB({ identifier: contentIDS },
+                    req.headers["X-msgid"], "", visibility);
+            }
             contentsToDelete = await this.getContentsToDelete(contentsToDelete.docs);
             let deleted = await this.databaseSdk.bulk("content", contentsToDelete).catch((err) => {
                     failed.push(err.message || err.errMessage);
