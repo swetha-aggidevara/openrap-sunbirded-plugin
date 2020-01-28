@@ -53,7 +53,7 @@ export default class ContentDelete {
                 contentsToDelete = contents;
             } else {
                 contentsToDelete = await this.content.searchInDB({ identifier: contentIDS },
-                    req.headers["X-msgid"], "", visibility);
+                    req.headers["X-msgid"], "");
             }
             contentsToDelete = await this.getContentsToDelete(contentsToDelete.docs);
             let deleted = await this.databaseSdk.bulk("content", contentsToDelete).catch((err) => {
