@@ -7,7 +7,6 @@ import { Form } from "./controllers/form";
 import { Channel } from "./controllers/channel";
 import { Framework } from "./controllers/framework";
 import { Faqs } from './controllers/faqs';
-import { Page } from "./controllers/page";
 import Tenant from "./controllers/tenant";
 import Content from "./controllers/content/content";
 import Telemetry from "./controllers/telemetry";
@@ -269,70 +268,6 @@ export class Router {
       proxy(proxyUrl, {
         proxyReqPathResolver: function (req) {
           return `/api/framework/v1/read/${req.params.id}`;
-        }
-      })
-    );
-
-    let page = new Page(manifest);
-    app.post(
-      "/api/data/v1/page/assemble",
-      (req, res, next) => {
-        logger.debug(`Received API call to page asemble`);
-
-        logger.debug(`ReqId = "${req.headers["X-msgid"]}": Check proxy`);
-        if (enableProxy(req)) {
-          logger.info(`Proxy is Enabled `);
-          logger.debug(
-            `ReqId = "${req.headers["X-msgid"]}": Update requestbody`
-          );
-          req = updateRequestBody(req);
-          logger.info(
-            `ReqId = "${req.headers["X-msgid"]}": Request body filters updated successfully`
-          );
-          next();
-        } else {
-          logger.debug(`ReqId = "${req.headers["X-msgid"]}": Get page data`);
-          return page.get(req, res);
-        }
-      },
-      proxy(proxyUrl, {
-        proxyReqPathResolver: function (req) {
-          return `/api/data/v1/page/assemble`;
-        },
-        userResDecorator: function (proxyRes, proxyResData, req) {
-          return new Promise(function (resolve) {
-            logger.info(`Proxy is Enabled for Content`);
-            logger.debug(
-              `ReqId = "${req.headers["X-msgid"]}": Convert buffer data to json`
-            );
-            const proxyData = content.convertBufferToJson(proxyResData, req);
-            let sections = _.get(proxyData, "result.response.sections");
-            if (!_.isEmpty(sections)) {
-              logger.debug(
-                `ReqId = "${req.headers["X-msgid"]}": Calling decorateSections to decorate a content`
-              );
-              content
-                .decorateSections(sections, req.headers["X-msgid"])
-                .then(() => {
-                  logger.info(
-                    `ReqId = "${req.headers["X-msgid"]}": Resolving Data after decorating content `
-                  );
-                  resolve(proxyData);
-                })
-                .catch(err => {
-                  logger.error(
-                    `ReqId = "${req.headers["X-msgid"]}": Received error err.message`,
-                    err
-                  );
-                  resolve(proxyData);
-                });
-            } else {
-              logger.info(
-                `ReqId = "${req.headers["X-msgid"]}": Resolving data if there in no content in page assemble request`
-              );
-              resolve(proxyData);
-            }
-          });
         }
       })
     );
