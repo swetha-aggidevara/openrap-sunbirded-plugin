@@ -29,6 +29,7 @@ export class ExportContent {
         this.dbParentNode = _.get(this.parentManifest, "archive.items[0]");
         await this.loadParentCollection();
       } else {
+        this.dbParentNode.visibility = "Default";
         await this.loadContent(this.dbParentNode, false);
       }
       // this.interval = setInterval(() => logger.log(this.parentArchive.pointer(),
