@@ -9,7 +9,6 @@ import {ContentImportManager} from "./manager/contentImportManager"
 import { Framework } from "./controllers/framework";
 import { Faqs } from "./controllers/faqs";
 import { Organization } from "./controllers/organization";
-import { Page } from "./controllers/page";
 import { ResourceBundle } from "./controllers/resourceBundle";
 import { Channel } from "./controllers/channel";
 import { Form } from "./controllers/form";
@@ -141,15 +140,14 @@ export class Server extends BaseServer {
     const framework = new Framework(manifest);
     const faqs = new Faqs(manifest);
     const organization = new Organization(manifest);
-    const page = new Page(manifest);
     const resourceBundle = new ResourceBundle(manifest);
     const channel = new Channel(manifest);
     const form = new Form(manifest);
     const location = new Location(manifest);
-    Promise.all([organization.insert(), resourceBundle.insert(),
+    return Promise.all([organization.insert(), resourceBundle.insert(),
       framework.insert(), faqs.insert(),
       channel.insert(), form.insert(),
-      form.insert(), page.insert(), location.insert()]);
+      form.insert(), location.insert()]);
   }
 }
 
