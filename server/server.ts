@@ -42,13 +42,13 @@ export class Server extends BaseServer {
 
   @Inject
   private contentDelete: ContentDelete;
-
+  private settingSDK;
   constructor(manifest: Manifest) {
     super(manifest);
 
     // Added timeout since db creation is async and it is taking time and insertion is failing
     this.fileSDK = containerAPI.getFileSDKInstance(manifest.id);
-
+    this.settingSDK = containerAPI.getSettingSDKInstance(manifest.id);
     this.initialize(manifest)
       .then(() => {
         this.sunbirded_plugin_initialized = true;
@@ -99,10 +99,17 @@ export class Server extends BaseServer {
       "/sunbird-plugins"
     );
     frameworkAPI.setStaticViewEngine("ejs");
-
-    // insert meta data for app
-    await this.insertConfig(manifest);
-
+    const response = await this.settingSDK.get(`${process.env.APP_VERSION}_configured`)
+    .catch((err) => {
+      logger.info(`${manifest.id} not configured for version`, `${process.env.APP_VERSION}`, err);
+    });
+    if (!response) {
+      await this.insertConfig(manifest);    // insert meta data for app
+      this.settingSDK.put(`${process.env.APP_VERSION}_configured`, { dataInserted: true});
+      logger.info(`${manifest.id} configured for version ${process.env.APP_VERSION} and settingSdk updated`);
+    } else {
+      logger.info(`${manifest.id} configured for version ${process.env.APP_VERSION}, skipping configuration`);
+    }
     const pluginConfig = {
       pluginVer: manifest.version,
       apiToken: process.env.APP_BASE_URL_TOKEN,
