@@ -88,6 +88,8 @@ export class ExportContent {
     }
   }
   private async loadContent(contentDetails, child) {
+    delete contentDetails._rev;
+    delete contentDetails._id;
     const contentState = await this.validContent(contentDetails);
     if (!contentState.valid) {
       this.corruptContents.push({ id: contentDetails.identifier, reason: contentState.reason });
