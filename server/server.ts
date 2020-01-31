@@ -125,9 +125,8 @@ export class Server extends BaseServer {
       this.fileSDK.getAbsPath(this.contentFilesPath),
       this.fileSDK.getAbsPath(this.ecarsFolderPath)
     );
+    addContentListener(manifest.id);
     setTimeout(async () => {
-
-      addContentListener(manifest.id);
       reconciliation(manifest.id);
       await this.contentImportManager.reconcile();
       await this.contentDelete.reconciliation();
