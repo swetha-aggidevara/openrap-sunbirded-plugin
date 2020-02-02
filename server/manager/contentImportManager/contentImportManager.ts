@@ -6,7 +6,7 @@ import * as uuid from "uuid";
 import { handelError, IContentImport, ImportStatus, ImportSteps } from "./IContentImport";
 import DatabaseSDK from "./../../sdk/database";
 import { logger } from "@project-sunbird/ext-framework-server/logger";
-import { containerAPI } from "OpenRAP/dist/api";
+import { containerAPI, ISystemQueueInstance } from "OpenRAP/dist/api";
 import { manifest } from "../../manifest";
 import { IAddedUsingType } from "../../controllers/content/IContent";
 import TelemetryHelper from "../../helper/telemetryHelper";
@@ -22,44 +22,21 @@ export class ContentImportManager {
   @Inject private dbSDK: DatabaseSDK;
   @Inject private telemetryHelper: TelemetryHelper;
   private runningImportJobs: IRunningImportJobs[] = [];
-  public async initialize(pluginId, contentFilesPath, downloadsFolderPath) {
+  private systemQueue: ISystemQueueInstance;
+  public async register(pluginId, contentFilesPath, downloadsFolderPath) {
+    this.systemQueue = containerAPI.getSystemQueueInstance(manifest.id);
+    this.systemQueue.register(ImportContent.taskType, ImportContent);
     this.dbSDK.initialize(manifest.id);
     this.getDeviceId();
-  }
-  /*
-  method to reconcile import which dint complete when app was closed last time
-  */
-  public async reconcile() {
-    const inProgressJob = await this.dbSDK.find("content_manager", { // TODO:Query needs to be optimized
-      selector: {
-        type: IAddedUsingType.import,
-        status: {
-          $in: [ImportStatus.inProgress],
-        },
-      },
-    }).catch((err) => {
-      logger.log("reconcile error while fetching inProgress content from DB", err.message);
-      return { docs: [] };
-    });
-    logger.info("length of inProgress jobs found while reconcile", inProgressJob.docs.length);
-    if (inProgressJob.docs.length) {
-      const updateQuery: IContentImport[] = _.map(inProgressJob.docs, (job: IContentImport) => {
-        job.status = ImportStatus.reconcile;
-        return job;
-      });
-      await this.dbSDK.bulk("content_manager", updateQuery)
-        .catch((err) => logger.log("reconcile error while updating status to DB", err.message));
-    }
-    this.checkImportQueue();
   }
 
   public async getDeviceId() {
     this.deviceId = await containerAPI.getSystemSDKInstance(manifest.id).getDeviceId();
   }
 
-  public async registerImportJob(ecarPaths: string[]): Promise<string[]> {
-    logger.info("registerImportJob started for ", ecarPaths);
-    ecarPaths = await this.getUnregisteredEcars(ecarPaths);
+  public async add(ecarPaths: string[]): Promise<string[]> {
+    logger.info("add started for ", ecarPaths);
+    // ecarPaths = await this.getUnregisteredEcars(ecarPaths);
     logger.info("Unregistered Ecars:", ecarPaths);
     if (!ecarPaths || !ecarPaths.length) {
       throw {
@@ -88,7 +65,6 @@ export class ContentImportManager {
       this.logSubmitAuditEvent(insertData._id, insertData.name, Object.keys(insertData));
     }
     await this.dbSDK.bulk("content_manager", dbData);
-    this.checkImportQueue();
     return dbData.map((data) => data._id);
   }
 
