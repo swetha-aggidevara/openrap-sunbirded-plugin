@@ -1112,6 +1112,20 @@ describe("Test Import Content/Collection", () => {
         });
     });
 
+    it("#Import Collections ", (done) => {
+        const filePath = [`${__dirname}/test_data/to_import_contents/TextBookTest.ecar`];
+        const req = supertest(app).post("/api/content/v1/import");
+        req.send(filePath);
+        req.expect(200);
+        req.end((err, res) => {
+            expect(res.body.id).to.equal("api.content.import").to.be.a("string");
+            expect(res.body.ver).to.equal("1.0").to.be.a("string");
+            expect(res.body.result.importedJobIds).to.be.an("array");
+            expect(res.body.result).to.have.property("importedJobIds");
+            done();
+        });
+    }).timeout(30000);
+
     it("#Import Content List", (done) => {
         const interval = setInterval(() => {
             supertest(app)
@@ -1581,36 +1595,6 @@ describe("Export content / collection", () => {
 });
 
 describe("Delete content / collection", () => {
-
-    it("#Import Collections ", (done) => {
-        const filePath = [`${__dirname}/test_data/to_import_contents/TextBookTest.ecar`];
-        const req = supertest(app).post("/api/content/v1/import");
-        req.send(filePath);
-        req.expect(200);
-        req.end((err, res) => {
-            expect(res.body.id).to.equal("api.content.import").to.be.a("string");
-            expect(res.body.ver).to.equal("1.0").to.be.a("string");
-            expect(res.body.result.importedJobIds).to.be.an("array");
-            expect(res.body.result).to.have.property("importedJobIds");
-            done();
-        });
-    }).timeout(20000);
-
-    it("#Import Content List", (done) => {
-        const interval = setInterval(() => {
-            supertest(app)
-                .post("/api/content/v1/download/list")
-                .send({})
-                .expect(200)
-                .end((err, res) => {
-                        expect(res.body.result.response.contents).to.be.an("array");
-                        expect(res.body.result.response.contents[0]).to.have.property("status");
-                        expect(res.body.result.response.contents[0]).to.have.property("downloadedSize");
-                        clearInterval(interval);
-                        done();
-                });
-        }, 2000);
-    }).timeout(250000);
 
     it(`#Delete collection`, (done) => {
         supertest(app)
