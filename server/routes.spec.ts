@@ -1004,6 +1004,20 @@ describe("Test Import Content/Collection", () => {
             done();
         });
     });
+    it("#Import v1 collection import", (done) => {
+        const filePath = `${__dirname}/test_data/to_import_contents/Maths_VI6.ecar`;
+        const req = supertest(app).post("/api/content/v1/import");
+        req.send([filePath]);
+        req.expect(200);
+        req.end((err, res) => {
+            importId = res.body.result.importedJobIds[0];
+            expect(res.body.id).to.equal("api.content.import").to.be.a("string");
+            expect(res.body.ver).to.equal("1.0").to.be.a("string");
+            expect(res.body.result.importedJobIds).to.be.an("array");
+            expect(res.body.result).to.have.property("importedJobIds");
+            done();
+        });
+    });
 
     it("#Import v1 collection pause", (done) => {
         const req = supertest(app).post(`/api/content/v1/import/pause/${importId}`);
@@ -1176,27 +1190,6 @@ describe("Read and update content / collection", () => {
                 done();
             });
     }).timeout(10000);
-
-    it("#Import v1 content import (collection update available)", (done) => {
-        const filePath = `${__dirname}/test_data/to_import_contents/Maths_VI6.ecar`;
-        const req = supertest(app).post("/api/content/v1/import");
-        req.send([filePath]);
-        req.expect(200);
-        req.end((err, res) => {
-            if (res.statusCode >= 500) {
-                logger.error(err);
-                return done();
-            }
-            if (err && res.statusCode >= 400) {
-                return done();
-            }
-            expect(res.body.id).to.equal("api.content.import").to.be.a("string");
-            expect(res.body.ver).to.equal("1.0").to.be.a("string");
-            expect(res.body.result.importedJobIds).to.be.an("array");
-            expect(res.body.result).to.have.property("importedJobIds");
-            done();
-        });
-    }).timeout(30000);
 
     it("#Get CourseHierarchy and check for update", (done) => {
         supertest(app)

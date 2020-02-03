@@ -369,7 +369,8 @@ export default class ContentDownload {
                                 "pkgVersion": _.get(doc, 'queueMetaData.pkgVersion'),
                                 "contentType": _.get(doc, 'queueMetaData.contentType'),
                                 "totalSize": doc.size,
-                                "addedUsing": "download"
+                                "addedUsing": "download",
+                                "failedCode": doc.failedCode
                             };
                         })
                     }
