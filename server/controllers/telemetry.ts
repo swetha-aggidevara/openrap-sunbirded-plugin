@@ -56,7 +56,8 @@ export default class Telemetry {
     this.telemetrySDK.info((err, data) => {
       if (err) {
         res.status(err.status || 500);
-        return res.send(Response.error("api.telemetry.info", 500, err.errMessage || err.message, err.code));
+        return res.send(Response.error("api.telemetry.info", err.status || 500
+        , err.errMessage || err.message, err.code));
       }
       res.status(200);
       res.send(Response.success(`api.telemetry.info`, {
@@ -70,7 +71,8 @@ export default class Telemetry {
     this.telemetrySDK.export(destFolder, (err, data) => {
       if (err) {
         res.status(err.status || 500);
-        return res.send(Response.error("api.telemetry.export", 500, err.errMessage || err.message, err.code));
+        return res.send(Response.error("api.telemetry.export", err.status || 500, err.errMessage
+        || err.message, err.code));
       }
       res.status(200);
       res.send(Response.success(`api.telemetry.export`, {

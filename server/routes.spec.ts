@@ -1112,27 +1112,6 @@ describe("Test Import Content/Collection", () => {
         });
     });
 
-    it("#Import v1 content import (collection update available)", (done) => {
-        const filePath = `${__dirname}/test_data/to_import_contents/Maths_VI6.ecar`;
-        const req = supertest(app).post("/api/content/v1/import");
-        req.send([filePath]);
-        req.expect(200);
-        req.end((err, res) => {
-            if (res.statusCode >= 500) {
-                logger.error(err);
-                return done();
-            }
-            if (err && res.statusCode >= 400) {
-                return done();
-            }
-            expect(res.body.id).to.equal("api.content.import").to.be.a("string");
-            expect(res.body.ver).to.equal("1.0").to.be.a("string");
-            expect(res.body.result.importedJobIds).to.be.an("array");
-            expect(res.body.result).to.have.property("importedJobIds");
-            done();
-        });
-    }).timeout(10000);
-
     it("#Import Content List", (done) => {
         const interval = setInterval(() => {
             supertest(app)
@@ -1197,6 +1176,27 @@ describe("Read and update content / collection", () => {
                 done();
             });
     }).timeout(10000);
+
+    it("#Import v1 content import (collection update available)", (done) => {
+        const filePath = `${__dirname}/test_data/to_import_contents/Maths_VI6.ecar`;
+        const req = supertest(app).post("/api/content/v1/import");
+        req.send([filePath]);
+        req.expect(200);
+        req.end((err, res) => {
+            if (res.statusCode >= 500) {
+                logger.error(err);
+                return done();
+            }
+            if (err && res.statusCode >= 400) {
+                return done();
+            }
+            expect(res.body.id).to.equal("api.content.import").to.be.a("string");
+            expect(res.body.ver).to.equal("1.0").to.be.a("string");
+            expect(res.body.result.importedJobIds).to.be.an("array");
+            expect(res.body.result).to.have.property("importedJobIds");
+            done();
+        });
+    }).timeout(30000);
 
     it("#Get CourseHierarchy and check for update", (done) => {
         supertest(app)
@@ -1414,7 +1414,7 @@ describe("Test Download content / collection", () => {
                     done();
                 });
         }, 2000);
-    }).timeout(210000);
+    }).timeout(310000);
 
     it("#Pause Download Content", (done) => {
         supertest(app)
@@ -1677,6 +1677,7 @@ describe('Telemetry Info', () => {
             .get("/api/telemetry/v1/info")
             .expect(200)
             .end((err, res) => {
+
                 if (res.statusCode >= 500) { logger.error(err); return done(); }
                 if (err && res.statusCode >= 400) { return done(); }
                 expect(res.body.id).to.equal("api.telemetry.info").to.be.a("string");
@@ -1700,8 +1701,7 @@ describe('Telemetry Info', () => {
                 done();
             });
     });
-})
-
+});
 
 after("Disconnect Server", (done) => {
     server.close();
