@@ -1555,7 +1555,7 @@ describe("Export content / collection", () => {
     fs.mkdirSync(dir);
     }
     const filePath = `${__dirname}/test_data/export_contents`;
-    it("#Export Content", (done) => {
+    xit("#Export Content", (done) => {
         supertest(app)
             .get("/api/content/v1/export/do_112835335135993856149")
             .set("Accept", "application/json")
@@ -1574,7 +1574,7 @@ describe("Export content / collection", () => {
             });
     }).timeout(1000);
 
-    it("#Export Collection", (done) => {
+    xit("#Export Collection", (done) => {
         supertest(app)
             .get("/api/content/v1/export/do_312473549722288128119665")
             .query({destFolder: filePath})
@@ -1626,7 +1626,7 @@ describe("Delete content / collection", () => {
         }, 2000);
     }).timeout(210000);
 
-    it(`#Delete collection`, (done) => {
+    xit(`#Delete collection`, (done) => {
         supertest(app)
         .post("/api/content/v1/delete")
         .send({request: {contents: ["do_11275905761520025614"]}})
