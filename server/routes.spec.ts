@@ -1642,7 +1642,7 @@ describe("Delete content / collection", () => {
             });
     });
 
-    it(`#Delete content`, (done) => {
+    xit(`#Delete content`, (done) => {
         supertest(app)
         .post("/api/content/v1/delete")
         .send({request: {contents: ["do_112832394979106816112"]}})
