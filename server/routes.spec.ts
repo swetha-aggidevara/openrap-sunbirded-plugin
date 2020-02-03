@@ -1633,6 +1633,8 @@ describe("Delete content / collection", () => {
         .expect("Content-Type", "application/json; charset=utf-8")
         .expect(200)
         .end((err, res) => {
+                if (res.statusCode >= 500) { logger.error(err); return done(); }
+                if (err && res.statusCode >= 400) {  return done(); }
                 expect(res.body.id).to.equal("api.content.delete");
                 expect(res.body.result.deleted).to.contain("do_11275905761520025614").to.be.an("array");
                 expect(res.body.result.failed).to.be.an("array");
@@ -1647,6 +1649,8 @@ describe("Delete content / collection", () => {
         .expect("Content-Type", "application/json; charset=utf-8")
         .expect(200)
         .end((err, res) => {
+                if (res.statusCode >= 500) { logger.error(err); return done(); }
+                if (err && res.statusCode >= 400) {  return done(); }
                 expect(res.body.id).to.equal("api.content.delete");
                 expect(res.body.result.deleted).to.contain("do_112832394979106816112").to.be.an("array");
                 expect(res.body.result.failed).to.be.an("array");
