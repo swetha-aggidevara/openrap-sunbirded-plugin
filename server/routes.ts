@@ -625,11 +625,16 @@ export class Router {
     );
 
     app.get("/api/desktop/v1/memory", async (req, res) => {
-      const memory = await containerAPI
-        .getSystemSDKInstance(manifest.id)
-        .getMemoryInfo();
-
-      return res.send(Response.success("api.desktop.memory", memory, req));
+      try {
+        const memory = await containerAPI
+          .getSystemSDKInstance(manifest.id)
+          .getMemoryInfo();
+        return res.send(Response.success("api.desktop.memory", memory, req));
+      } catch (err) {
+        logger.error(`ReqId = "${req.headers["X-msgid"]}": Received error while processing desktop app memoryInfo request where err = ${err}`);
+        res.status(500);
+        return res.send(Response.error("api.desktop.update", 500));
+      }
     });
 
     let user = new User(manifest);
