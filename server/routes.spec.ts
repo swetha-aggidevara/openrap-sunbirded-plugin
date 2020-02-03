@@ -962,7 +962,8 @@ describe("Test Page assemble with and without referrer", () => {
 describe("Test Import Content/Collection", () => {
 
     it("#Import Collections ", (done) => {
-        const filePath = [`${__dirname}/test_data/to_import_contents/TextBookTest.ecar`, `${__dirname}/test_data/to_import_contents/Maths_VI6.ecar`,`${__dirname}/test_data/to_import_contents/TEST.ecar`];
+        const filePath = [`${__dirname}/test_data/to_import_contents/TextBookTest.ecar`, `${__dirname}/test_data/to_import_contents/Maths_VI6.ecar`,`${__dirname}/test_data/to_import_contents/TEST.ecar`,
+        `${__dirname}/test_data/to_import_contents/TextBookTest.ecar`];
         const req = supertest(app).post("/api/content/v1/import");
         req.send(filePath);
         req.expect(200);
@@ -1111,20 +1112,6 @@ describe("Test Import Content/Collection", () => {
             done();
         });
     });
-
-    it("#Import Collections ", (done) => {
-        const filePath = [`${__dirname}/test_data/to_import_contents/TextBookTest.ecar`];
-        const req = supertest(app).post("/api/content/v1/import");
-        req.send(filePath);
-        req.expect(200);
-        req.end((err, res) => {
-            expect(res.body.id).to.equal("api.content.import").to.be.a("string");
-            expect(res.body.ver).to.equal("1.0").to.be.a("string");
-            expect(res.body.result.importedJobIds).to.be.an("array");
-            expect(res.body.result).to.have.property("importedJobIds");
-            done();
-        });
-    }).timeout(30000);
 
     it("#Import Content List", (done) => {
         const interval = setInterval(() => {
