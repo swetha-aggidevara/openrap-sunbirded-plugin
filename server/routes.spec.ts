@@ -871,6 +871,23 @@ describe("App Update", () => {
                 done();
             });
     });
+
+    it.only("#get Memory Info ", (done) => {
+        const memory = {
+            totalMemory: 7823223232,
+            availableMemory: 14343322232,
+        };
+
+        const HTTPServiceSpy = spy.on(HTTPService, "post", (data) => of({ data: { result: memory } }));
+        supertest(app)
+            .get("/api/desktop/v1/memory")
+            .expect(200)
+            .end((err, res) => {
+                expect(res.body.result.totalMemory).to.be.a("number");
+                expect(res.body.result.availableMemory).to.a("number");
+                done();
+            });
+    });
 });
 
 describe("Test Page assemble with and without referrer", () => {

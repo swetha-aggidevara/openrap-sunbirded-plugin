@@ -624,6 +624,14 @@ export class Router {
       desktopAppUpdate.getAppInfo.bind(desktopAppUpdate)
     );
 
+    app.get("/api/desktop/v1/memory", async (req, res) => {
+      const memory = await containerAPI
+        .getSystemSDKInstance(manifest.id)
+        .getMemoryInfo();
+
+      return res.send(Response.success("api.desktop.memory", memory, req));
+    });
+
     let user = new User(manifest);
     app.post("/api/desktop/user/v1/create",
       user.create.bind(user)
