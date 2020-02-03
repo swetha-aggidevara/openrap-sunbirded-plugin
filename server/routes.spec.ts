@@ -1610,7 +1610,7 @@ describe("Delete content / collection", () => {
                         done();
                 });
         }, 2000);
-    }).timeout(210000);
+    }).timeout(250000);
 
     it(`#Delete collection`, (done) => {
         supertest(app)
