@@ -1,5 +1,5 @@
 import * as childProcess from "child_process";
-import { IContentImport, ImportStatus, ImportSteps, ErrorObj } from "./IContentImport";
+import { ErrorObj, IContentImportData, ImportSteps } from "./IContentImport";
 import { Inject } from "typescript-ioc";
 import * as path from "path";
 import DatabaseSDK from "../../sdk/database";
@@ -27,22 +27,22 @@ export class ImportContent implements ITaskExecuter {
     return this.contentImportData;
   }
   public async start(contentImportData: ISystemQueue, observer: Observer<ISystemQueue>) {
+    this.contentImportData = contentImportData;
+    this.observer = observer;
     this.workerProcessRef = childProcess.fork(path.join(__dirname, "contentImportHelper"));
     this.handleChildProcessMessage();
     this.handleWorkerCloseEvents();
-    this.contentImportData.progress = 0;
-    await this.syncStatusToDb();
-    switch (this.contentImportData.data.step) {
+    switch (this.contentImportData.metaData.step) {
       case ImportSteps.copyEcar: {
         this.workerProcessRef.send({
-          message: this.contentImportData.data.step,
+          message: this.contentImportData.metaData.step,
           contentImportData: this.contentImportData,
         });
         break;
       }
       case ImportSteps.parseEcar: {
         this.workerProcessRef.send({
-          message: this.contentImportData.data.step,
+          message: this.contentImportData.metaData.step,
           contentImportData: this.contentImportData,
         });
         break;
@@ -72,56 +72,52 @@ export class ImportContent implements ITaskExecuter {
   public async cancel() {
     this.interrupt = true; // to stop message from child process
     logger.log("canceling running import job for", this.contentImportData._id);
-    if (this.contentImportData.data.step === ImportSteps.processContents) {
+    if (this.contentImportData.metaData.step === ImportSteps.processContents) {
       return false;
     }
     this.workerProcessRef.send({ message: "KILL" });
     this.cleanUpAfterErrorOrCancel();
     await this.handleKillSignal();
+    // this.observer.next(this.contentImportData);
     return true;
   }
 
   public async pause() {
     logger.log("pausing running import job for", this.contentImportData._id);
     this.interrupt = true; // to stop message from child process
-    if (this.contentImportData.data.step === ImportSteps.processContents) {
+    if (this.contentImportData.metaData.step === ImportSteps.processContents) {
       return false;
     }
     this.workerProcessRef.send({ message: "KILL" });
     await this.handleKillSignal();
+    // this.observer.next(this.contentImportData);
     return true;
   }
 
-  /*
-   * _id, _rev, ImportStep, ImportStatus should not be copied from child.
-   * Parent will handle status update and import progress
-  */
-  private saveDataFromWorker(contentImportData: IContentImport) {
-    this.contentImportData = {
-      ...this.contentImportData,
-      ..._.pick(contentImportData, ["childNodes", "contentId", "mimeType", "extractedEcarEntries", "artifactUnzipped", "progress", "contentSize", "pkgVersion", "contentSkipped", "contentAdded", "contentType"]),
-    };
+  private saveDataFromWorker(contentImportData: ISystemQueue) {
+    this.contentImportData.metaData = contentImportData.metaData;
+    this.contentImportData.progress = contentImportData.progress;
   }
 
   private async extractEcar() {
     try {
-      if (this.contentImportData.data.step !== ImportSteps.extractEcar) {
-        this.contentImportData.data.step = ImportSteps.extractEcar;
-        await this.syncStatusToDb();
+      if (this.contentImportData.metaData.step !== ImportSteps.extractEcar) {
+        this.contentImportData.metaData.step = ImportSteps.extractEcar;
+        this.observer.next(this.contentImportData);
       }
-      const contentIds = [this.contentImportData.data.contentId];
-      if (this.contentImportData.data.childNodes) {
-        contentIds.push(...this.contentImportData.data.childNodes);
+      const contentIds = [this.contentImportData.metaData.contentId];
+      if (this.contentImportData.metaData.childNodes) {
+        contentIds.push(...this.contentImportData.metaData.childNodes);
       }
       const dbContents = await this.getContentsFromDB(contentIds);
       this.workerProcessRef.send({
-        message: this.contentImportData.data.step,
+        message: this.contentImportData.metaData.step,
         contentImportData: this.contentImportData,
         dbContents,
       });
     } catch (err) {
       logger.error(this.contentImportData._id, "Error while processContents ", err);
-      await this.syncStatusToDb();
+      this.observer.next(this.contentImportData);
       this.observer.error(err);
       this.cleanUpAfterErrorOrCancel();
     }
@@ -129,27 +125,25 @@ export class ImportContent implements ITaskExecuter {
 
   private async processContents() {
     try {
-      if (this.contentImportData.data.step !== ImportSteps.processContents) {
-        this.contentImportData.data.step = ImportSteps.processContents;
-        await this.syncStatusToDb();
+      if (this.contentImportData.metaData.step !== ImportSteps.processContents) {
+        this.contentImportData.metaData.step = ImportSteps.processContents;
+        this.observer.next(this.contentImportData);
       }
-      const contentIds = [this.contentImportData.data.contentId];
-      if (this.contentImportData.data.childNodes) {
-        contentIds.push(...this.contentImportData.data.childNodes);
+      const contentIds = [this.contentImportData.metaData.contentId];
+      if (this.contentImportData.metaData.childNodes) {
+        contentIds.push(...this.contentImportData.metaData.childNodes);
       }
       const dbContents = await this.getContentsFromDB(contentIds);
       await this.saveContentsToDb(dbContents);
-      this.contentImportData.data.step = ImportSteps.complete;
+      this.contentImportData.metaData.step = ImportSteps.complete;
       logger.info("--------import complete-------", JSON.stringify(this.contentImportData));
-      await this.syncStatusToDb();
       this.observer.next(this.contentImportData);
       this.observer.complete();
     } catch (err) {
       logger.error(this.contentImportData._id, "Error while processContents for ", err);
-      this.contentImportData.data.step = ImportSteps.copyEcar;
+      this.contentImportData.metaData.step = ImportSteps.copyEcar;
       this.contentImportData.failedCode = err.errCode || "CONTENT_SAVE_FAILED";
       this.contentImportData.failedReason = err.errMessage;
-      await this.syncStatusToDb();
       this.observer.next(this.contentImportData);
       this.observer.error(err);
       this.cleanUpAfterErrorOrCancel();
@@ -161,15 +155,16 @@ export class ImportContent implements ITaskExecuter {
   private async saveContentsToDb(dbContents) {
     logger.info(this.contentImportData._id, "saving contents to db");
     this.manifestJson = await this.fileSDK.readJSON(
-      path.join(path.join(this.fileSDK.getAbsPath("content"), this.contentImportData.data.contentId), "manifest.json"));
+      path.join(path.join(this.fileSDK.getAbsPath("content"), this.contentImportData.metaData.contentId), "manifest.json"));
     const resources = _.reduce(_.get(this.manifestJson, "archive.items"), (acc, item) => {
-      const parentContent = item.identifier === this.contentImportData.data.contentId;
+      const parentContent = item.identifier === this.contentImportData.metaData.contentId;
       if (item.mimeType === "application/vnd.ekstep.content-collection" && !parentContent) {
         logger.info("Skipped writing to db for content", item.identifier, "reason: collection and not parent");
         return acc; // db entry not required for collection which are not parent
       }
       const dbResource: any = _.find(dbContents, { identifier: item.identifier });
-      const isAvailable = parentContent ? true : _.includes(this.contentImportData.data.contentAdded, item.identifier);
+      const isAvailable = parentContent ? true :
+          _.includes(this.contentImportData.metaData.contentAdded, item.identifier);
       if ((dbResource && _.get(dbResource, "desktopAppMetadata.isAvailable") && !isAvailable)) {
         logger.info("Skipped writing to db for content", item.identifier, "reason: content already added to db and no changes required or artifact not present",
         parentContent, isAvailable, !dbResource);
@@ -206,10 +201,10 @@ export class ImportContent implements ITaskExecuter {
   }
 
   private async copyEcar() {
-    this.contentImportData.data.step = ImportSteps.parseEcar;
-    await this.syncStatusToDb();
+    this.contentImportData.metaData.step = ImportSteps.parseEcar;
+    this.observer.next(this.contentImportData);
     this.workerProcessRef.send({
-      message: this.contentImportData.data.step,
+      message: this.contentImportData.metaData.step,
       contentImportData: this.contentImportData,
     });
   }
@@ -230,7 +225,7 @@ export class ImportContent implements ITaskExecuter {
       } else if (data.message === ImportSteps.extractEcar) {
         this.processContents();
       } else if (data.message === "DATA_SYNC") {
-        this.syncStatusToDb();
+        this.observer.next(this.contentImportData);
       } else if (data.message === "LOG") {
         if (logger[data.logType]) {
           logger[data.logType]("Log from import worker: ", ...data.logBody);
@@ -246,10 +241,10 @@ export class ImportContent implements ITaskExecuter {
   private handleWorkerCloseEvents() {
     this.workerProcessRef.on("exit", (code, signal) => {
       logger.log(this.contentImportData._id, "Child process exited with", code, signal);
-      if (this.interrupt || this.contentImportData.data.step === ImportSteps.complete) {
+      if (this.interrupt || this.contentImportData.metaData.step === ImportSteps.complete) {
         return;
       }
-      if (!_.includes([ImportStatus.canceled, ImportStatus.paused], this.contentImportData.status)) {
+      if (!this.interrupt) {
         this.handleUnexpectedChildProcessExit(code, signal);
       }
     });
@@ -258,28 +253,24 @@ export class ImportContent implements ITaskExecuter {
   private async handleUnexpectedChildProcessExit(code, signal) {
     logger.error("Unexpected exit of child process for importId",
       this.contentImportData._id, "with signal and code", code, signal);
-    this.contentImportData.status = ImportStatus.failed; // this line should not be removed
-    this.contentImportData.data.step = ImportSteps.copyEcar;
-    this.contentImportData.failedCode = "WORKER_UNHANDLED_EXCEPTION";
-    this.contentImportData.failedReason = "Import Worker exited while processing ECar";
-    await this.syncStatusToDb();
+    this.contentImportData.metaData.step = ImportSteps.copyEcar;
+    this.observer.next(this.contentImportData);
+    this.observer.error({
+      code: "WORKER_UNHANDLED_EXCEPTION",
+      message: "Import Worker exited while processing ECar",
+    });
     this.cleanUpAfterErrorOrCancel();
   }
 
   private async handleChildProcessError(err: ErrorObj) {
     logger.error(this.contentImportData._id, "Got error while importing ecar with importId:", err);
-    this.contentImportData.data.step = ImportSteps.copyEcar;
-    this.contentImportData.failedCode = err.errCode;
-    this.contentImportData.failedReason = err.errMessage;
-    this.contentImportData.status = ImportStatus.failed;
-    await this.syncStatusToDb();
-    this.cb(err, this.contentImportData);
-    this.cleanUpAfterErrorOrCancel();
-  }
-
-  // TODO: Revision and compaction to be handled
-  private async syncStatusToDb() {
+    this.contentImportData.metaData.step = ImportSteps.copyEcar;
     this.observer.next(this.contentImportData);
+    this.observer.error({
+      code: err.errCode,
+      message: err.errMessage,
+    });
+    this.cleanUpAfterErrorOrCancel();
   }
 
   private async getContentsFromDB(contentIds: string[]) {
@@ -299,14 +290,7 @@ export class ImportContent implements ITaskExecuter {
         if (data.message === "DATA_SYNC_KILL") {
           this.workerProcessRef.kill();
           logger.log(this.contentImportData._id, "kill signal from child",
-            this.contentImportData.status, this.contentImportData.data.step);
-          if (this.contentImportData.status === ImportStatus.paused) {
-            this.contentImportData.status = ImportStatus.paused; // this line should not be removed
-          } else if (this.contentImportData.status === ImportStatus.canceled) {
-            this.contentImportData.status = ImportStatus.canceled; // this line should not be removed
-            this.cleanUpAfterErrorOrCancel();
-          }
-          await this.syncStatusToDb();
+            this.contentImportData.status, this.contentImportData.metaData.step);
           resolve();
         }
       });

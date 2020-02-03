@@ -45,11 +45,7 @@ export default class Content {
     constructor(private manifest: Manifest) {
         this.databaseSdk.initialize(manifest.id);
         this.fileSDK = containerAPI.getFileSDKInstance(manifest.id);
-        this.contentImportManager.register(
-            manifest.id,
-            this.fileSDK.getAbsPath(this.contentsFilesPath),
-            this.fileSDK.getAbsPath(this.ecarsFolderPath)
-        );
+        this.contentImportManager.initialize();
         this.getDeviceId();
     }
 

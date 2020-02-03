@@ -13,7 +13,6 @@ export enum ImportProgress {
   "PROCESS_CONTENTS" = 99,
   "COMPLETE" = 100,
 }
-// Caution: reordering the enum might break the import flow
 export enum ImportStatus {
   reconcile,
   resume,
@@ -26,7 +25,6 @@ export enum ImportStatus {
   completed,
   failed,
 }
-
 export interface IContentImport {
   _id: string;
   _rev?: string;
@@ -43,6 +41,20 @@ export interface IContentImport {
   pkgVersion?: string;
   failedCode?: string;
   failedReason?: string;
+  ecarSourcePath: string;
+  importStep?: ImportSteps;
+  extractedEcarEntries: object;
+  artifactUnzipped: object;
+  childNodes?: string[];
+  contentAdded?: string[];
+  contentSkipped?: IContentSkipped[];
+}
+export interface IContentImportData {
+  contentSize: number;
+  contentId?: string;
+  mimeType?: string;
+  contentType?: string;
+  pkgVersion?: string;
   ecarSourcePath: string;
   importStep?: ImportSteps;
   extractedEcarEntries: object;

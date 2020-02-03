@@ -34,9 +34,6 @@ export class Server extends BaseServer {
   private databaseSdk: DatabaseSDK;
 
   @Inject
-  private contentImportManager: ContentImportManager;
-
-  @Inject
   private fileSDK;
 
   @Inject
