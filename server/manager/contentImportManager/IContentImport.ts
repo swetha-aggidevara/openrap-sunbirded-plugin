@@ -56,7 +56,7 @@ export interface IContentImportData {
   contentType?: string;
   pkgVersion?: string;
   ecarSourcePath: string;
-  importStep?: ImportSteps;
+  step?: ImportSteps;
   extractedEcarEntries: object;
   artifactUnzipped: object;
   childNodes?: string[];

@@ -13,7 +13,6 @@ const telemetryEnv = "Content";
 const telemetryInstance = containerAPI.getTelemetrySDKInstance().getInstance();
 
 @Singleton
-@AutoWired
 export class ContentImportManager {
   private deviceId: string;
   @Inject private dbSDK: DatabaseSDK;
@@ -50,17 +49,18 @@ export class ContentImportManager {
         metaData: {
           contentSize,
           ecarSourcePath: ecarPath,
-          importStep: ImportSteps.copyEcar,
+          step: ImportSteps.copyEcar,
           extractedEcarEntries: {},
           artifactUnzipped: {},
         },
       };
       queueReq.push(insertData);
     }
+    logger.info("content import added to queue", queueReq);
     const ids = await this.systemQueue.add(queueReq);
-    _.forEach(ids, (id, index) => {
-      this.logSubmitAuditEvent(id, queueReq[index].name, Object.keys(queueReq[index]));
-    });
+    // _.forEach(ids, (id, index) => {
+    //   this.logSubmitAuditEvent(id, queueReq[index].name, Object.keys(queueReq[index]));
+    // });
     return ids;
   }
 
@@ -153,13 +153,17 @@ export class ContentImportManager {
   }
 
   private async getUnregisteredEcars(ecarPaths: string[]): Promise<string[]> {
-    const registeredEcars = await this.systemQueue.query({
-      type: [ImportContent.taskType],
-      name: ecarPaths,
+    const registeredJobs = await this.systemQueue.query({
+      type: ImportContent.taskType,
+      name: { $in: ecarPaths.map((ecarPath) => path.basename(ecarPath))},
       isActive: true,
     });
+    logger.debug("---registeredJobs--", registeredJobs);
+    if (!registeredJobs) {
+      return ecarPaths;
+    }
     ecarPaths = _.filter(ecarPaths, (ecarPath) => {
-      if (_.find(registeredEcars.docs, { ecarSourcePath: ecarPath })) {
+      if (_.find(registeredJobs, { ecarSourcePath: ecarPath })) {
         logger.log("skipping import for ", ecarPath, " as its already registered");
         return false;
       } else {

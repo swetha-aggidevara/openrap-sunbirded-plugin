@@ -43,9 +43,9 @@ export default class Content {
     private fileSDK;
 
     constructor(private manifest: Manifest) {
+        this.contentImportManager.initialize();
         this.databaseSdk.initialize(manifest.id);
         this.fileSDK = containerAPI.getFileSDKInstance(manifest.id);
-        this.contentImportManager.initialize();
         this.getDeviceId();
     }
 

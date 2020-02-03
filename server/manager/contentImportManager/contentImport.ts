@@ -27,6 +27,7 @@ export class ImportContent implements ITaskExecuter {
     return this.contentImportData;
   }
   public async start(contentImportData: ISystemQueue, observer: Observer<ISystemQueue>) {
+    logger.debug("Import task executor initialized for ", contentImportData);
     this.contentImportData = contentImportData;
     this.observer = observer;
     this.workerProcessRef = childProcess.fork(path.join(__dirname, "contentImportHelper"));
