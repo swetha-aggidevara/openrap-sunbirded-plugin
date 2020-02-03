@@ -1111,6 +1111,28 @@ describe("Test Import Content/Collection", () => {
             done();
         });
     });
+
+    it("#Import v1 content import (collection update available)", (done) => {
+        const filePath = `${__dirname}/test_data/to_import_contents/Maths_VI6.ecar`;
+        const req = supertest(app).post("/api/content/v1/import");
+        req.send([filePath]);
+        req.expect(200);
+        req.end((err, res) => {
+            if (res.statusCode >= 500) {
+                logger.error(err);
+                return done();
+            }
+            if (err && res.statusCode >= 400) {
+                return done();
+            }
+            expect(res.body.id).to.equal("api.content.import").to.be.a("string");
+            expect(res.body.ver).to.equal("1.0").to.be.a("string");
+            expect(res.body.result.importedJobIds).to.be.an("array");
+            expect(res.body.result).to.have.property("importedJobIds");
+            done();
+        });
+    }).timeout(10000);
+
     it("#Import Content List", (done) => {
         const interval = setInterval(() => {
             supertest(app)
@@ -1160,26 +1182,7 @@ describe("Read and update content / collection", () => {
             });
     }).timeout(10000);
 
-    it("#Import v1 content import (collection update available)", (done) => {
-        const filePath = `${__dirname}/test_data/to_import_contents/Maths_VI6.ecar`;
-        const req = supertest(app).post("/api/content/v1/import");
-        req.send([filePath]);
-        req.expect(200);
-        req.end((err, res) => {
-            if (res.statusCode >= 500) {
-                logger.error(err);
-                return done();
-            }
-            if (err && res.statusCode >= 400) {
-                return done();
-            }
-            expect(res.body.id).to.equal("api.content.import").to.be.a("string");
-            expect(res.body.ver).to.equal("1.0").to.be.a("string");
-            expect(res.body.result.importedJobIds).to.be.an("array");
-            expect(res.body.result).to.have.property("importedJobIds");
-            done();
-        });
-    }).timeout(10000);
+
 
     xit("#update CONTENT inside collection", (done) => {
         supertest(app)
@@ -1666,6 +1669,38 @@ describe("Delete content / collection", () => {
         });
     });
 });
+
+describe('Telemetry Info', () => {
+
+    it("#add get telemetry info", (done) => {
+        supertest(app)
+            .get("/api/telemetry/v1/info")
+            .expect(200)
+            .end((err, res) => {
+                if (res.statusCode >= 500) { logger.error(err); return done(); }
+                if (err && res.statusCode >= 400) { return done(); }
+                expect(res.body.id).to.equal("api.telemetry.info").to.be.a("string");
+                expect(res.body.ver).to.equal("1.0").to.be.a("string");
+                expect(res.body.result.response).to.haveOwnProperty("totalSize").and.to.be.a("number");
+                expect(res.body.result.response).to.haveOwnProperty("lastExportedOn");
+                done();
+
+            });
+    });
+
+    it("#export telemetry", (done) => {
+        supertest(app)
+            .post("/api/telemetry/v1/export")
+            .send({})
+            .expect(500)
+            .end((err, res) => {
+                expect(res.body.id).to.equal("api.telemetry.export").to.be.a("string");
+                expect(res.body.ver).to.equal("1.0").to.be.a("string");
+                expect(res.body.params.errmsg).to.equal("Destination folder not provided for export");
+                done();
+            });
+    });
+})
 
 
 after("Disconnect Server", (done) => {
