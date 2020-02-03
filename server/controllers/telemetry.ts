@@ -55,10 +55,9 @@ export default class Telemetry {
   public getInfo(req, res) {
     this.telemetrySDK.info((err, data) => {
       if (err) {
-        res.status(500);
-        return res.send(Response.error("api.telemetry.info", 500));
+        res.status(err.status || 500);
+        return res.send(Response.error("api.telemetry.info", 500, err.errMessage || err.message, err.code));
       }
-      data.totalSize = Math.ceil(data.totalSize / Math.pow(1024, 1));
       res.status(200);
       res.send(Response.success(`api.telemetry.info`, {
         response: data,
@@ -70,8 +69,8 @@ export default class Telemetry {
     const destFolder = req.query.destFolder;
     this.telemetrySDK.export(destFolder, (err, data) => {
       if (err) {
-        res.status(500);
-        return res.send(Response.error("api.telemetry.export", 500));
+        res.status(err.status || 500);
+        return res.send(Response.error("api.telemetry.export", 500, err.errMessage || err.message, err.code));
       }
       res.status(200);
       res.send(Response.success(`api.telemetry.export`, {
