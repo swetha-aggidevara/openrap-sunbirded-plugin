@@ -1608,7 +1608,7 @@ describe("Delete content / collection", () => {
             expect(res.body.result).to.have.property("importedJobIds");
             done();
         });
-    }).timeout(20000);
+    }).timeout(2000);
 
     it("#Import Content List", (done) => {
         const interval = setInterval(() => {
@@ -1624,7 +1624,7 @@ describe("Delete content / collection", () => {
                         done();
                 });
         }, 2000);
-    }).timeout(210000);
+    }).timeout(310000);
 
     it(`#Delete collection`, (done) => {
         supertest(app)
