@@ -1557,7 +1557,7 @@ describe("Export content / collection", () => {
     const filePath = `${__dirname}/test_data/export_contents`;
     it("#Export Content", (done) => {
         supertest(app)
-            .get("/api/content/v1/export/do_112835335135993856149")
+            .get("/api/content/v1/export/do_112832394979106816112")
             .set("Accept", "application/json")
             .query({destFolder: filePath})
             .expect("Content-Type", "application/json; charset=utf-8")
@@ -1576,7 +1576,7 @@ describe("Export content / collection", () => {
 
     it("#Export Collection", (done) => {
         supertest(app)
-            .get("/api/content/v1/export/do_312473549722288128119665")
+            .get("/api/content/v1/export/do_11275905761520025614")
             .query({destFolder: filePath})
             .set("Accept", "application/json")
             .expect("Content-Type", "application/json; charset=utf-8")
