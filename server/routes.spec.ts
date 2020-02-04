@@ -1701,7 +1701,7 @@ describe('Telemetry Info', () => {
             .end((err, res) => {
                 expect(res.body.id).to.equal("api.telemetry.export").to.be.a("string");
                 expect(res.body.ver).to.equal("1.0").to.be.a("string");
-                expect(res.body.params.errmsg).to.equal("Destination folder not provided for export");
+                expect(res.body.params.errmsg).to.equal("Destination path is missing");
                 done();
             });
     });
