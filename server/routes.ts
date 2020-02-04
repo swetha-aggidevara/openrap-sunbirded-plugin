@@ -574,7 +574,6 @@ export class Router {
       }
     });
 
-    let user = new User(manifest);
     const user = new User(manifest);
     app.post("/api/desktop/user/v1/create",
       user.create.bind(user),
