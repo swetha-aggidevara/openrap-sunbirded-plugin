@@ -561,6 +561,19 @@ export class Router {
       desktopAppUpdate.getAppInfo.bind(desktopAppUpdate),
     );
 
+    app.get("/api/desktop/v1/system-info", async (req, res) => {
+      try {
+        const systemInfo = await containerAPI
+          .getSystemSDKInstance(manifest.id)
+          .getDeviceInfo();
+        return res.send(Response.success("api.desktop.system-info", systemInfo, req));
+      } catch (err) {
+        logger.error(`ReqId = "${req.headers["X-msgid"]}": Received error while processing desktop app systemInfo request where err = ${err}`);
+        res.status(500);
+        return res.send(Response.error("api.desktop.update", 500));
+      }
+    });
+
     const user = new User(manifest);
     app.post("/api/desktop/user/v1/create",
       user.create.bind(user),

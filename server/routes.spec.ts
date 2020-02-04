@@ -873,6 +873,20 @@ describe("App Update", () => {
     });
 });
 
+describe("Test System Info", () => {
+    it("#get System Info", (done) => {
+        supertest(app)
+            .get("/api/desktop/v1/system-info")
+            .expect(200)
+            .end((err, res) => {
+                console.log("res.body.result", res.body.result);
+                expect(res.body.result.totalMemory).to.be.a("number");
+                expect(res.body.result.availableMemory).to.a("number");
+                done();
+            });
+    });
+});
+
 
 describe("Test Import Content/Collection", () => {
 
