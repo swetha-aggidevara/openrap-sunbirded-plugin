@@ -871,13 +871,10 @@ describe("App Update", () => {
                 done();
             });
     });
+});
 
-    it("#get System Info ", (done) => {
-        const memory = {
-            totalMemory: 7823223232,
-            availableMemory: 14343322232,
-        };
-
+describe("Test System Info", () => {
+    it("#get System Info", (done) => {
         supertest(app)
             .get("/api/desktop/v1/system-info")
             .expect(200)
