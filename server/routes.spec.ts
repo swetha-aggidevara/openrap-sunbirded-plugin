@@ -872,15 +872,14 @@ describe("App Update", () => {
             });
     });
 
-    it.only("#get Memory Info ", (done) => {
+    it("#get System Info ", (done) => {
         const memory = {
             totalMemory: 7823223232,
             availableMemory: 14343322232,
         };
 
-        const HTTPServiceSpy = spy.on(HTTPService, "post", (data) => of({ data: { result: memory } }));
         supertest(app)
-            .get("/api/desktop/v1/memory")
+            .get("/api/desktop/v1/system-info")
             .expect(200)
             .end((err, res) => {
                 expect(res.body.result.totalMemory).to.be.a("number");
