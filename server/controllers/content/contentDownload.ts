@@ -621,7 +621,7 @@ export default class ContentDownload {
     private async checkDiskSpaceAvailability(zipSize, collection) {
         const availableDiskSpace = await this.systemSDK.getHardDiskInfo()
         .then(({availableHarddisk}) => availableHarddisk - 3e+8); // keeping buffer of 300 mb, this can be configured);
-        if (!collection || (zipSize + (zipSize * 1.5) > availableDiskSpace)) { 
+        if (!collection && (zipSize + (zipSize * 1.5) > availableDiskSpace)) { 
             throw { message: "Disk space is low, couldn't copy Ecar" , code : "LOW_DISK_SPACE"};
         } else if (zipSize * 1.5 > availableDiskSpace) {
             throw { message: "Disk space is low, couldn't copy Ecar" , code : "LOW_DISK_SPACE"};
