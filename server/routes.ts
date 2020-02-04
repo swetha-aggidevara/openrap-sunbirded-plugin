@@ -659,8 +659,8 @@ export class Router {
     let contentDelete = new ContentDelete(manifest);
     app.post("/api/content/v1/delete", contentDelete.delete.bind(contentDelete));
 
-    app.get("/api/telemetry/v1/info", telemetry.getTelemetryInfo.bind(telemetry));
-    app.post("/api/telemetry/v1/export", telemetry.exportTelemetry.bind(telemetry));
+    app.get("/api/telemetry/v1/info", telemetry.getInfo.bind(telemetry));
+    app.post("/api/telemetry/v1/export", telemetry.export.bind(telemetry));
 
     app.use(
       "/content-plugins/*",
