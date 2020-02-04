@@ -9,7 +9,6 @@ import {ContentImportManager} from "./manager/contentImportManager"
 import { Framework } from "./controllers/framework";
 import { Faqs } from "./controllers/faqs";
 import { Organization } from "./controllers/organization";
-import { Page } from "./controllers/page";
 import { ResourceBundle } from "./controllers/resourceBundle";
 import { Channel } from "./controllers/channel";
 import { Form } from "./controllers/form";
@@ -42,13 +41,13 @@ export class Server extends BaseServer {
 
   @Inject
   private contentDelete: ContentDelete;
-
+  private settingSDK;
   constructor(manifest: Manifest) {
     super(manifest);
 
     // Added timeout since db creation is async and it is taking time and insertion is failing
     this.fileSDK = containerAPI.getFileSDKInstance(manifest.id);
-
+    this.settingSDK = containerAPI.getSettingSDKInstance(manifest.id);
     this.initialize(manifest)
       .then(() => {
         this.sunbirded_plugin_initialized = true;
@@ -99,10 +98,17 @@ export class Server extends BaseServer {
       "/sunbird-plugins"
     );
     frameworkAPI.setStaticViewEngine("ejs");
-
-    // insert meta data for app
-    await this.insertConfig(manifest);
-
+    const response = await this.settingSDK.get(`${process.env.APP_VERSION}_configured`)
+    .catch((err) => {
+      logger.info(`${manifest.id} not configured for version`, `${process.env.APP_VERSION}`, err);
+    });
+    if (!response) {
+      await this.insertConfig(manifest);    // insert meta data for app
+      this.settingSDK.put(`${process.env.APP_VERSION}_configured`, { dataInserted: true});
+      logger.info(`${manifest.id} configured for version ${process.env.APP_VERSION} and settingSdk updated`);
+    } else {
+      logger.info(`${manifest.id} configured for version ${process.env.APP_VERSION}, skipping configuration`);
+    }
     const pluginConfig = {
       pluginVer: manifest.version,
       apiToken: process.env.APP_BASE_URL_TOKEN,
@@ -119,9 +125,8 @@ export class Server extends BaseServer {
       this.fileSDK.getAbsPath(this.contentFilesPath),
       this.fileSDK.getAbsPath(this.ecarsFolderPath)
     );
+    addContentListener(manifest.id);
     setTimeout(async () => {
-
-      addContentListener(manifest.id);
       reconciliation(manifest.id);
       await this.contentImportManager.reconcile();
       await this.contentDelete.reconciliation();
@@ -134,15 +139,14 @@ export class Server extends BaseServer {
     const framework = new Framework(manifest);
     const faqs = new Faqs(manifest);
     const organization = new Organization(manifest);
-    const page = new Page(manifest);
     const resourceBundle = new ResourceBundle(manifest);
     const channel = new Channel(manifest);
     const form = new Form(manifest);
     const location = new Location(manifest);
-    Promise.all([organization.insert(), resourceBundle.insert(),
+    return Promise.all([organization.insert(), resourceBundle.insert(),
       framework.insert(), faqs.insert(),
       channel.insert(), form.insert(),
-      form.insert(), page.insert(), location.insert()]);
+      form.insert(), location.insert()]);
   }
 }
 
