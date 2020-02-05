@@ -479,7 +479,8 @@ export default class ContentDownload {
         };
         const activeDbData = await this.systemQueue.query(activeSelector);
         const inActiveDbData = await this.systemQueue.query(inActiveSelector);
-        const dbData = _.concat(activeDbData.docs, inActiveDbData.docs);
+        let dbData = _.concat(activeDbData.docs, inActiveDbData.docs);
+        dbData = _.uniqBy(_.orderBy(dbData, ["createdOn"], ["desc"]), "_id");
 
         const contentImportJobs = {
             importList: [],
