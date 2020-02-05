@@ -873,7 +873,7 @@ describe("App Update", () => {
     });
 });
 
-describe.only("Test System Info", () => {
+describe("Test System Info", () => {
     it("#get System Info", (done) => {
         supertest(app)
             .get("/api/desktop/v1/system-info")
