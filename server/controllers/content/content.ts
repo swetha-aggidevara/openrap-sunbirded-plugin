@@ -43,13 +43,9 @@ export default class Content {
     private fileSDK;
 
     constructor(private manifest: Manifest) {
+        this.contentImportManager.initialize();
         this.databaseSdk.initialize(manifest.id);
         this.fileSDK = containerAPI.getFileSDKInstance(manifest.id);
-        this.contentImportManager.initialize(
-            manifest.id,
-            this.fileSDK.getAbsPath(this.contentsFilesPath),
-            this.fileSDK.getAbsPath(this.ecarsFolderPath)
-        );
         this.getDeviceId();
     }
 
@@ -190,7 +186,7 @@ export default class Content {
         if (!ecarFilePaths) {
             return res.status(400).send(Response.error(`api.content.import`, 400, "MISSING_ECAR_PATH"));
         }
-        this.contentImportManager.registerImportJob(ecarFilePaths).then((jobIds) => {
+        this.contentImportManager.add(ecarFilePaths).then((jobIds) => {
             res.send(Response.success("api.content.import", {
                 importedJobIds: jobIds,
             }, req));
