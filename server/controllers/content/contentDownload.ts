@@ -2,7 +2,7 @@ import { logger } from "@project-sunbird/ext-framework-server/logger";
 import { Manifest } from "@project-sunbird/ext-framework-server/models";
 import { HTTPService } from "@project-sunbird/ext-framework-server/services";
 import * as _ from "lodash";
-import { containerAPI } from "OpenRAP/dist/api";
+import { containerAPI, ISystemQueueInstance } from "OpenRAP/dist/api";
 import * as path from "path";
 import { Inject } from "typescript-ioc";
 import { IAddedUsingType } from "../../controllers/content/IContent";
@@ -54,11 +54,13 @@ export default class ContentDownload {
     private downloadManager;
     private pluginId;
     private systemSDK;
+    private systemQueue: ISystemQueueInstance;
     constructor(manifest: Manifest) {
         this.databaseSdk.initialize(manifest.id);
         this.pluginId = manifest.id;
         this.downloadManager = containerAPI.getDownloadManagerInstance(this.pluginId);
         this.systemSDK = containerAPI.getSystemSDKInstance(manifest.id);
+        this.systemQueue = containerAPI.getSystemQueueInstance(manifest.id);
     }
 
     public download(req: any, res: any): any {
@@ -464,55 +466,43 @@ export default class ContentDownload {
             }
         })();
     }
-    // TODO:Query needs to be optimized
+
     public async listContentImport() {
-        const importJobs = await this.databaseSdk.find("content_manager", {
-            selector: {
-                $or: [
-                    {
-                        type: IAddedUsingType.import,
-                        status: {
-                            $in: [ImportStatus.inProgress, ImportStatus.inQueue, ImportStatus.reconcile, ImportStatus.pausing, ImportStatus.paused,
-                            ImportStatus.resume],
-                        },
-                    },
-                    {
-                        type: IAddedUsingType.import,
-                        status: {
-                            $in: [ImportStatus.failed, ImportStatus.completed],
-                        },
-                        updatedOn: {
-                            $gt: sessionStartTime,
-                        },
-                    },
-                ],
-            },
-        }).catch((error) => {
-            console.error("Error while fetching content import status");
-            return { docs: [] };
-        });
+        const activeSelector = {
+            isActive: true,
+            group: 'CONTENT_MANAGER',
+        };
+        const inActiveSelector = {
+            isActive: false,
+            group: 'CONTENT_MANAGER',
+            updatedOn: { "$gt": sessionStartTime },
+        };
+        const activeDbData = await this.systemQueue.query(activeSelector);
+        const inActiveDbData = await this.systemQueue.query(inActiveSelector);
+        let dbData = _.concat(activeDbData.docs, inActiveDbData.docs);
+        dbData = _.uniqBy(_.orderBy(dbData, ["createdOn"], ["desc"]), "_id");
+
         const contentImportJobs = {
             importList: [],
         };
-        _.forEach(importJobs.docs, (job: IContentImport) => {
-            const jobObj = {
-                contentId: job.contentId,
-                identifier: job.contentId,
-                id: job._id,
-                resourceId: job.contentId,
-                name: job.name,
-                totalSize: job.contentSize,
-                downloadedSize: job.progress,
-                status: ImportStatus[job.status],
-                createdOn: job.createdOn,
-                pkgVersion: job.pkgVersion,
-                mimeType: job.mimeType,
-                failedCode: job.failedCode,
-                failedReason: job.failedReason,
-                addedUsing: job.type,
+        _.forEach(dbData, (data) => {
+            const listObj = {
+                contentId: _.get(data, 'metaData.contentId'),
+                identifier: _.get(data, 'metaData.contentId'),
+                id: _.get(data, '_id'),
+                resourceId: _.get(data, 'metaData.contentId'),
+                name: _.get(data, 'name'),
+                totalSize: _.get(data, 'metaData.contentSize'),
+                downloadedSize: _.get(data, 'progress'),
+                status: _.get(data, 'status'),
+                createdOn: _.get(data, 'createdOn'),
+                pkgVersion: _.get(data, 'metaData.pkgVersion'),
+                mimeType: _.get(data, 'metaData.mimeType'),
+                failedCode: _.get(data, 'failedCode'),
+                failedReason: _.get(data, 'failedReason'),
+                addedUsing: _.toLower(_.get(data, 'type')),
             };
-
-            contentImportJobs.importList.push(jobObj);
+            contentImportJobs.importList.push(listObj);
         });
         return contentImportJobs;
     }
