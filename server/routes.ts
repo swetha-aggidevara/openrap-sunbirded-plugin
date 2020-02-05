@@ -566,6 +566,7 @@ export class Router {
         const systemInfo = await containerAPI
           .getSystemSDKInstance(manifest.id)
           .getDeviceInfo();
+          console.log('systemInfo', systemInfo);
         return res.send(Response.success("api.desktop.system-info", systemInfo, req));
       } catch (err) {
         logger.error(`ReqId = "${req.headers["X-msgid"]}": Received error while processing desktop app systemInfo request where err = ${err}`);
