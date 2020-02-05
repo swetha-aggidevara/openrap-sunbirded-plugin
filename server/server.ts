@@ -5,7 +5,6 @@ import {
 import { frameworkAPI } from "@project-sunbird/ext-framework-server/api";
 import * as path from "path";
 import { Inject } from "typescript-ioc";
-import {ContentImportManager} from "./manager/contentImportManager"
 import { Framework } from "./controllers/framework";
 import { Faqs } from "./controllers/faqs";
 import { Organization } from "./controllers/organization";
@@ -32,9 +31,6 @@ export class Server extends BaseServer {
 
   @Inject
   private databaseSdk: DatabaseSDK;
-
-  @Inject
-  private contentImportManager: ContentImportManager;
 
   @Inject
   private fileSDK;
@@ -119,16 +115,9 @@ export class Server extends BaseServer {
 
     await this.fileSDK.mkdir(this.contentFilesPath);
     await this.fileSDK.mkdir(this.ecarsFolderPath);
-
-    this.contentImportManager.initialize(
-      manifest.id,
-      this.fileSDK.getAbsPath(this.contentFilesPath),
-      this.fileSDK.getAbsPath(this.ecarsFolderPath)
-    );
     addContentListener(manifest.id);
     setTimeout(async () => {
       reconciliation(manifest.id);
-      await this.contentImportManager.reconcile();
       await this.contentDelete.reconciliation();
     }, 120000);
     //- reIndex()

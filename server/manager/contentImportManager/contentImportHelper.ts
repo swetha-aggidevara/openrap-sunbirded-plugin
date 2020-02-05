@@ -1,21 +1,25 @@
-import { ErrorObj, getErrorObj, handelError, IContentImport, ImportProgress, ImportSteps } from "./IContentImport"
+import { ErrorObj, getErrorObj, handelError, IContentImportData, ImportProgress, ImportSteps } from "./IContentImport"
 import * as  StreamZip from "node-stream-zip";
 import * as  fs from "fs";
 import * as  _ from "lodash";
 import * as path from "path";
 import { manifest } from "../../manifest";
-import { containerAPI } from "OpenRAP/dist/api";
+import { containerAPI, ISystemQueue } from "OpenRAP/dist/api";
 import config from "../../config";
 import { Subject } from "rxjs";
 import { throttleTime } from "rxjs/operators";
 const collectionMimeType = "application/vnd.ekstep.content-collection";
-let zipHandler, zipEntries, dbContents, manifestJson, contentImportData: IContentImport;
+let zipHandler;
+let zipEntries;
+let dbContents;
+let manifestJson;
+let contentImportData: ISystemQueue;
 const fileSDK = containerAPI.getFileSDKInstance(manifest.id);
 const pluginBasePath = fileSDK.getAbsPath("");
 const contentFolder = fileSDK.getAbsPath("content");
 const ecarFolder = fileSDK.getAbsPath("ecars");
 const systemSDK = containerAPI.getSystemSDKInstance(manifest.id);
-const syncCloser = (initialProgress, percentage, totalSize = contentImportData.contentSize) => {
+const syncCloser = (initialProgress, percentage, totalSize = contentImportData.metaData.contentSize) => {
   initialProgress = initialProgress ? initialProgress : contentImportData.progress;
   let completed = 1;
   const syncData$ = new Subject<number>();
@@ -41,14 +45,14 @@ const copyEcar = async () => {
     const availableDiskSpace = await getAvailableDiskSpace();
     process.send({ message: "LOG", logType: "info",
     logBody: [contentImportData._id, "Disk Space availability check",
-    contentImportData.contentSize, availableDiskSpace] });
-    if (contentImportData.contentSize > availableDiskSpace) {
+    contentImportData.metaData.contentSize, availableDiskSpace] });
+    if (contentImportData.metaData.contentSize > availableDiskSpace) {
       throw getErrorObj({ message: "Disk space is low, couldn't copy Ecar" }, "LOW_DISK_SPACE");
     }
-    process.send({ message: "LOG", logType: "info", logBody: [contentImportData._id, "copping ecar from src location to ecar folder", contentImportData.ecarSourcePath, ecarFolder] });
+    process.send({ message: "LOG", logType: "info", logBody: [contentImportData._id, "copping ecar from src location to ecar folder", contentImportData.metaData.ecarSourcePath, ecarFolder] });
     const syncFunc = syncCloser(ImportProgress.COPY_ECAR, 25);
     const toStream = fs.createWriteStream(path.join(ecarFolder, contentImportData._id + ".ecar"));
-    const fromStream = fs.createReadStream(contentImportData.ecarSourcePath);
+    const fromStream = fs.createReadStream(contentImportData.metaData.ecarSourcePath);
     fromStream.pipe(toStream);
     fromStream.on("data", (buffer) => syncFunc(buffer.length));
     toStream.on("finish", (data) => {
@@ -91,12 +95,12 @@ const parseEcar = async () => {
     if (parent.compatibilityLevel > config.get("CONTENT_COMPATIBILITY_LEVEL")) {
       throw getErrorObj({ message: `${parent.compatibilityLevel} not supported. Required ${config.get("CONTENT_COMPATIBILITY_LEVEL")} and below` }, "UNSUPPORTED_COMPATIBILITY_LEVEL");
     }
-    contentImportData.contentId = parent.identifier;
-    contentImportData.mimeType = parent.mimeType;
-    contentImportData.contentType = parent.contentType;
-    contentImportData.pkgVersion = _.toString(parent.pkgVersion) || "1.0";
-    if (contentImportData.mimeType === "application/vnd.ekstep.content-collection") {
-      contentImportData.childNodes = _.filter(_.get(manifestJson, "archive.items"),
+    contentImportData.metaData.contentId = parent.identifier;
+    contentImportData.metaData.mimeType = parent.mimeType;
+    contentImportData.metaData.contentType = parent.contentType;
+    contentImportData.metaData.pkgVersion = _.toString(parent.pkgVersion) || "1.0";
+    if (contentImportData.metaData.mimeType === "application/vnd.ekstep.content-collection") {
+      contentImportData.metaData.childNodes = _.filter(_.get(manifestJson, "archive.items"),
         (item) => (item.mimeType !== "application/vnd.ekstep.content-collection"))
         .map((item) => item.identifier);
     }
@@ -109,21 +113,21 @@ const parseEcar = async () => {
 
 const extractZipEntry = async (identifier: string, contentBasePath: string[], entry: string, syncFunc: Function)
   : Promise<boolean | any> => {
-  const zipEntry = (identifier === contentImportData.contentId) ? entry : identifier + "/" + entry;
+  const zipEntry = (identifier === contentImportData.metaData.contentId) ? entry : identifier + "/" + entry;
   const entryObj = zipEntries[zipEntry] || zipEntries["/" + zipEntry] ||
   (!_.includes(["manifest.json", "hierarchy.json"], entry) && zipEntries["/" + entry]); // last checks to support mobile
   if (!entryObj) {
     return false;
   }
-  if (!contentImportData.extractedEcarEntries[entryObj.name]) {
+  if (!contentImportData.metaData.extractedEcarEntries[entryObj.name]) {
     await new Promise(async (resolve, reject) => zipHandler.extract(entryObj.name,
       path.join(contentFolder, ...contentBasePath), (err) => err ? reject(err) : resolve()));
-    contentImportData.extractedEcarEntries[entryObj.name] = true;
+    contentImportData.metaData.extractedEcarEntries[entryObj.name] = true;
   }
   syncFunc(entryObj.compressedSize);
   return entryObj;
 };
-const checkSpaceAvailability = async (entries, extractedEntries = contentImportData.extractedEcarEntries) => {
+const checkSpaceAvailability = async (entries, extractedEntries = contentImportData.metaData.extractedEcarEntries) => {
   const availableDiskSpace = await getAvailableDiskSpace();
   let contentSize = 0; // size in bytes
   for (const entry of _.values(entries) as any) {
@@ -139,8 +143,8 @@ const checkSpaceAvailability = async (entries, extractedEntries = contentImportD
 };
 const extractEcar = async () => {
   try {
-    contentImportData.contentSkipped = [];
-    contentImportData.contentAdded = [];
+    contentImportData.metaData.contentSkipped = [];
+    contentImportData.metaData.contentAdded = [];
     zipHandler = zipHandler ||
       await loadZipHandler(path.join(ecarFolder, contentImportData._id + ".ecar")).catch(handelError("LOAD_ECAR"));
     manifestJson = manifestJson || await fileSDK.readJSON(path.join(contentFolder, contentImportData._id, "manifest.json"));
@@ -154,7 +158,7 @@ const extractEcar = async () => {
         return;
       }
       const contentBasePath = (collection && !parent) ?
-        [contentImportData.contentId, content.identifier] : [content.identifier];
+        [contentImportData.metaData.contentId, content.identifier] : [content.identifier];
       await fileSDK.mkdir(path.join("content", path.join(...contentBasePath)));
       await extractZipEntry(content.identifier, contentBasePath, content.appIcon, syncFunc);
       await extractZipEntry(content.identifier, contentBasePath, "manifest.json", syncFunc);
@@ -165,13 +169,13 @@ const extractEcar = async () => {
         return; // exit if content is collection
       }
       if (content.artifactUrl && content.contentDisposition === "online") { // exit if online only content
-        contentImportData.contentAdded.push(content.identifier);
+        contentImportData.metaData.contentAdded.push(content.identifier);
         return;
       }
       const artifactExtracted = await extractZipEntry(content.identifier, contentBasePath,
         content.artifactUrl, syncFunc);
       if (!artifactExtracted) { // exit if artifact is missing
-        contentImportData.contentSkipped.push({ id: content.identifier, reason: "ARTIFACT_MISSING" });
+        contentImportData.metaData.contentSkipped.push({ id: content.identifier, reason: "ARTIFACT_MISSING" });
         return;
       }
       if (artifactExtracted.name.endsWith(".zip")) { // append zip entry along with size to unzip later
@@ -182,17 +186,17 @@ const extractEcar = async () => {
           size: artifactExtracted.compressedSize,
         });
       } else {
-        contentImportData.contentAdded.push(content.identifier);
+        contentImportData.metaData.contentAdded.push(content.identifier);
       }
     };
     for (const content of _.get(manifestJson, "archive.items")) { // loop items in manifest and extract its contents
       const dbContent: any = _.find(dbContents, { identifier: content.identifier });
       if (!dbContent || content.pkgVersion > dbContent.pkgVersion ||
         !_.get(dbContent, "desktopAppMetadata.isAvailable")) { // if content not imported or new ver available
-        await extractContent(content, (content.identifier === contentImportData.contentId),
+        await extractContent(content, (content.identifier === contentImportData.metaData.contentId),
           (content.mimeType === collectionMimeType));
       } else {
-        contentImportData.contentSkipped.push({ id: content.identifier, reason: "CONTENT_IMPORTED_ALREADY" });
+        contentImportData.metaData.contentSkipped.push({ id: content.identifier, reason: "CONTENT_IMPORTED_ALREADY" });
       }
     }
     syncFunc().unsubscribe();
@@ -226,11 +230,11 @@ const unzipArtifacts = async (artifactToBeUnzipped = [], artifactToBeUnzippedSiz
   const syncFunc = syncCloser(ImportProgress.EXTRACT_ARTIFACT, 9, artifactToBeUnzippedSize);
   for (const artifact of artifactToBeUnzipped) {
     syncFunc(artifact.size);
-    if (!contentImportData.artifactUnzipped[artifact.src]) {
+    if (!contentImportData.metaData.artifactUnzipped[artifact.src]) {
       await extractZipArtifact(artifact).catch((err) => {
-        contentImportData.contentSkipped.push({ id: artifact.contentId, reason: "UNZIP_ARTIFACT_ERROR" });
+        contentImportData.metaData.contentSkipped.push({ id: artifact.contentId, reason: "UNZIP_ARTIFACT_ERROR" });
       });
-      contentImportData.artifactUnzipped[artifact.src] = true;
+      contentImportData.metaData.artifactUnzipped[artifact.src] = true;
     }
   }
   syncFunc().unsubscribe();
@@ -241,7 +245,7 @@ const extractZipArtifact = async (artifact) => {
   await checkSpaceAvailability(zipArtifactEntries);
   await unzipFile(artifact.src);
   await removeFile(artifact.src);
-  contentImportData.contentAdded.push(artifact.contentId);
+  contentImportData.metaData.contentAdded.push(artifact.contentId);
 };
 
 const loadZipHandler = async (filePath) => {
