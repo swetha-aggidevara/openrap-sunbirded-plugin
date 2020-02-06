@@ -118,7 +118,6 @@ export class Server extends BaseServer {
     addContentListener(manifest.id);
     setTimeout(async () => {
       reconciliation(manifest.id);
-      await this.contentDelete.reconciliation();
     }, 120000);
     //- reIndex()
     //- reConfigure()
