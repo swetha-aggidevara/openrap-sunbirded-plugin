@@ -76,9 +76,9 @@ export class ContentDownloader implements ITaskExecuter {
   }
   private updateProgress(contentId: string, progress: IDownloadProgress) {
     const contentDetails = this.contentDownloadMetaData.contentDownloadList[contentId];
-    this.contentDownloadMetaData.downloadedSize = this.contentDownloadMetaData.downloadedSize
+    const downloadedSize = this.contentDownloadMetaData.downloadedSize
       + (contentDetails.size * (progress.total.percentage / 100));
-    this.contentDownloadData.progress = this.contentDownloadMetaData.downloadedSize;
+    this.contentDownloadData.progress = downloadedSize;
     this.observer.next(this.contentDownloadData);
   }
   private updateDownloadedCount(contentId) {
@@ -117,19 +117,24 @@ export class ContentDownloader implements ITaskExecuter {
       await this.extractZipEntry(zipHandler, entry.name,
         path.join(this.fileSDK.getAbsPath("content"), contentDetails.identifier));
     }
+    logger.debug(`${this.contentDownloadData._id}:Extracted content: ${contentId}`);
     itemsToDelete.push(path.join("ecars", contentDetails.identifier));
     const manifestJson = await this.fileSDK.readJSON(
       path.join(this.fileSDK.getAbsPath("content"), contentDetails.identifier, "manifest.json"));
     const metaData: any = _.get(manifestJson, "archive.items[0]");
     if (_.endsWith(metaData.artifactUrl, ".zip")) {
-      await this.checkSpaceAvailability(path.join("content", contentDetails.identifier, metaData.artifactUrl));
-      await this.fileSDK.unzip(path.join("content", contentDetails.identifier, metaData.artifactUrl),
+      await this.checkSpaceAvailability(path.join(this.fileSDK.getAbsPath("content"),
+        contentDetails.identifier, path.basename(metaData.artifactUrl)));
+      logger.debug(`${this.contentDownloadData._id}:Extracting artifact url content: ${contentId}`);
+      await this.fileSDK.unzip(path.join("content", contentDetails.identifier, path.basename(metaData.artifactUrl)),
         path.join("content", contentDetails.identifier), false);
-      itemsToDelete.push(path.join("content", contentDetails.identifier, metaData.artifactUrl));
+      itemsToDelete.push(path.join("content", contentDetails.identifier,  path.basename(metaData.artifactUrl)));
     }
-    // delete itemsToDelete
     contentDetails.extracted = true;
     this.observer.next(this.contentDownloadData);
+    for (const item of itemsToDelete) {
+      await this.fileSDK.remove(item);
+    }
     this.saveContentToDb(contentId, manifestJson, metaData);
   }
   private async saveContentToDb(contentId, manifestJson, metaData) {
@@ -139,6 +144,12 @@ export class ContentDownloader implements ITaskExecuter {
       metaData.children = this.createHierarchy(_.cloneDeep(_.get(manifestJson, "archive.items")), metaData);
     }
     metaData.baseDir = `content/${contentDetails.identifier}`;
+    metaData.desktopAppMetadata = {
+      "addedUsing": ContentDownloader.taskType,
+      "createdOn": Date.now(),
+      "updatedOn": Date.now(),
+      "isAvailable": true,
+  }
     await this.databaseSdk.upsert("content", metaData.identifier, metaData);
     contentDetails.indexed = true;
     this.observer.next(this.contentDownloadData);
