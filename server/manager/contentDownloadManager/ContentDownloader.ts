@@ -21,6 +21,7 @@ export class ContentDownloader implements ITaskExecuter {
   private systemSDK = containerAPI.getSystemSDKInstance(manifest.id);
   private contentDownloadMetaData: IDownloadMetadata;
   private ecarBasePath = this.fileSDK.getAbsPath("ecars");
+
   public async start(contentDownloadData: ISystemQueue, observer: Observer<ISystemQueue>) {
     this.databaseSdk.initialize(manifest.id);
     this.contentDownloadData = contentDownloadData;
@@ -35,6 +36,7 @@ export class ContentDownloader implements ITaskExecuter {
     });
     return true;
   }
+
   public status(): ISystemQueue {
     return this.contentDownloadData;
   }
@@ -149,7 +151,10 @@ export class ContentDownloader implements ITaskExecuter {
       "createdOn": Date.now(),
       "updatedOn": Date.now(),
       "isAvailable": true,
-  }
+    };
+    if (contentId !== this.contentDownloadMetaData.contentId) {
+      metaData.visibility = "Parent";
+    }
     await this.databaseSdk.upsert("content", metaData.identifier, metaData);
     contentDetails.indexed = true;
     this.observer.next(this.contentDownloadData);
