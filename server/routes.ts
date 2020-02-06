@@ -368,7 +368,9 @@ export class Router {
         );
 
         logger.debug(`ReqId = "${req.headers["X-msgid"]}": Check proxy`);
-        if (enableProxy(req)) {
+        const online = Boolean(_.get(req, "query.online") && req.query.online.toLowerCase() === "true");
+        const isProxyEnabled = _.has(req, "query.online") ? online : enableProxy(req);
+        if (isProxyEnabled) {
           logger.info(`Proxy is Enabled`);
           next();
         } else {
