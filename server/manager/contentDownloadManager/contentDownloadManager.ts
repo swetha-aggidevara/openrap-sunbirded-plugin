@@ -31,9 +31,10 @@ export class ContentDownloadManager {
       const contentResponse = await HTTPService.get(`${ContentReadUrl}/${req.params.id}`, {}).toPromise();
       const contentDetail = contentResponse.data.result.content;
       let contentSize = contentDetail.size;
+      let contentToBeDownloadedCount = 1;
       const contentDownloadList = {
         [contentDetail.identifier]: {
-          id: contentDetail.identifier,
+          identifier: contentDetail.identifier,
           url: contentDetail.downloadUrl,
           size: contentDetail.size,
           downloaded: false,
@@ -48,10 +49,11 @@ export class ContentDownloadManager {
         const childNodeDetail = await this.getContentChildNodeDetails(contentDetail.childNodes);
         for (const content of childNodeDetail) {
           if (content.size && content.downloadUrl) {
+            contentToBeDownloadedCount += 1;
             logger.debug(`${reqId} Content childNodes: ${content.identifier} added to list`);
             contentSize += content.size;
             contentDownloadList[content.identifier] = {
-              id: content.identifier,
+              identifier: content.identifier,
               url: content.downloadUrl,
               size: content.size,
               downloaded: false,
@@ -69,6 +71,9 @@ export class ContentDownloadManager {
         name: contentDetail.name,
         group: ContentDownloader.group,
         metaData: {
+          contentToBeDownloadedCount,
+          contentDownloadedCount: 0,
+          downloadedSize: 0,
           contentSize,
           contentDownloadList,
           contentId,

@@ -1,5 +1,9 @@
 export interface IDownloadMetadata {
   contentSize: number;
+  downloadedSize: number;
+  contentToBeDownloadedCount: number;
+  contentDownloadedCount: number;
+  contentDownloadedFailedCount: number;
   contentDownloadList: { [Identifier: string]: IContentDownloadList };
   contentId: string;
   mimeType: string;
@@ -7,10 +11,10 @@ export interface IDownloadMetadata {
   pkgVersion: number;
 }
 export interface IContentDownloadList {
-    id: string;
-    url: string;
-    size: number;
-    downloaded: boolean;
-    extracted: boolean;
-    indexed: boolean;
+  identifier: string;
+  url: string;
+  size: number;
+  downloaded: boolean;
+  extracted: boolean;
+  indexed: boolean;
 }
