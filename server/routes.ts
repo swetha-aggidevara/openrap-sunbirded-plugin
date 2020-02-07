@@ -1,3 +1,5 @@
+import { ContentDownloadManager } from "./manager/contentDownloadManager";
+import { Inject } from "typescript-ioc";
 import { logger } from "@project-sunbird/ext-framework-server/logger";
 import { Manifest } from "@project-sunbird/ext-framework-server/models/Manifest";
 import * as cheerio  from "cheerio";
@@ -30,7 +32,9 @@ let telemetry;
 
 const proxyUrl = process.env.APP_BASE_URL;
 export class Router {
+  @Inject private contentDownloadManager: ContentDownloadManager;
   public init(app: any, manifest: Manifest, auth?: any) {
+    this.contentDownloadManager.initialize();
     const telemetryInstance = containerAPI
       .getTelemetrySDKInstance()
       .getInstance();
@@ -522,24 +526,18 @@ export class Router {
     app.post("/api/content/v1/download/list", (req, res) => {
       contentDownload.list(req, res);
     });
-    app.post("/api/content/v1/download/:id", (req, res) => {
-      contentDownload.download(req, res);
-    });
+    app.post("/api/content/v1/download/:id", this.contentDownloadManager.download.bind(this.contentDownloadManager));
     app.post("/api/content/v1/download/pause/:downloadId",
-      contentDownload.pause.bind(contentDownload),
-    );
+    this.contentDownloadManager.pause.bind(this.contentDownloadManager));
 
     app.post("/api/content/v1/download/resume/:downloadId",
-      contentDownload.resume.bind(contentDownload),
-    );
+    this.contentDownloadManager.resume.bind(this.contentDownloadManager));
 
     app.post("/api/content/v1/download/cancel/:downloadId",
-      contentDownload.cancel.bind(contentDownload),
-    );
+    this.contentDownloadManager.cancel.bind(this.contentDownloadManager));
 
     app.post("/api/content/v1/download/retry/:downloadId",
-      contentDownload.retry.bind(contentDownload),
-    );
+    this.contentDownloadManager.retry.bind(this.contentDownloadManager));
 
     telemetry = new Telemetry(manifest);
 
