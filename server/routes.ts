@@ -302,11 +302,12 @@ export class Router {
     let content = new Content(manifest);
     app.get(
       "/api/content/v1/read/:id",
-      (req, res, next) => {
+      async (req, res, next) => {
         logger.debug(`Received API call to read Content: ${req.params.id}`);
-
-        logger.debug(`ReqId = "${req.headers["X-msgid"]}": Check proxy`);
-        if (enableProxy(req)) {
+        const offlineData = await content.getOfflineContents([req.params.id], req.headers["X-msgid"]).catch(error => {
+          logger.error(`ReqId = "${req.headers["X-msgid"]}": Received error while getting data from course read`, error)
+        });
+        if (enableProxy(req) && offlineData.docs.length <= 0 ) {
           logger.info(`Proxy is Enabled`);
           next();
         } else {
@@ -363,13 +364,14 @@ export class Router {
 
     app.get(
       "/api/course/v1/hierarchy/:id",
-      (req, res, next) => {
+      async (req, res, next) => {
         logger.debug(
           `Received API call to get Course hierarchy: ${req.params.id}`
         );
-
-        logger.debug(`ReqId = "${req.headers["X-msgid"]}": Check proxy`);
-        if (enableProxy(req)) {
+        const offlineData = await content.getOfflineContents([req.params.id], req.headers["X-msgid"]).catch(error => {
+          logger.error(`ReqId = "${req.headers["X-msgid"]}": Received while getting data from course hierarchy`, error)
+        });
+        if (enableProxy(req) && offlineData.docs.length <= 0 ) {
           logger.info(`Proxy is Enabled`);
           next();
         } else {
