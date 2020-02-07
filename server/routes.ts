@@ -336,10 +336,11 @@ export class Router {
               );
               content
                 .decorateContentWithProperty([contents], req.headers["X-msgid"])
-                .then(() => {
+                .then((data) => {
                   logger.info(
                     `ReqId = "${req.headers["X-msgid"]}": Resolving Data after decorating content `
                   );
+                  proxyData.result.content = data[0];
                   resolve(proxyData);
                 })
                 .catch(err => {
@@ -399,10 +400,11 @@ export class Router {
               );
               content
                 .decorateDialCodeContents(contents, req.headers["X-msgid"])
-                .then(() => {
+                .then((data) => {
                   logger.info(
                     `ReqId = "${req.headers["X-msgid"]}": Resolving Data after decorating DialCodecontent `
                   );
+                  proxyData.result.content = data[0];
                   resolve(proxyData);
                 })
                 .catch(err => {
@@ -469,10 +471,11 @@ export class Router {
               );
               content
                 .decorateContentWithProperty(contents, req.headers["X-msgid"])
-                .then(() => {
+                .then((data) => {
                   logger.info(
                     `ReqId = "${req.headers["X-msgid"]}": Resolving Data after decorating contents in contentSearch `
                   );
+                  proxyData.result.content = data;
                   resolve(proxyData);
                 })
                 .catch(err => {
