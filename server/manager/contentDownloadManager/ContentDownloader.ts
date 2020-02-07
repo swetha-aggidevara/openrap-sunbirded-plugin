@@ -6,8 +6,8 @@ import { logger } from "@project-sunbird/ext-framework-server/logger";
 import { manifest } from "../../manifest";
 import * as  _ from "lodash";
 import { Observer } from "rxjs";
-import { containerAPI, ISystemQueueInstance, ITaskExecuter, ISystemQueue, SystemQueueReq, SystemQueueStatus } from "OpenRAP/dist/api";
-import { IDownloadMetadata } from "./IContentDownload";
+import { containerAPI, ITaskExecuter, ISystemQueue, SystemQueueStatus } from "OpenRAP/dist/api";
+import { IDownloadMetadata, IContentDownloadList } from "./IContentDownload";
 import * as  StreamZip from "node-stream-zip";
 
 export class ContentDownloader implements ITaskExecuter {
@@ -21,18 +21,27 @@ export class ContentDownloader implements ITaskExecuter {
   private systemSDK = containerAPI.getSystemSDKInstance(manifest.id);
   private contentDownloadMetaData: IDownloadMetadata;
   private ecarBasePath = this.fileSDK.getAbsPath("ecars");
-
+  private interrupt = false;
+  private interruptType: "PAUSE" | "CANCEL";
+  private downloadFailedCount = 0;
+  private extractionFailedCount = 0;
+  private downloadContentCount = 0;
   public async start(contentDownloadData: ISystemQueue, observer: Observer<ISystemQueue>) {
     this.databaseSdk.initialize(manifest.id);
     this.contentDownloadData = contentDownloadData;
     this.observer = observer;
     this.contentDownloadMetaData = this.contentDownloadData.metaData;
     logger.debug("ContentDownload executer start method called", this.contentDownloadData._id);
-    _.forIn(this.contentDownloadMetaData.contentDownloadList, (value, key) => {
-      this.downloadSDK.queueDownload(value.identifier, {
-        url: value.url,
-        savePath: path.join(this.ecarBasePath, value.identifier),
-      }, this.getDownloadObserve(value.identifier));
+    _.forIn(this.contentDownloadMetaData.contentDownloadList, (value: IContentDownloadList, key) => {
+      this.downloadContentCount += 1;
+      if (value.step === "DOWNLOAD") {
+        this.downloadSDK.queueDownload(value.downloadId, {
+          url: value.url,
+          savePath: path.join(this.ecarBasePath, value.downloadId),
+        }, this.getDownloadObserver(value.identifier));
+      } else {
+        this.handleDownloadComplete(value.identifier, value);
+      }
     });
     return true;
   }
@@ -41,78 +50,155 @@ export class ContentDownloader implements ITaskExecuter {
     return this.contentDownloadData;
   }
   public async pause() {
-    logger.debug("ContentDownload executer pause method called", this.contentDownloadData._id);
-    return true;
+    this.interrupt = false;
+    this.interruptType = "PAUSE";
+    let pausedInQueue = false;
+    logger.debug("ContentDownload pause method called", this.contentDownloadData._id);
+    _.forIn(this.contentDownloadMetaData.contentDownloadList, (value: IContentDownloadList, key) => {
+      if (value.step === "DOWNLOAD") {
+        const pauseRes = this.downloadSDK.cancel(key);
+        if (pauseRes) {
+          pausedInQueue = true;
+        }
+      }
+    });
+    if (pausedInQueue) {
+      return true;
+    } else {
+      return {
+          code: "NO_FILES_IN_QUEUE",
+          status: 400,
+          message: `No files are in queue`,
+        };
+    }
   }
-  public async resume(contentDownloadData: any) {
-    logger.debug("ContentDownload executer resume method called", this.contentDownloadData._id);
-    return true;
+  public async resume(contentDownloadData: ISystemQueue, observer: Observer<ISystemQueue>) {
+    logger.debug("ContentDownload executer resume method called", this.contentDownloadData._id, "calling start method");
+    return this.start(contentDownloadData, observer);
   }
   public async cancel() {
-    logger.debug("ContentDownload executer cancel method called", this.contentDownloadData._id);
-    return true;
+    this.interrupt = false;
+    this.interruptType = "CANCEL";
+    let cancelInQueue = false;
+    logger.debug("ContentDownload pause method called", this.contentDownloadData._id);
+    _.forIn(this.contentDownloadMetaData.contentDownloadList, (value: IContentDownloadList, key) => {
+      if (value.step === "DOWNLOAD") {
+        const cancelRes = this.downloadSDK.cancel(key);
+        if (cancelRes) {
+          cancelInQueue = true;
+        }
+      }
+    });
+    if (cancelInQueue) {
+      return true;
+    } else {
+      return {
+          code: "NO_FILES_IN_QUEUE",
+          status: 400,
+          message: `No files are in queue`,
+        };
+    }
   }
-  public async retry(contentDownloadData: any) {
-    logger.debug("ContentDownload executer retry method called", this.contentDownloadData._id);
-    return true;
+  public async retry(contentDownloadData: ISystemQueue, observer: Observer<ISystemQueue>) {
+    logger.debug("ContentDownload executer retry method called", this.contentDownloadData._id, "calling retry method");
+    return this.start(contentDownloadData, observer);
   }
-  private getDownloadObserve(contentId) {
+  private getDownloadObserver(contentId) {
     const next = (downloadProgress: IDownloadProgress) => {
       logger.debug(`${this.contentDownloadData._id}:Download progress event contentId: ${contentId}`, downloadProgress);
       if (downloadProgress.total) {
-        this.updateProgress(contentId, downloadProgress);
+        this.handleDownloadProgress(contentId, downloadProgress);
       }
     };
     const error = (downloadError) => {
       logger.debug(`${this.contentDownloadData._id}:Download error event contentId: ${contentId},`, downloadError);
-      this.handleErrorEvent(contentId, downloadError);
+      this.handleDownloadError(contentId, downloadError);
     };
     const complete = () => {
       logger.debug(`${this.contentDownloadData._id}:Download complete event contentId: ${contentId}`);
-      this.updateDownloadedCount(contentId);
+      const contentDetails = this.contentDownloadMetaData.contentDownloadList[contentId];
+      contentDetails.step = "EXTRACT";
+      this.contentDownloadMetaData.downloadedSize += contentDetails.size;
+      this.observer.next(this.contentDownloadData);
+      this.handleDownloadComplete(contentId, contentDetails);
     };
     return { next, error, complete };
   }
-  private handleErrorEvent(contentId, error) {
+  private handleDownloadError(contentId, error) {
     logger.debug(`${this.contentDownloadData._id}:Download error event contentId: ${contentId},`, error);
+    this.downloadFailedCount += 1;
+    if (this.downloadFailedCount > 1 || (this.downloadContentCount === 1)) {
+      this.interrupt = false;
+      this.observer.next(this.contentDownloadData);
+      this.observer.error({
+        code: "DOWNLOAD_FILE_FAILED",
+        status: 400,
+        message: `More than one content download failed`,
+      });
+    }
   }
-  private updateProgress(contentId: string, progress: IDownloadProgress) {
+  private handleDownloadProgress(contentId: string, progress: IDownloadProgress) {
     const contentDetails = this.contentDownloadMetaData.contentDownloadList[contentId];
     const downloadedSize = this.contentDownloadMetaData.downloadedSize
       + (contentDetails.size * (progress.total.percentage / 100));
     this.contentDownloadData.progress = downloadedSize;
     this.observer.next(this.contentDownloadData);
   }
-  private updateDownloadedCount(contentId) {
+
+  private async handleDownloadComplete(contentId, contentDetails: IContentDownloadList) {
     try {
-      const contentDetails = this.contentDownloadMetaData.contentDownloadList[contentId];
-      contentDetails.downloaded = true;
-      this.contentDownloadMetaData.contentDownloadedCount += 1;
-      this.contentDownloadMetaData.downloadedSize += contentDetails.size;
-      this.observer.next(this.contentDownloadData);
-      this.extractContent(contentId);
-      if (this.contentDownloadMetaData.contentDownloadedCount ===
-        this.contentDownloadMetaData.contentToBeDownloadedCount) {
-        logger.debug(`${this.contentDownloadData._id}: All contents downloaded`);
-      } else {
-        logger.debug(`${this.contentDownloadData._id}: Download status. Downloaded ${this.contentDownloadMetaData.contentDownloadedCount},
-        Pending ${this.contentDownloadMetaData.contentToBeDownloadedCount - this.contentDownloadMetaData.contentDownloadedCount}`);
+      if (this.interrupt) {
+        return;
       }
+      if (!_.includes(["EXTRACT", "INDEX", "COMPLETE"], contentDetails.step)) {
+        throw new Error("INVALID_STEP");
+      }
+      let itemsToDelete = [];
+      if (contentDetails.step === "EXTRACT") {
+        const res = await this.extractContent(contentId, contentDetails);
+        itemsToDelete = res.itemsToDelete || [];
+        contentDetails.step = "INDEX";
+        this.observer.next(this.contentDownloadData);
+      }
+      if (this.interrupt) {
+        return;
+      }
+      if (contentDetails.step === "INDEX") {
+        await this.saveContentToDb(contentId, contentDetails);
+        contentDetails.step = "COMPLETE";
+        this.observer.next(this.contentDownloadData);
+      }
+      if (this.interrupt) {
+        return;
+      }
+      for (const item of itemsToDelete) {
+        await this.fileSDK.remove(item);
+      }
+      this.checkForAllTaskCompletion();
     } catch (err) {
       logger.error(`${this.contentDownloadData._id}:error while processing download complete event: ${contentId}`,
         err.message);
+      this.extractionFailedCount += 1;
+      if (this.extractionFailedCount > 1 || (this.downloadContentCount === 1)) {
+        this.interrupt = false;
+        this.observer.next(this.contentDownloadData);
+        this.observer.error({
+          code: "CONTENT_EXTRACT_FAILED",
+          status: 400,
+          message: `More than one content extraction after download failed`,
+        });
+      }
     }
   }
   private async extractZipEntry(zipHandler, entry: string, distFolder): Promise<boolean | any> {
     return new Promise(async (resolve, reject) => zipHandler.extract(entry,
       distFolder, (err) => err ? reject(err) : resolve()));
   }
-  private async extractContent(contentId) {
+  private async extractContent(contentId, contentDetails: IContentDownloadList) {
     const itemsToDelete = [];
     logger.debug(`${this.contentDownloadData._id}:Extracting content: ${contentId}`);
-    const contentDetails = this.contentDownloadMetaData.contentDownloadList[contentId];
-    const zipHandler: any = await this.loadZipHandler(path.join(this.ecarBasePath, contentDetails.identifier));
-    await this.checkSpaceAvailability(path.join(this.ecarBasePath, contentDetails.identifier), zipHandler);
+    const zipHandler: any = await this.loadZipHandler(path.join(this.ecarBasePath, contentDetails.downloadId));
+    await this.checkSpaceAvailability(path.join(this.ecarBasePath, contentDetails.downloadId), zipHandler);
     const entries = zipHandler.entries();
     await this.fileSDK.mkdir(path.join("content", contentDetails.identifier));
     for (const entry of _.values(entries) as any) {
@@ -120,7 +206,7 @@ export class ContentDownloader implements ITaskExecuter {
         path.join(this.fileSDK.getAbsPath("content"), contentDetails.identifier));
     }
     logger.debug(`${this.contentDownloadData._id}:Extracted content: ${contentId}`);
-    itemsToDelete.push(path.join("ecars", contentDetails.identifier));
+    itemsToDelete.push(path.join("ecars", contentDetails.downloadId));
     const manifestJson = await this.fileSDK.readJSON(
       path.join(this.fileSDK.getAbsPath("content"), contentDetails.identifier, "manifest.json"));
     const metaData: any = _.get(manifestJson, "archive.items[0]");
@@ -130,18 +216,17 @@ export class ContentDownloader implements ITaskExecuter {
       logger.debug(`${this.contentDownloadData._id}:Extracting artifact url content: ${contentId}`);
       await this.fileSDK.unzip(path.join("content", contentDetails.identifier, path.basename(metaData.artifactUrl)),
         path.join("content", contentDetails.identifier), false);
-      itemsToDelete.push(path.join("content", contentDetails.identifier,  path.basename(metaData.artifactUrl)));
+      itemsToDelete.push(path.join("content", contentDetails.identifier, path.basename(metaData.artifactUrl)));
     }
-    contentDetails.extracted = true;
+    contentDetails.step = "EXTRACT";
     this.observer.next(this.contentDownloadData);
-    for (const item of itemsToDelete) {
-      await this.fileSDK.remove(item);
-    }
-    this.saveContentToDb(contentId, manifestJson, metaData);
+    return { itemsToDelete };
   }
-  private async saveContentToDb(contentId, manifestJson, metaData) {
+  private async saveContentToDb(contentId: string, contentDetails: IContentDownloadList) {
     logger.debug(`${this.contentDownloadData._id}:Saving content: ${contentId} in database`);
-    const contentDetails = this.contentDownloadMetaData.contentDownloadList[contentId];
+    const manifestJson = await this.fileSDK.readJSON(
+      path.join(this.fileSDK.getAbsPath("content"), contentDetails.identifier, "manifest.json"));
+    const metaData: any = _.get(manifestJson, "archive.items[0]");
     if (metaData.mimeType === "application/vnd.ekstep.content-collection") {
       metaData.children = this.createHierarchy(_.cloneDeep(_.get(manifestJson, "archive.items")), metaData);
     }
@@ -156,20 +241,19 @@ export class ContentDownloader implements ITaskExecuter {
       metaData.visibility = "Parent";
     }
     await this.databaseSdk.upsert("content", metaData.identifier, metaData);
-    contentDetails.indexed = true;
+    contentDetails.step = "INDEX";
     this.observer.next(this.contentDownloadData);
-    this.checkForTaskCompletion();
   }
-  private checkForTaskCompletion() {
+  private checkForAllTaskCompletion() {
     let totalContents = 0;
     let completedContents = 0;
     _.forIn(this.contentDownloadMetaData.contentDownloadList, (value, key) => {
       totalContents += 1;
-      if (value.extracted) {
+      if (value.step === "COMPLETE") {
         completedContents += 1;
       }
     });
-    if (totalContents === completedContents) {
+    if (totalContents === (completedContents + this.extractionFailedCount + this.downloadFailedCount)) {
       logger.debug(`${this.contentDownloadData._id}:download completed`);
       this.observer.complete();
     } else {

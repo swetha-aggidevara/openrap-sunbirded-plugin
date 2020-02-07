@@ -9,6 +9,7 @@ import { manifest } from "../../manifest";
 import { ContentDownloader } from "./ContentDownloader";
 import { HTTPService } from "@project-sunbird/ext-framework-server/services";
 import Response from "../../utils/response";
+import uuid = require("uuid");
 const ContentReadUrl = `${process.env.APP_BASE_URL}/api/content/v1/read`;
 const ContentSearchUrl = `${process.env.APP_BASE_URL}/api/content/v1/search`;
 const DefaultRequestOptions = { headers: { "Content-Type": "application/json" } };
@@ -34,12 +35,11 @@ export class ContentDownloadManager {
       let contentToBeDownloadedCount = 1;
       const contentDownloadList = {
         [contentDetail.identifier]: {
+          downloadId: uuid(),
           identifier: contentDetail.identifier,
           url: contentDetail.downloadUrl,
           size: contentDetail.size,
-          downloaded: false,
-          extracted: false,
-          indexed: false,
+          step: "DOWNLOAD",
         },
       };
       logger.debug(`${reqId} Content mimeType: ${contentDetail.mimeType}`);
@@ -53,12 +53,11 @@ export class ContentDownloadManager {
             logger.debug(`${reqId} Content childNodes: ${content.identifier} added to list`);
             contentSize += content.size;
             contentDownloadList[content.identifier] = {
+              downloadId: uuid(),
               identifier: content.identifier,
               url: content.downloadUrl,
               size: content.size,
-              downloaded: false,
-              extracted: false,
-              indexed: false,
+              step: "DOWNLOAD",
             };
           } else {
             logger.debug(`${reqId} Content childNodes: ${content.identifier} download skipped ${content.size}, ${content.downloadUrl}`);
@@ -71,8 +70,6 @@ export class ContentDownloadManager {
         name: contentDetail.name,
         group: ContentDownloader.group,
         metaData: {
-          contentToBeDownloadedCount,
-          contentDownloadedCount: 0,
           downloadedSize: 0,
           contentSize,
           contentDownloadList,
