@@ -9,12 +9,14 @@ import { Observer } from "rxjs";
 import { containerAPI, ITaskExecuter, ISystemQueue, SystemQueueStatus } from "OpenRAP/dist/api";
 import { IDownloadMetadata, IContentDownloadList } from "./IContentDownload";
 import * as  StreamZip from "node-stream-zip";
+import TelemetryHelper from "../../helper/telemetryHelper";
 
 export class ContentDownloader implements ITaskExecuter {
   public static taskType = "DOWNLOAD";
   public static group = "CONTENT_MANAGER";
   private contentDownloadData: ISystemQueue;
   @Inject private databaseSdk: DatabaseSDK;
+  @Inject private telemetryHelper: TelemetryHelper;
   private downloadSDK = containerAPI.getDownloadSdkInstance();
   private observer: Observer<ISystemQueue>;
   private fileSDK = containerAPI.getFileSDKInstance(manifest.id);
@@ -56,7 +58,7 @@ export class ContentDownloader implements ITaskExecuter {
     logger.debug("ContentDownload pause method called", this.contentDownloadData._id);
     _.forIn(this.contentDownloadMetaData.contentDownloadList, (value: IContentDownloadList, key) => {
       if (value.step === "DOWNLOAD") {
-        const pauseRes = this.downloadSDK.cancel(key);
+        const pauseRes = this.downloadSDK.cancel(value.downloadId);
         if (pauseRes) {
           pausedInQueue = true;
         }
@@ -83,7 +85,7 @@ export class ContentDownloader implements ITaskExecuter {
     logger.debug("ContentDownload pause method called", this.contentDownloadData._id);
     _.forIn(this.contentDownloadMetaData.contentDownloadList, (value: IContentDownloadList, key) => {
       if (value.step === "DOWNLOAD") {
-        const cancelRes = this.downloadSDK.cancel(key);
+        const cancelRes = this.downloadSDK.cancel(value.downloadId);
         if (cancelRes) {
           cancelInQueue = true;
         }
@@ -255,12 +257,21 @@ export class ContentDownloader implements ITaskExecuter {
     });
     if (totalContents === (completedContents + this.extractionFailedCount + this.downloadFailedCount)) {
       logger.debug(`${this.contentDownloadData._id}:download completed`);
+      this.constructShareEvent(this.contentDownloadData);
       this.observer.complete();
     } else {
       logger.debug(`${this.contentDownloadData._id}:Extraction completed for ${completedContents},
       ${totalContents - completedContents}`);
     }
   }
+  private constructShareEvent(data) {
+    const telemetryShareItems = [{
+      id: _.get(data, "metaData.contentId"),
+      type: _.get(data, "metaData.contentType"),
+      ver: _.toString(_.get(data, "metaData.pkgVersion")),
+    }];
+    this.telemetryHelper.logShareEvent(telemetryShareItems, "In", "Content");
+}
   private async checkSpaceAvailability(zipPath, zipHandler?) {
     zipHandler = zipHandler || await this.loadZipHandler(zipPath);
     const entries = zipHandler.entries();
