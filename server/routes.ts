@@ -15,8 +15,6 @@ import DesktopAppUpdate from "./controllers/appUpdate";
 import { Channel } from "./controllers/channel";
 import Content from "./controllers/content/content";
 import ContentDelete from "./controllers/content/contentDelete";
-import ContentDownload from "./controllers/content/contentDownload";
-import ContentUpdate from "./controllers/content/contentUpdate";
 import { Faqs } from "./controllers/faqs";
 import { Form } from "./controllers/form";
 import { Framework } from "./controllers/framework";
@@ -522,9 +520,8 @@ export class Router {
       content.export.bind(content),
     );
 
-    const contentDownload = new ContentDownload(manifest);
     app.post("/api/content/v1/download/list", (req, res) => {
-      contentDownload.list(req, res);
+      content.list(req, res);
     });
     app.post("/api/content/v1/download/:id", this.contentDownloadManager.download.bind(this.contentDownloadManager));
     app.post("/api/content/v1/download/pause/:downloadId",
