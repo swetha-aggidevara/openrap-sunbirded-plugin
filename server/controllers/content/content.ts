@@ -158,6 +158,7 @@ export default class Content {
                     failedCode: _.get(data, 'failedCode'),
                     failedReason: _.get(data, 'failedReason'),
                     addedUsing: _.toLower(_.get(data, 'type')),
+                    contentDownloadList: _.get(data, 'metaData.contentDownloadList')
                 };
                 listData.push(listObj);
             });
