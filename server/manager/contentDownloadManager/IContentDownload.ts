@@ -13,5 +13,5 @@ export interface IContentDownloadList {
   size: number;
   failed: boolean;
   downloadId: string;
-  step: "DOWNLOAD" | "EXTRACT" | "INDEX" | "COMPLETE";
+  step: "DOWNLOAD" | "EXTRACT" | "INDEX" | "COMPLETE" | "DELETE";
 }

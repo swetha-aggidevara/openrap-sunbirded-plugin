@@ -539,6 +539,8 @@ export class Router {
     app.post("/api/content/v1/download/retry/:downloadId",
     this.contentDownloadManager.retry.bind(this.contentDownloadManager));
 
+    app.post("/api/content/v1/update/:id", this.contentDownloadManager.update.bind(this.contentDownloadManager));
+
     telemetry = new Telemetry(manifest);
 
     app.post(
@@ -547,10 +549,6 @@ export class Router {
         telemetry.addEvents(req, res);
       },
     );
-    const contentUpdate = new ContentUpdate(manifest);
-    app.post("/api/content/v1/update/:id", (req, res) => {
-      contentUpdate.contentUpdate(req, res);
-    });
 
     const desktopAppUpdate = new DesktopAppUpdate(manifest);
     app.get("/api/desktop/v1/update",

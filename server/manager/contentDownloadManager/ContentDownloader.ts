@@ -56,7 +56,7 @@ export class ContentDownloader implements ITaskExecuter {
     logger.debug("ContentDownload pause method called", this.contentDownloadData._id);
     _.forIn(this.contentDownloadMetaData.contentDownloadList, (value: IContentDownloadList, key) => {
       if (value.step === "DOWNLOAD") {
-        const pauseRes = this.downloadSDK.cancel(key);
+        const pauseRes = this.downloadSDK.cancel(value.downloadId);
         if (pauseRes) {
           pausedInQueue = true;
         }
@@ -83,7 +83,7 @@ export class ContentDownloader implements ITaskExecuter {
     logger.debug("ContentDownload pause method called", this.contentDownloadData._id);
     _.forIn(this.contentDownloadMetaData.contentDownloadList, (value: IContentDownloadList, key) => {
       if (value.step === "DOWNLOAD") {
-        const cancelRes = this.downloadSDK.cancel(key);
+        const cancelRes = this.downloadSDK.cancel(value.downloadId);
         if (cancelRes) {
           cancelInQueue = true;
         }
@@ -150,7 +150,7 @@ export class ContentDownloader implements ITaskExecuter {
       if (this.interrupt) {
         return;
       }
-      if (!_.includes(["EXTRACT", "INDEX", "COMPLETE"], contentDetails.step)) {
+      if (!_.includes(["EXTRACT", "INDEX", "COMPLETE", "DELETE"], contentDetails.step)) {
         throw new Error("INVALID_STEP");
       }
       let itemsToDelete = [];
@@ -249,16 +249,35 @@ export class ContentDownloader implements ITaskExecuter {
     let completedContents = 0;
     _.forIn(this.contentDownloadMetaData.contentDownloadList, (value, key) => {
       totalContents += 1;
-      if (value.step === "COMPLETE") {
+      if (value.step === "COMPLETE" || value.step === "DELETE") { // delete content will be done async 
         completedContents += 1;
       }
     });
     if (totalContents === (completedContents + this.extractionFailedCount + this.downloadFailedCount)) {
       logger.debug(`${this.contentDownloadData._id}:download completed`);
+      this.deleteRemovedContent();
       this.observer.complete();
     } else {
       logger.debug(`${this.contentDownloadData._id}:Extraction completed for ${completedContents},
       ${totalContents - completedContents}`);
+    }
+  }
+  private deleteRemovedContent(){ // if content has been removed from collection make the content visibility to default
+    const updateDoc = [];
+    _.forIn(this.contentDownloadMetaData.contentDownloadList, (value: IContentDownloadList, key) => {
+      if (value.step === "DELETE") {
+        updateDoc.push({
+          _id: value.identifier,
+          identifier: value.identifier,
+          visibility: "Default",
+          updatedOn: Date.now()
+        });
+      }
+    });
+    if(updateDoc.length){
+      this.databaseSdk.bulk("content", updateDoc).catch(error => {
+        logger.debug(`${this.contentDownloadData._id}: content visibility update failed for deleted content`, error.message)
+      });
     }
   }
   private async checkSpaceAvailability(zipPath, zipHandler?) {
