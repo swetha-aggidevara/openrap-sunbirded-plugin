@@ -126,7 +126,7 @@ export class ContentDownloader implements ITaskExecuter {
   private handleDownloadError(contentId, error) {
     logger.debug(`${this.contentDownloadData._id}:Download error event contentId: ${contentId},`, error);
     this.downloadFailedCount += 1;
-    if (_.includes(["ESOCKETTIMEDOUT"], error.code) || this.downloadFailedCount > 1 || (this.downloadContentCount === 1)) {
+    if (_.includes(["ESOCKETTIMEDOUT"], _.get(error, 'code')) || this.downloadFailedCount > 1 || (this.downloadContentCount === 1)) {
       this.interrupt = false;
       this.observer.next(this.contentDownloadData);    
       _.forIn(this.contentDownloadMetaData.contentDownloadList, (value: IContentDownloadList, key) => {
@@ -135,7 +135,7 @@ export class ContentDownloader implements ITaskExecuter {
         }
       });
       this.observer.error({
-        code: error.code || "DOWNLOAD_FILE_FAILED",
+        code: _.get(error, 'code') || "DOWNLOAD_FILE_FAILED",
         status: 400,
         message: `More than one content download failed`,
       });
