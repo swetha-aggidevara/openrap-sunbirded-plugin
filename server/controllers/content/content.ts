@@ -425,10 +425,12 @@ export default class Content {
     /* This method is to search contents for download status in database  */
 
     private async searchDownloadingContent(reqId) {
-        const activeSelector = {
+        logger.debug(`ReqId = "${reqId}": searchDownloadingContent is called`)
+        const selector = {
             group: "CONTENT_MANAGER",
         };
-        return await this.systemQueue.query(activeSelector);
+        logger.info(`ReqId = "${reqId}": querying content from systemQueue`)
+        return await this.systemQueue.query(selector);
     }
 
 
