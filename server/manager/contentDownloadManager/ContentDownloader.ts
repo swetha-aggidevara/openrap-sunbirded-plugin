@@ -129,7 +129,12 @@ export class ContentDownloader implements ITaskExecuter {
     this.downloadFailedCount += 1;
     if (this.downloadFailedCount > 1 || (this.downloadContentCount === 1)) {
       this.interrupt = false;
-      this.observer.next(this.contentDownloadData);
+      this.observer.next(this.contentDownloadData);    
+      _.forIn(this.contentDownloadMetaData.contentDownloadList, (value: IContentDownloadList, key) => {
+        if (value.step === "DOWNLOAD") {
+          const cancelRes = this.downloadSDK.cancel(value.downloadId);
+        }
+      });
       this.observer.error({
         code: "DOWNLOAD_FILE_FAILED",
         status: 400,
