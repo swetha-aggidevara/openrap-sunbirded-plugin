@@ -11,12 +11,13 @@ import * as path from "path";
 import { ContentImportManager } from "../../manager/contentImportManager"
 import * as uuid from "uuid";
 import Hashids from "hashids";
-import { containerAPI } from "OpenRAP/dist/api";
+import { containerAPI, ISystemQueueInstance } from "OpenRAP/dist/api";
 import * as TreeModel from "tree-model";
 import { HTTPService } from "@project-sunbird/ext-framework-server/services";
 import { ExportContent } from "../../manager/contentExportManager"
 import TelemetryHelper from "../../helper/telemetryHelper";
 import { response } from "express";
+const sessionStartTime = Date.now();
 
 export enum DOWNLOAD_STATUS {
     SUBMITTED = "DOWNLOADING",
@@ -39,6 +40,7 @@ export default class Content {
 
     @Inject
     private contentImportManager: ContentImportManager;
+    private systemQueue: ISystemQueueInstance;
 
     private fileSDK;
 
@@ -46,6 +48,7 @@ export default class Content {
         this.contentImportManager.initialize();
         this.databaseSdk.initialize(manifest.id);
         this.fileSDK = containerAPI.getFileSDKInstance(manifest.id);
+        this.systemQueue = containerAPI.getSystemQueueInstance(manifest.id);
         this.getDeviceId();
     }
 
@@ -124,7 +127,52 @@ export default class Content {
         })()
 
     }
-
+    public async list(req: any, res: any) {
+        try {
+            const activeSelector = {
+                isActive: true,
+                group: 'CONTENT_MANAGER',
+            };
+            const inActiveSelector = {
+                isActive: false,
+                group: 'CONTENT_MANAGER',
+                updatedOn: { "$gt": sessionStartTime },
+            };
+            const activeDbData = await this.systemQueue.query(activeSelector);
+            const inActiveDbData = await this.systemQueue.query(inActiveSelector);
+            const dbData = _.concat(activeDbData.docs, inActiveDbData.docs);
+            const listData = [];
+            _.forEach(dbData, (data) => {
+                const listObj = {
+                    contentId: _.get(data, 'metaData.contentId'),
+                    identifier: _.get(data, 'metaData.contentId'),
+                    id: _.get(data, '_id'),
+                    resourceId: _.get(data, 'metaData.contentId'),
+                    name: _.get(data, 'name'),
+                    totalSize: _.get(data, 'metaData.contentSize'),
+                    downloadedSize: _.get(data, 'progress'),
+                    status: _.get(data, 'status'),
+                    createdOn: _.get(data, 'createdOn'),
+                    pkgVersion: _.get(data, 'metaData.pkgVersion'),
+                    mimeType: _.get(data, 'metaData.mimeType'),
+                    failedCode: _.get(data, 'failedCode'),
+                    failedReason: _.get(data, 'failedReason'),
+                    addedUsing: _.toLower(_.get(data, 'type')),
+                    contentDownloadList: _.get(data, 'metaData.contentDownloadList')
+                };
+                listData.push(listObj);
+            });
+            return res.send(Response.success("api.content.list", {
+                response: {
+                    contents: _.uniqBy(_.orderBy(listData, ["createdOn"], ["desc"]), "id"),
+                },
+            }, req));
+        } catch (error) {
+            logger.error(`ReqId = "${req.headers['X-msgid']}": Error while processing the content list request and err.message: ${error.message}`);
+            res.status(500);
+            return res.send(Response.error("api.content.list", 500));
+        }
+    }
     search(req: any, res: any): any {
         logger.debug(`ReqId = "${req.headers['X-msgid']}": Called content search method`);
         let reqBody = req.body;

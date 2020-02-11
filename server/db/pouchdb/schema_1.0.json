@@ -100,67 +100,6 @@
             ]
         },
         {
-            "name": "content_download",
-            "indexes": [
-                {
-                    "index": {
-                        "fields": [
-                            "createdOn"
-                        ]
-                    },
-                    "type": "json",
-                    "name": "created_on_sort_index"
-                },
-                {
-                    "index": {
-                        "fields": [
-                            "createdOn",
-                            "_id",
-                            "downloadId",
-                            "status"
-                        ]
-                    },
-                    "type": "json",
-                    "name": "search"
-                }
-            ]
-        },
-        {
-            "name": "content_manager",
-            "indexes": [
-                {
-                    "index": {
-                        "fields": [
-                            "status"
-                        ],
-                        "ddoc": "status",
-                        "name": "status"
-                    }
-                },
-                {
-                    "index": {
-                        "fields": [
-                            "type",
-                            "status",
-                            "updatedOn"
-                        ],
-                        "ddoc": "type_status_updatedOn",
-                        "name": "type_status_updatedOn"
-                    }
-                },
-                {
-                    "index": {
-                        "fields": [
-                            "type",
-                            "status"
-                        ],
-                        "ddoc": "type_status",
-                        "name": "type_status"
-                    }
-                }
-            ]
-        },
-        {
             "name": "location"
         }
     ]
