@@ -385,22 +385,6 @@ export default class Content {
         return proxyData;
     }
 
-    /*This method is to whether content is present and to store all the contents in all page sections to one array */
-
-    decorateSections(sections, reqId) {
-        logger.debug(`ReqId = "${reqId}": Called decorateSections to decorate content`)
-        let contents = [];
-        logger.info(`ReqId = "${reqId}": Fetching all the contentId's from all the sections into an array`);
-        for (let section of sections) {
-            if (!_.isEmpty(section.contents)) {
-                for (let content of section.contents) {
-                    contents.push(content);
-                }
-            }
-        }
-        logger.debug(`ReqId = "${reqId}": Calling decorateContent from decoratesections`)
-        return this.decorateContentWithProperty(contents, reqId);
-    }
 
     /* This method is to check contents are present in DB */
 
@@ -433,11 +417,6 @@ export default class Content {
         let contents = [];
         contents.push(content);
         logger.info(`ReqId = "${reqId}": walking through all the nodes and pushing all the child nodes to an array`);
-        treeModel.walk(node => {
-            if (node.model.mimeType !== 'application/vnd.ekstep.content-collection') {
-                contents.push(node.model);
-            }
-        });
         logger.debug(`ReqId = "${reqId}": Calling decorateContent from decoratedialcode`)
         return this.decorateContentWithProperty(contents, reqId);
     }
@@ -493,28 +472,36 @@ export default class Content {
     async getOfflineContents(contentsIds: string[], reqId: string) {
         const dbFilter = {
             selector: {
-                identifier: {
-                    $in: contentsIds,
-                },
+                        identifier: {
+                            $in: contentsIds,
+                        },
+
+                        $or: [
+                            { "desktopAppMetadata.isAvailable": { $exists: false } },
+                            { "desktopAppMetadata.isAvailable": { $eq: true } }
+                        ]
             },
-            fields: ["desktopAppMetadata", "downloadStatus", "identifier"],
         };
         return await this.databaseSdk.find("content", dbFilter);
     }
 
     changeContentStatus(contentsInDownload, offlineContents, contents) {
-        for (const content of offlineContents) {
-            if (!_.has(content, "desktopAppMetadata.isAvailable") || content.desktopAppMetadata.isAvailable) {
-                const data = _.find(contentsInDownload, { identifier: content.identifier })
-                content.downloadStatus = !_.isEmpty(_.get(data, 'status')) ? DOWNLOAD_STATUS[data["status"]] : '';
-            }
-        }
         for (const content of contents) {
-            const data = _.find(offlineContents, { identifier: content.identifier });
-            content["downloadStatus"] = _.get(data, 'downloadStatus');
-            content["desktopAppMetadata"] = _.get(data, 'desktopAppMetadata');
+            const data = _.find(contentsInDownload, { identifier: content.identifier });
+            content["downloadStatus"] = !_.isEmpty(_.get(data, 'status')) ? DOWNLOAD_STATUS[data["status"]] : '';
         }
-        return contents;
+        let modifiedContents = _.map(contents, content => {
+            const data = _.find(offlineContents, { identifier: content.identifier });
+            if (data) {
+                data["downloadStatus"] = content ["downloadStatus"];
+                return data;
+            } else {
+                return content;
+            }
+
+        })
+
+        return modifiedContents;
     }
 
 }

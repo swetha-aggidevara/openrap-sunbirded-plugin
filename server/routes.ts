@@ -304,11 +304,12 @@ export class Router {
     const content = new Content(manifest);
     app.get(
       "/api/content/v1/read/:id",
-      (req, res, next) => {
+      async (req, res, next) => {
         logger.debug(`Received API call to read Content: ${req.params.id}`);
-
-        logger.debug(`ReqId = "${req.headers["X-msgid"]}": Check proxy`);
-        if (enableProxy(req)) {
+        const offlineData = await content.getOfflineContents([req.params.id], req.headers["X-msgid"]).catch(error => {
+          logger.error(`ReqId = "${req.headers["X-msgid"]}": Received error while getting data from course read`, error)
+        });
+        if (enableProxy(req) && offlineData.docs.length <= 0 ) {
           logger.info(`Proxy is Enabled`);
           next();
         } else {
@@ -338,10 +339,11 @@ export class Router {
               );
               content
                 .decorateContentWithProperty([contents], req.headers["X-msgid"])
-                .then(() => {
+                .then((data) => {
                   logger.info(
                     `ReqId = "${req.headers["X-msgid"]}": Resolving Data after decorating content `,
                   );
+                  proxyData.result.content = data[0];
                   resolve(proxyData);
                 })
                 .catch((err) => {
@@ -364,7 +366,7 @@ export class Router {
 
     app.get(
       "/api/course/v1/hierarchy/:id",
-      (req, res, next) => {
+      async (req, res, next) => {
         logger.debug(
           `Received API call to get Course hierarchy: ${req.params.id}`,
         );
@@ -372,7 +374,10 @@ export class Router {
         logger.debug(`ReqId = "${req.headers["X-msgid"]}": Check proxy`);
         const online = Boolean(_.get(req, "query.online") && req.query.online.toLowerCase() === "true");
         const isProxyEnabled = _.has(req, "query.online") ? online : enableProxy(req);
-        if (isProxyEnabled) {
+        const offlineData = await content.getOfflineContents([req.params.id], req.headers["X-msgid"]).catch((error) => {
+          logger.error(`ReqId = "${req.headers["X-msgid"]}": Received while getting data from course hierarchy`, error);
+        });
+        if (isProxyEnabled && offlineData.docs.length <= 0 ) {
           logger.info(`Proxy is Enabled`);
           next();
         } else {
@@ -403,10 +408,11 @@ export class Router {
               );
               content
                 .decorateDialCodeContents(contents, req.headers["X-msgid"])
-                .then(() => {
+                .then((data) => {
                   logger.info(
                     `ReqId = "${req.headers["X-msgid"]}": Resolving Data after decorating DialCodecontent `,
                   );
+                  proxyData.result.content = data[0];
                   resolve(proxyData);
                 })
                 .catch((err) => {
@@ -473,10 +479,11 @@ export class Router {
               );
               content
                 .decorateContentWithProperty(contents, req.headers["X-msgid"])
-                .then(() => {
+                .then((data) => {
                   logger.info(
                     `ReqId = "${req.headers["X-msgid"]}": Resolving Data after decorating contents in contentSearch `,
                   );
+                  proxyData.result.content = data;
                   resolve(proxyData);
                 })
                 .catch((err) => {
