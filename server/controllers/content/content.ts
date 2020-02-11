@@ -488,12 +488,12 @@ export default class Content {
             for (const dContent of contentsInDownload.docs) {
                 if (dContent && dContent.metaData.contentId === content.identifier) {
                     content["downloadStatus"] = _.includes(["CANCELED", "FAILED"],
-                    DOWNLOAD_STATUS[_.lowerCase(dContent.status)]) ?
+                        DOWNLOAD_STATUS[_.lowerCase(dContent.status)]) ?
                         "" : DOWNLOAD_STATUS[_.lowerCase(dContent.status)]
                 } else if (dContent && _.has(_.get(dContent, "metaData.contentDownloadList"), content.identifier)) {
                     const status = _.get(dContent, `metaData.contentDownloadList.${content.identifier}.step`);
                     content["downloadStatus"] = _.includes(["CANCELED", "FAILED"],
-                    DOWNLOAD_STATUS[_.lowerCase(status)])
+                        DOWNLOAD_STATUS[_.lowerCase(status)])
                         ? "" : DOWNLOAD_STATUS[_.lowerCase(status)];
                 }
             }
