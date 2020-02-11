@@ -136,6 +136,7 @@ export class ContentDownloader implements ITaskExecuter {
         message: `More than one content download failed`,
       });
     }
+    this.checkForAllTaskCompletion();
   }
   private handleDownloadProgress(contentId: string, progress: IDownloadProgress) {
     const contentDetails = this.contentDownloadMetaData.contentDownloadList[contentId];
