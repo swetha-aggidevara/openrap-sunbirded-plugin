@@ -9,12 +9,15 @@ import { manifest } from "../../manifest";
 import { IAddedUsingType } from "../../controllers/content/IContent";
 import * as  _ from "lodash";
 import { Observer } from "rxjs";
+import TelemetryHelper from "../../helper/telemetryHelper";
 
 export class ImportContent implements ITaskExecuter {
+  private deviceId: string;
   public static taskType = "IMPORT";
   private workerProcessRef: childProcess.ChildProcess;
   private fileSDK: any;
   @Inject private dbSDK: DatabaseSDK;
+  @Inject private telemetryHelper: TelemetryHelper;
   private manifestJson: any;
   private interrupt;
   private contentImportData: ISystemQueue;
@@ -22,6 +25,10 @@ export class ImportContent implements ITaskExecuter {
   constructor() {
     this.dbSDK.initialize(manifest.id);
     this.fileSDK = containerAPI.getFileSDKInstance(manifest.id);
+    this.getDeviceId();
+  }
+  public async getDeviceId() {
+    this.deviceId = await containerAPI.getSystemSDKInstance(manifest.id).getDeviceId();
   }
   public status() {
     return this.contentImportData;
@@ -137,6 +144,8 @@ export class ImportContent implements ITaskExecuter {
       const dbContents = await this.getContentsFromDB(contentIds);
       await this.saveContentsToDb(dbContents);
       this.contentImportData.metaData.step = ImportSteps.complete;
+      // Adding telemetry share event
+      this.constructShareEvent(this.contentImportData);
       logger.info("--------import complete-------", JSON.stringify(this.contentImportData));
       this.observer.next(this.contentImportData);
       this.observer.complete();
@@ -151,6 +160,19 @@ export class ImportContent implements ITaskExecuter {
     } finally {
       this.workerProcessRef.kill();
     }
+  }
+
+  private async constructShareEvent(data) {
+    const telemetryShareItems = [{
+      id: _.get(data, "metaData.contentId"),
+      type: _.get(data, "metaData.contentType"),
+      ver: _.toString(_.get(data, "metaData.pkgVersion")),
+      origin: {
+        id: this.deviceId,
+        type: "Device",
+      },
+    }];
+    this.telemetryHelper.logShareEvent(telemetryShareItems, "In", "Content");
   }
 
   private async saveContentsToDb(dbContents) {

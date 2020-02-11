@@ -9,12 +9,14 @@ import { Observer } from "rxjs";
 import { containerAPI, ITaskExecuter, ISystemQueue, SystemQueueStatus } from "OpenRAP/dist/api";
 import { IDownloadMetadata, IContentDownloadList } from "./IContentDownload";
 import * as  StreamZip from "node-stream-zip";
+import TelemetryHelper from "../../helper/telemetryHelper";
 
 export class ContentDownloader implements ITaskExecuter {
   public static taskType = "DOWNLOAD";
   public static group = "CONTENT_MANAGER";
   private contentDownloadData: ISystemQueue;
   @Inject private databaseSdk: DatabaseSDK;
+  @Inject private telemetryHelper: TelemetryHelper;
   private downloadSDK = containerAPI.getDownloadSdkInstance();
   private observer: Observer<ISystemQueue>;
   private fileSDK = containerAPI.getFileSDKInstance(manifest.id);
@@ -261,6 +263,7 @@ export class ContentDownloader implements ITaskExecuter {
     });
     if (totalContents === (completedContents + this.extractionFailedCount + this.downloadFailedCount)) {
       logger.debug(`${this.contentDownloadData._id}:download completed`);
+      this.constructShareEvent(this.contentDownloadData);
       this.deleteRemovedContent();
       this.observer.complete();
     } else {
@@ -268,6 +271,14 @@ export class ContentDownloader implements ITaskExecuter {
       ${totalContents - completedContents}`);
     }
   }
+  private constructShareEvent(data) {
+    const telemetryShareItems = [{
+      id: _.get(data, "metaData.contentId"),
+      type: _.get(data, "metaData.contentType"),
+      ver: _.toString(_.get(data, "metaData.pkgVersion")),
+    }];
+    this.telemetryHelper.logShareEvent(telemetryShareItems, "In", "Content");
+}
   private deleteRemovedContent(){ // if content has been removed from collection make the content visibility to default
     const updateDoc = [];
     _.forIn(this.contentDownloadMetaData.contentDownloadList, (value: IContentDownloadList, key) => {
