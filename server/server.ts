@@ -17,10 +17,6 @@ import config from "./config";
 import { logger } from "@project-sunbird/ext-framework-server/logger";
 import { containerAPI } from "OpenRAP/dist/api";
 import  ContentDelete from "./controllers/content/contentDelete";
-import {
-  addContentListener,
-  reconciliation
-} from "./controllers/content/contentHelper";
 import * as _ from "lodash";
 import { EventManager } from "@project-sunbird/ext-framework-server/managers/EventManager";
 
@@ -115,10 +111,6 @@ export class Server extends BaseServer {
 
     await this.fileSDK.mkdir(this.contentFilesPath);
     await this.fileSDK.mkdir(this.ecarsFolderPath);
-    addContentListener(manifest.id);
-    setTimeout(async () => {
-      reconciliation(manifest.id);
-    }, 120000);
     //- reIndex()
     //- reConfigure()
   }

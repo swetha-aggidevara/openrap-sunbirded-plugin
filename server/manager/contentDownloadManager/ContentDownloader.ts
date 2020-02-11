@@ -113,7 +113,6 @@ export class ContentDownloader implements ITaskExecuter {
       }
     };
     const error = (downloadError) => {
-      logger.debug(`${this.contentDownloadData._id}:Download error event contentId: ${contentId},`, downloadError);
       this.handleDownloadError(contentId, downloadError);
     };
     const complete = () => {
@@ -129,14 +128,21 @@ export class ContentDownloader implements ITaskExecuter {
   private handleDownloadError(contentId, error) {
     logger.debug(`${this.contentDownloadData._id}:Download error event contentId: ${contentId},`, error);
     this.downloadFailedCount += 1;
-    if (this.downloadFailedCount > 1 || (this.downloadContentCount === 1)) {
+    if (_.includes(["ESOCKETTIMEDOUT"], _.get(error, 'code')) || this.downloadFailedCount > 1 || (this.downloadContentCount === 1)) {
       this.interrupt = false;
-      this.observer.next(this.contentDownloadData);
+      this.observer.next(this.contentDownloadData);    
+      _.forIn(this.contentDownloadMetaData.contentDownloadList, (value: IContentDownloadList, key) => {
+        if (value.step === "DOWNLOAD") {
+          const cancelRes = this.downloadSDK.cancel(value.downloadId);
+        }
+      });
       this.observer.error({
-        code: "DOWNLOAD_FILE_FAILED",
+        code: _.get(error, 'code') || "DOWNLOAD_FILE_FAILED",
         status: 400,
         message: `More than one content download failed`,
       });
+    } else { // complete download task if all are completed
+      this.checkForAllTaskCompletion();
     }
   }
   private handleDownloadProgress(contentId: string, progress: IDownloadProgress) {
@@ -152,7 +158,7 @@ export class ContentDownloader implements ITaskExecuter {
       if (this.interrupt) {
         return;
       }
-      if (!_.includes(["EXTRACT", "INDEX", "COMPLETE"], contentDetails.step)) {
+      if (!_.includes(["EXTRACT", "INDEX", "COMPLETE", "DELETE"], contentDetails.step)) {
         throw new Error("INVALID_STEP");
       }
       let itemsToDelete = [];
@@ -251,13 +257,14 @@ export class ContentDownloader implements ITaskExecuter {
     let completedContents = 0;
     _.forIn(this.contentDownloadMetaData.contentDownloadList, (value, key) => {
       totalContents += 1;
-      if (value.step === "COMPLETE") {
+      if (value.step === "COMPLETE" || value.step === "DELETE") { // delete content will be done async 
         completedContents += 1;
       }
     });
     if (totalContents === (completedContents + this.extractionFailedCount + this.downloadFailedCount)) {
       logger.debug(`${this.contentDownloadData._id}:download completed`);
       this.constructShareEvent(this.contentDownloadData);
+      this.deleteRemovedContent();
       this.observer.complete();
     } else {
       logger.debug(`${this.contentDownloadData._id}:Extraction completed for ${completedContents},
@@ -272,6 +279,24 @@ export class ContentDownloader implements ITaskExecuter {
     }];
     this.telemetryHelper.logShareEvent(telemetryShareItems, "In", "Content");
 }
+  private deleteRemovedContent(){ // if content has been removed from collection make the content visibility to default
+    const updateDoc = [];
+    _.forIn(this.contentDownloadMetaData.contentDownloadList, (value: IContentDownloadList, key) => {
+      if (value.step === "DELETE") {
+        updateDoc.push({
+          _id: value.identifier,
+          identifier: value.identifier,
+          visibility: "Default",
+          updatedOn: Date.now()
+        });
+      }
+    });
+    if(updateDoc.length){
+      this.databaseSdk.bulk("content", updateDoc).catch(error => {
+        logger.debug(`${this.contentDownloadData._id}: content visibility update failed for deleted content`, error.message)
+      });
+    }
+  }
   private async checkSpaceAvailability(zipPath, zipHandler?) {
     zipHandler = zipHandler || await this.loadZipHandler(zipPath);
     const entries = zipHandler.entries();
