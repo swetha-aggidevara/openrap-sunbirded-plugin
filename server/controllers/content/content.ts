@@ -100,7 +100,9 @@ export default class Content {
                 let content = await this.databaseSdk.get('content', id);
                 content = _.omit(content, ['_id', '_rev']);
                 const downloadedContents = await this.getDownloadedContents([content], req.headers['X-msgid']);
-                content = downloadedContents[0];
+                if (downloadedContents.length > 0) {
+                    content = downloadedContents[0];
+                }
                 if (!_.has(content.desktopAppMetadata, "isAvailable") ||
                 content.desktopAppMetadata.isAvailable) {
                 let resObj = {};
@@ -148,7 +150,7 @@ export default class Content {
             const activeDbData = await this.systemQueue.query(activeSelector);
             const inActiveDbData = await this.systemQueue.query(inActiveSelector);
             const dbData = _.concat(activeDbData.docs, inActiveDbData.docs);
-            const listData = [];
+            let listData = [];
             _.forEach(dbData, (data) => {
                 const listObj = {
                     contentId: _.get(data, 'metaData.contentId'),
@@ -168,6 +170,7 @@ export default class Content {
                     contentDownloadList: _.get(data, 'metaData.contentDownloadList')
                 };
                 listData.push(listObj);
+                listData = _.uniqBy(listData, "contentId");
             });
             return res.send(Response.success("api.content.list", {
                 response: {
@@ -405,8 +408,7 @@ export default class Content {
             }
             logger.debug(`ReqId = "${reqId}": Search downloaded and downloading  contents in DB using content Id's`)
             let offlineContents = await this.getOfflineContents(listOfContentIds, reqId);
-            offlineContents = await this.getDownloadedContents(offlineContents.docs, reqId);
-            contents =  this.changeContentStatus(offlineContents, contents);
+            contents = await this.getDownloadedContents(offlineContents.docs, reqId, contents);
             return contents;
         } catch (err) {
             logger.error(`ReqId = "${reqId}": Received  error err.message: ${err.message} ${err}`);
@@ -482,14 +484,18 @@ export default class Content {
     }
 
 
-    private async getDownloadedContents(offlineContents, reqId) {
+    private async getDownloadedContents(offlineContents, reqId, onlineContents?) {
         const contentsInDownload = await this.searchDownloadingContent(reqId);
+        if (onlineContents) {
+            offlineContents =  this.changeContentStatus(offlineContents, onlineContents);
+        }
         for (const content of offlineContents) {
             for (const dContent of contentsInDownload.docs) {
                 if (dContent && dContent.metaData.contentId === content.identifier) {
                     content["downloadStatus"] = _.includes(["CANCELED", "FAILED"],
                         DOWNLOAD_STATUS[_.lowerCase(dContent.status)]) ?
                         "" : DOWNLOAD_STATUS[_.lowerCase(dContent.status)]
+
                 } else if (dContent && _.has(_.get(dContent, "metaData.contentDownloadList"), content.identifier)) {
                     const status = _.get(dContent, `metaData.contentDownloadList.${content.identifier}.step`);
                     content["downloadStatus"] = _.includes(["CANCELED", "FAILED"],
@@ -503,7 +509,7 @@ export default class Content {
 
     private changeContentStatus(offlineContents, contents) {
 
-        const modifiedContents = _.map(contents, content => {
+        const modifiedContents = _.map(contents, (content) => {
             const data = _.find(offlineContents, { identifier: content.identifier });
             if (data) {
                 return data;
