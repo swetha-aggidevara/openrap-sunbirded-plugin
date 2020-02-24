@@ -174,7 +174,7 @@ export default class Content {
             });
             return res.send(Response.success("api.content.list", {
                 response: {
-                    contents: _.uniqBy(_.orderBy(listData, ["createdOn"], ["desc"]), "id"),
+                    contents: _.uniqBy(_.orderBy(listData, ["createdOn"], ["desc"]), "contentId"),
                 },
             }, req));
         } catch (error) {
@@ -498,9 +498,10 @@ export default class Content {
 
                 } else if (dContent && _.has(_.get(dContent, "metaData.contentDownloadList"), content.identifier)) {
                     const status = _.get(dContent, `metaData.contentDownloadList.${content.identifier}.step`);
-                    content["downloadStatus"] = _.includes(["CANCELED", "FAILED"],
+                    content["downloadStatus"] = _.includes(["COMPLETED", "COMPLETE"],
                         DOWNLOAD_STATUS[_.lowerCase(status)])
-                        ? "" : DOWNLOAD_STATUS[_.lowerCase(status)];
+                        ? DOWNLOAD_STATUS[_.lowerCase(status)] :
+                        DOWNLOAD_STATUS[_.lowerCase(_.get(dContent, "status"))];
                 }
             }
         }
