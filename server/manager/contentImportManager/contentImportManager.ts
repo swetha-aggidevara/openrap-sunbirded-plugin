@@ -14,7 +14,6 @@ const telemetryInstance = containerAPI.getTelemetrySDKInstance().getInstance();
 
 @Singleton
 export class ContentImportManager {
-  private deviceId: string;
   @Inject private dbSDK: DatabaseSDK;
   @Inject private telemetryHelper: TelemetryHelper;
   private systemQueue: ISystemQueueInstance;
@@ -22,11 +21,6 @@ export class ContentImportManager {
     this.systemQueue = containerAPI.getSystemQueueInstance(manifest.id);
     this.systemQueue.register(ImportContent.taskType, ImportContent);
     this.dbSDK.initialize(manifest.id);
-    this.getDeviceId();
-  }
-
-  public async getDeviceId() {
-    this.deviceId = await containerAPI.getSystemSDKInstance(manifest.id).getDeviceId();
   }
 
   public async add(ecarPaths: string[]): Promise<string[]> {
@@ -89,67 +83,6 @@ export class ContentImportManager {
         resolve(stats.size);
       });
     });
-  }
-
-  private async constructShareEvent(data) {
-    const telemetryShareItems = [{
-      id: _.get(data, "contentId"),
-      type: _.get(data, "contentType"),
-      ver: _.toString(_.get(data, "pkgVersion")),
-      origin: {
-        id: this.deviceId,
-        type: "Device",
-      },
-    }];
-    this.telemetryHelper.logShareEvent(telemetryShareItems, "In", "Content");
-  }
-
-  private logSubmitAuditEvent(id, filePath, props) {
-    const telemetryEvent = {
-      context: {
-        env: telemetryEnv,
-        cdata: [{
-          id: filePath,
-          type: "fileName",
-        }, {
-          id,
-          type: "importId",
-        }],
-      },
-      edata: {
-        state: SystemQueueStatus.inProgress, props,
-      },
-    };
-    telemetryInstance.audit(telemetryEvent);
-  }
-
-  private logAuditEvent(contentImport: any, state, prevstate) {
-    const telemetryEvent: any = {
-      context: {
-        env: telemetryEnv,
-        cdata: [{
-          id: contentImport.name,
-          type: "fileName",
-        }, {
-          id: contentImport._id,
-          type: "importId",
-        }],
-      },
-      edata: {
-        state,
-        prevstate,
-        props: ["status", "updatedOn"],
-        duration: (Date.now() - contentImport.updatedOn) / 1000,
-      },
-    };
-    if (contentImport.contentId) {
-      telemetryEvent.object = {
-        id: contentImport.contentId,
-        type: "content",
-        ver: contentImport.pkgVersion,
-      };
-    }
-    telemetryInstance.audit(telemetryEvent);
   }
 
   private async getUnregisteredEcars(ecarPaths: string[]): Promise<string[]> {

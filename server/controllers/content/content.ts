@@ -150,7 +150,7 @@ export default class Content {
             const activeDbData = await this.systemQueue.query(activeSelector);
             const inActiveDbData = await this.systemQueue.query(inActiveSelector);
             const dbData = _.concat(activeDbData.docs, inActiveDbData.docs);
-            let listData = [];
+            const listData = [];
             _.forEach(dbData, (data) => {
                 const listObj = {
                     contentId: _.get(data, 'metaData.contentId'),
