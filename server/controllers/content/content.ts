@@ -167,7 +167,10 @@ export default class Content {
                     failedCode: _.get(data, 'failedCode'),
                     failedReason: _.get(data, 'failedReason'),
                     addedUsing: _.toLower(_.get(data, 'type')),
-                    contentDownloadList: _.get(data, 'metaData.contentDownloadList')
+                    contentDownloadList: _.map(_.get(data, 'metaData.contentDownloadList'),
+                    (doc) => _.omit(doc, ["url"])),
+
+
                 };
                 listData.push(listObj);
             });
@@ -495,8 +498,7 @@ export default class Content {
         for (const content of offlineContents) {
             for (const dContent of contentsInDownload.docs) {
                 if (dContent && dContent.metaData.contentId === content.identifier) {
-                    content["downloadStatus"] = _.includes(["CANCELED", "FAILED"],
-                        DOWNLOAD_STATUS[_.lowerCase(dContent.status)]) ?
+                    content["downloadStatus"] = _.isEqual(DOWNLOAD_STATUS[_.lowerCase(dContent.status)], ["FAILED"]) ?
                         "" : DOWNLOAD_STATUS[_.lowerCase(dContent.status)]
 
                 } else if (dContent && _.has(_.get(dContent, "metaData.contentDownloadList"), content.identifier)) {
@@ -510,9 +512,9 @@ export default class Content {
         return offlineContents;
     }
 
-    private changeContentStatus(offlineContents, contents) {
+    private changeContentStatus(offlineContents, onlineContents) {
 
-        const modifiedContents = _.map(contents, (content) => {
+        const modifiedContents = _.map(onlineContents, (content) => {
             const data = _.find(offlineContents, { identifier: content.identifier });
             if (data) {
                 return data;
