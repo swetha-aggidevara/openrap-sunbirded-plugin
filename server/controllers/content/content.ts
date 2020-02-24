@@ -20,13 +20,18 @@ import { response } from "express";
 const sessionStartTime = Date.now();
 
 export enum DOWNLOAD_STATUS {
-    SUBMITTED = "DOWNLOADING",
-    COMPLETED = "DOWNLOADING",
-    EXTRACTED = "DOWNLOADING",
-    INDEXED = "DOWNLOADED",
-    FAILED = "FAILED",
-    PAUSED = "PAUSED",
-    CANCELED = "CANCELED",
+    reconcile = "DOWNLOADING",
+    resume = "DOWNLOADING",
+    inQueue = "DOWNLOADING",
+    inProgress = "DOWNLOADING",
+    pausing = "PAUSING",
+    paused = "PAUSED",
+    canceled = "CANCELED",
+    completed = "DOWNLOADED",
+    complete = "DOWNLOADED",
+    failed = "FAILED",
+    download = "DOWNLOADING",
+    extract = "EXTRACTING",
 }
 const INTERVAL_TO_CHECKUPDATE = 1
 export default class Content {
@@ -94,6 +99,10 @@ export default class Content {
                 logger.debug(`ReqId = "${req.headers['X-msgid']}": Get Content: ${id} from ContentDB`);
                 let content = await this.databaseSdk.get('content', id);
                 content = _.omit(content, ['_id', '_rev']);
+                const downloadedContents = await this.getDownloadedContents([content], req.headers['X-msgid']);
+                if (downloadedContents.length > 0) {
+                    content = downloadedContents[0];
+                }
                 if (!_.has(content.desktopAppMetadata, "isAvailable") ||
                 content.desktopAppMetadata.isAvailable) {
                 let resObj = {};
@@ -164,7 +173,7 @@ export default class Content {
             });
             return res.send(Response.success("api.content.list", {
                 response: {
-                    contents: _.uniqBy(_.orderBy(listData, ["createdOn"], ["desc"]), "id"),
+                    contents: _.uniqBy(_.orderBy(listData, ["createdOn"], ["desc"]), "contentId"),
                 },
             }, req));
         } catch (error) {
@@ -397,9 +406,8 @@ export default class Content {
                 listOfContentIds.push(content.identifier);
             }
             logger.debug(`ReqId = "${reqId}": Search downloaded and downloading  contents in DB using content Id's`)
-            const contentsInDownload = await this.searchDownloadingContent(listOfContentIds, reqId);
-            const contentsInDB = await this.getOfflineContents(listOfContentIds, reqId);
-            contents =  this.changeContentStatus(contentsInDownload.docs, contentsInDB.docs, contents);
+            let offlineContents = await this.getOfflineContents(listOfContentIds, reqId);
+            contents = await this.getDownloadedContents(offlineContents.docs, reqId, contents);
             return contents;
         } catch (err) {
             logger.error(`ReqId = "${reqId}": Received  error err.message: ${err.message} ${err}`);
@@ -411,32 +419,23 @@ export default class Content {
 
     decorateDialCodeContents(content, reqId) {
         logger.debug(`ReqId = "${reqId}": Decorating Dial Code Contents`);
-        const model = new TreeModel();
-        let treeModel;
-        treeModel = model.parse(content);
-        let contents = [];
-        contents.push(content);
-        logger.info(`ReqId = "${reqId}": walking through all the nodes and pushing all the child nodes to an array`);
         logger.debug(`ReqId = "${reqId}": Calling decorateContent from decoratedialcode`)
-        return this.decorateContentWithProperty(contents, reqId);
+        return this.decorateContentWithProperty([content], reqId);
     }
 
     /* This method is to search contents for download status in database  */
 
-    searchDownloadingContent(contents, reqId) {
-        logger.debug(`ReqId = "${reqId}": searchDownloadingContent method is called`);
-        let dbFilters = {
-            "selector": {
-                "contentId": {
-                    "$in": contents
-                }
-            }
-        }
-        logger.info(`ReqId = "${reqId}": finding downloading, downloaded or failed contents in database`)
-        return this.databaseSdk.find('content_download', dbFilters)
+    private async searchDownloadingContent(reqId) {
+        logger.debug(`ReqId = "${reqId}": searchDownloadingContent is called`)
+        const selector = {
+            group: "CONTENT_MANAGER",
+        };
+        logger.info(`ReqId = "${reqId}": querying content from systemQueue`)
+        return await this.systemQueue.query(selector);
     }
 
-    isUpdateRequired(content, req) {
+
+    private isUpdateRequired(content, req) {
         logger.debug(`ReqId = "${req.headers['X-msgid']}": Called isUpdateRequired()`);
 
         if (_.get(content, 'desktopAppMetadata.updateAvailable')) {
@@ -450,8 +449,7 @@ export default class Content {
         return true;
     }
 
-
-    checkForUpdates(offlineContent, req) {
+    private checkForUpdates(offlineContent, req) {
         logger.debug(`ReqId = "${req.headers['X-msgid']}": calling api to check whether content: ${_.get(offlineContent, 'idenitifier')} is updated`);
         return new Promise(async (resolve, reject) => {
             try {
@@ -469,13 +467,12 @@ export default class Content {
         })
     }
 
-    async getOfflineContents(contentsIds: string[], reqId: string) {
+   public async getOfflineContents(contentsIds: string[], reqId: string) {
         const dbFilter = {
             selector: {
                         identifier: {
                             $in: contentsIds,
                         },
-
                         $or: [
                             { "desktopAppMetadata.isAvailable": { $exists: false } },
                             { "desktopAppMetadata.isAvailable": { $eq: true } }
@@ -485,20 +482,40 @@ export default class Content {
         return await this.databaseSdk.find("content", dbFilter);
     }
 
-    changeContentStatus(contentsInDownload, offlineContents, contents) {
-        for (const content of contents) {
-            const data = _.find(contentsInDownload, { identifier: content.identifier });
-            content["downloadStatus"] = !_.isEmpty(_.get(data, 'status')) ? DOWNLOAD_STATUS[data["status"]] : '';
+
+    private async getDownloadedContents(offlineContents, reqId, onlineContents?) {
+        const contentsInDownload = await this.searchDownloadingContent(reqId);
+        if (onlineContents) {
+            offlineContents =  this.changeContentStatus(offlineContents, onlineContents);
         }
-        let modifiedContents = _.map(contents, content => {
+        for (const content of offlineContents) {
+            for (const dContent of contentsInDownload.docs) {
+                if (dContent && dContent.metaData.contentId === content.identifier) {
+                    content["downloadStatus"] = _.includes(["CANCELED", "FAILED"],
+                        DOWNLOAD_STATUS[_.lowerCase(dContent.status)]) ?
+                        "" : DOWNLOAD_STATUS[_.lowerCase(dContent.status)]
+
+                } else if (dContent && _.has(_.get(dContent, "metaData.contentDownloadList"), content.identifier)) {
+                    const status = _.get(dContent, `metaData.contentDownloadList.${content.identifier}.step`);
+                    content["downloadStatus"] = _.includes(["COMPLETED", "COMPLETE"],
+                        DOWNLOAD_STATUS[_.lowerCase(status)])
+                        ? DOWNLOAD_STATUS[_.lowerCase(status)] :
+                        DOWNLOAD_STATUS[_.lowerCase(_.get(dContent, "status"))];
+                }
+            }
+        }
+        return offlineContents;
+    }
+
+    private changeContentStatus(offlineContents, contents) {
+
+        const modifiedContents = _.map(contents, (content) => {
             const data = _.find(offlineContents, { identifier: content.identifier });
             if (data) {
-                data["downloadStatus"] = content ["downloadStatus"];
                 return data;
             } else {
                 return content;
             }
-
         })
 
         return modifiedContents;
