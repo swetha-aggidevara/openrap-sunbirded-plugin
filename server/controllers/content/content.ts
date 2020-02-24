@@ -170,7 +170,6 @@ export default class Content {
                     contentDownloadList: _.get(data, 'metaData.contentDownloadList')
                 };
                 listData.push(listObj);
-                listData = _.uniqBy(listData, "contentId");
             });
             return res.send(Response.success("api.content.list", {
                 response: {
