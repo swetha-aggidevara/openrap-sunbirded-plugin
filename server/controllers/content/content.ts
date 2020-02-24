@@ -199,7 +199,7 @@ export default class Content {
         logger.info(`ReqId = "${req.headers['X-msgid']}": Got query from the request`);
         logger.debug(`ReqId = "${req.headers['X-msgid']}": Searching Content in Db with given filters`)
         this.searchInDB(filters, req.headers['X-msgid'])
-            .then(data => {
+            .then(async data => {
                 data = _.map(data.docs, doc => _.omit(doc, ['_id', '_rev']));
                 let resObj = {};
                 if (data.length === 0) {
@@ -209,6 +209,10 @@ export default class Content {
                         count: 0
                     };
                 } else {
+                    const downloadedContents = await this.getDownloadedContents(data, req.headers['X-msgid']);
+                    if (downloadedContents.length > 0) {
+                        data = downloadedContents;
+                    }
                     logger.info(`ReqId = "${req.headers['X-msgid']}": Contents = ${data.length} found in DB`)
                     resObj = {
                         content: data,
@@ -497,8 +501,7 @@ export default class Content {
 
                 } else if (dContent && _.has(_.get(dContent, "metaData.contentDownloadList"), content.identifier)) {
                     const status = _.get(dContent, `metaData.contentDownloadList.${content.identifier}.step`);
-                    content["downloadStatus"] = _.includes(["COMPLETED", "COMPLETE"],
-                        DOWNLOAD_STATUS[_.lowerCase(status)])
+                    content["downloadStatus"] = _.isEqual(DOWNLOAD_STATUS[_.lowerCase(status)], "DOWNLOADED")
                         ? DOWNLOAD_STATUS[_.lowerCase(status)] :
                         DOWNLOAD_STATUS[_.lowerCase(_.get(dContent, "status"))];
                 }
