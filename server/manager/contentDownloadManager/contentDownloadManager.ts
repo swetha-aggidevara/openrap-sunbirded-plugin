@@ -175,7 +175,6 @@ export class ContentDownloadManager {
         },
       };
       const id = await this.systemQueue.add(insertData);
-      
       logger.debug(`${reqId} Content download request added to queue`, insertData);
       const contentsToBeDownloaded = _.map(insertData.metaData.contentDownloadList, (data) => {
         return data.identifier;
