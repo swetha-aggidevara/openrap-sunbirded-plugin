@@ -19,20 +19,6 @@ import TelemetryHelper from "../../helper/telemetryHelper";
 import { response } from "express";
 const sessionStartTime = Date.now();
 
-export enum DOWNLOAD_STATUS {
-    reconcile = "DOWNLOADING",
-    resume = "DOWNLOADING",
-    inQueue = "DOWNLOADING",
-    inProgress = "DOWNLOADING",
-    pausing = "PAUSING",
-    paused = "PAUSED",
-    canceled = "CANCELED",
-    completed = "DOWNLOADED",
-    complete = "DOWNLOADED",
-    failed = "FAILED",
-    download = "DOWNLOADING",
-    extract = "EXTRACTING",
-}
 const INTERVAL_TO_CHECKUPDATE = 1
 export default class Content {
     private deviceId: string;
@@ -103,8 +89,7 @@ export default class Content {
                 if (downloadedContents.length > 0) {
                     content = downloadedContents[0];
                 }
-                if (!_.has(content.desktopAppMetadata, "isAvailable") ||
-                content.desktopAppMetadata.isAvailable) {
+                if (this.isAvailableOffline(content)) {
                 let resObj = {};
                 logger.debug(`ReqId = "${req.headers['X-msgid']}": Call isUpdateRequired()`)
                 if (this.isUpdateRequired(content, req)) {
@@ -413,7 +398,7 @@ export default class Content {
                 listOfContentIds.push(content.identifier);
             }
             logger.debug(`ReqId = "${reqId}": Search downloaded and downloading  contents in DB using content Id's`)
-            let offlineContents = await this.getOfflineContents(listOfContentIds, reqId);
+            let offlineContents = await this.getAllOfflineContents(listOfContentIds, reqId);
             contents = await this.getDownloadedContents(offlineContents.docs, reqId, contents);
             return contents;
         } catch (err) {
@@ -431,16 +416,6 @@ export default class Content {
     }
 
     /* This method is to search contents for download status in database  */
-
-    private async searchDownloadingContent(reqId) {
-        logger.debug(`ReqId = "${reqId}": searchDownloadingContent is called`)
-        const selector = {
-            group: "CONTENT_MANAGER",
-        };
-        logger.info(`ReqId = "${reqId}": querying content from systemQueue`)
-        return await this.systemQueue.query(selector);
-    }
-
 
     private isUpdateRequired(content, req) {
         logger.debug(`ReqId = "${req.headers['X-msgid']}": Called isUpdateRequired()`);
@@ -474,7 +449,8 @@ export default class Content {
         })
     }
 
-   public async getOfflineContents(contentsIds: string[], reqId: string) {
+    // tslint:disable-next-line:member-ordering
+    public async getOfflineContents(contentsIds: string[], reqId: string) {
         const dbFilter = {
             selector: {
                         identifier: {
@@ -489,41 +465,56 @@ export default class Content {
         return await this.databaseSdk.find("content", dbFilter);
     }
 
+    // tslint:disable-next-line:member-ordering
+    public async getAllOfflineContents(contentsIds: string[], reqId: string) {
+        const dbFilter = {
+            selector: {
+                        identifier: {
+                            $in: contentsIds,
+                        }
+            },
+        };
+        return await this.databaseSdk.find("content", dbFilter);
+    }
+
+    // tslint:disable-next-line:member-ordering
+    public isAvailableOffline(content) {
+        return  (!_.has(content.desktopAppMetadata, "isAvailable") || content.desktopAppMetadata.isAvailable);
+    }
 
     private async getDownloadedContents(offlineContents, reqId, onlineContents?) {
-        const contentsInDownload = await this.searchDownloadingContent(reqId);
+        let contentsInDownload = await this.searchDownloadingContent(reqId);
+        contentsInDownload = _.uniqBy(_.orderBy(contentsInDownload.docs, ["createdOn"], ["desc"]), "metaData.contentId")
         if (onlineContents) {
             offlineContents =  this.changeContentStatus(offlineContents, onlineContents);
-        }
-        for (const content of offlineContents) {
-            for (const dContent of contentsInDownload.docs) {
-                if (dContent && dContent.metaData.contentId === content.identifier) {
-                    content["downloadStatus"] = _.isEqual(DOWNLOAD_STATUS[_.lowerCase(dContent.status)], ["FAILED"]) ?
-                        "" : DOWNLOAD_STATUS[_.lowerCase(dContent.status)]
-
-                } else if (dContent && _.has(_.get(dContent, "metaData.contentDownloadList"), content.identifier)) {
-                    const status = _.get(dContent, `metaData.contentDownloadList.${content.identifier}.step`);
-                    content["downloadStatus"] = _.isEqual(DOWNLOAD_STATUS[_.lowerCase(status)], "DOWNLOADED")
-                        ? DOWNLOAD_STATUS[_.lowerCase(status)] :
-                        DOWNLOAD_STATUS[_.lowerCase(_.get(dContent, "status"))];
-                }
-            }
         }
         return offlineContents;
     }
 
     private changeContentStatus(offlineContents, onlineContents) {
-
         const modifiedContents = _.map(onlineContents, (content) => {
             const data = _.find(offlineContents, { identifier: content.identifier });
-            if (data) {
+            if (data && this.isAvailableOffline(data)) {
                 return data;
             } else {
+                if (data) {
+                    content[`desktopAppMetadata`] = data["desktopAppMetadata"];
+                }
                 return content;
             }
         })
 
         return modifiedContents;
     }
+
+    private async searchDownloadingContent(reqId) {
+        logger.debug(`ReqId = "${reqId}": searchDownloadingContent is called`)
+        const selector = {
+            group: `CONTENT_MANAGER`,
+        };
+        logger.info(`ReqId = "${reqId}": querying content from systemQueue`)
+        return await this.systemQueue.query(selector);
+    }
+
 
 }
