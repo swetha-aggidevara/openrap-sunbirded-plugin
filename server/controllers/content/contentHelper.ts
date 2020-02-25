@@ -98,7 +98,9 @@ export const addContentListener = (pluginId) => {
                     }
                     folderToDelete = _.union(folderToDelete);
                     for(const path of folderToDelete){
-                        await fileSDK.remove(path);
+                        await fileSDK.remove(path).catch(error => {
+                            logger.error(`Received error while deleting path: ${path}`);
+                        });
                     }
                     const desktopAppMetadata: IDesktopAppMetadata = {
                         "addedUsing": IAddedUsingType.download,
