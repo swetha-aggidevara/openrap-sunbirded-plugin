@@ -176,7 +176,11 @@ export class ContentDownloadManager {
       };
       const id = await this.systemQueue.add(insertData);
       logger.debug(`${reqId} Content download request added to queue`, insertData);
-      return res.send(Response.success("api.content.download", { downloadId: id }, req));
+      const contentsToBeDownloaded = _.map(insertData.metaData.contentDownloadList, (data) => {
+        return data.identifier;
+      });
+      return res.send(Response.success("api.content.download", { downloadId: id, contentsToBeDownloaded }, req));
+
     } catch (error) {
       logger.error(`Content download request failed for contentId: ${contentId} with error: ${error.message}`);
       if (_.get(error, "code") === "LOW_DISK_SPACE") {
