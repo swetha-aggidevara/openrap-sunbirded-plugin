@@ -85,7 +85,7 @@ export default class Content {
                 logger.debug(`ReqId = "${req.headers['X-msgid']}": Get Content: ${id} from ContentDB`);
                 let content = await this.databaseSdk.get('content', id);
                 content = _.omit(content, ['_id', '_rev']);
-                const downloadedContents = await this.getDownloadedContents([content], req.headers['X-msgid']);
+                const downloadedContents = await this.changeContentStatus([content], req.headers['X-msgid']);
                 if (downloadedContents.length > 0) {
                     content = downloadedContents[0];
                 }
@@ -197,7 +197,7 @@ export default class Content {
                         count: 0
                     };
                 } else {
-                    const downloadedContents = await this.getDownloadedContents(data, req.headers['X-msgid']);
+                    const downloadedContents = await this.changeContentStatus(data, req.headers['X-msgid']);
                     if (downloadedContents.length > 0) {
                         data = downloadedContents;
                     }
@@ -399,7 +399,7 @@ export default class Content {
             }
             logger.debug(`ReqId = "${reqId}": Search downloaded and downloading  contents in DB using content Id's`)
             let offlineContents = await this.getAllOfflineContents(listOfContentIds, reqId);
-            contents = await this.getDownloadedContents(offlineContents.docs, reqId, contents);
+            contents = await this.changeContentStatus(offlineContents.docs, reqId, contents);
             return contents;
         } catch (err) {
             logger.error(`ReqId = "${reqId}": Received  error err.message: ${err.message} ${err}`);
@@ -482,39 +482,22 @@ export default class Content {
         return  (!_.has(content.desktopAppMetadata, "isAvailable") || content.desktopAppMetadata.isAvailable);
     }
 
-    private async getDownloadedContents(offlineContents, reqId, onlineContents?) {
-        let contentsInDownload = await this.searchDownloadingContent(reqId);
-        contentsInDownload = _.uniqBy(_.orderBy(contentsInDownload.docs, ["createdOn"], ["desc"]), "metaData.contentId")
+    private async changeContentStatus(offlineContents, reqId, onlineContents?) {
         if (onlineContents) {
-            offlineContents =  this.changeContentStatus(offlineContents, onlineContents);
+            offlineContents = _.map(onlineContents, (content) => {
+                const data = _.find(offlineContents, { identifier: content.identifier });
+                if (data && this.isAvailableOffline(data)) {
+                    return data;
+                } else {
+                    if (data) {
+                        content[`desktopAppMetadata`] = data["desktopAppMetadata"];
+                    }
+                    return content;
+                }
+            });
+            return offlineContents;
         }
         return offlineContents;
     }
-
-    private changeContentStatus(offlineContents, onlineContents) {
-        const modifiedContents = _.map(onlineContents, (content) => {
-            const data = _.find(offlineContents, { identifier: content.identifier });
-            if (data && this.isAvailableOffline(data)) {
-                return data;
-            } else {
-                if (data) {
-                    content[`desktopAppMetadata`] = data["desktopAppMetadata"];
-                }
-                return content;
-            }
-        })
-
-        return modifiedContents;
-    }
-
-    private async searchDownloadingContent(reqId) {
-        logger.debug(`ReqId = "${reqId}": searchDownloadingContent is called`)
-        const selector = {
-            group: `CONTENT_MANAGER`,
-        };
-        logger.info(`ReqId = "${reqId}": querying content from systemQueue`)
-        return await this.systemQueue.query(selector);
-    }
-
 
 }
