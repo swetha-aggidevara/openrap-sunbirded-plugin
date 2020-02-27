@@ -71,14 +71,22 @@ export class TelemetryImportManager {
       return paths;
     }
     logger.debug("---paths--", paths);
-    paths = _.filter(paths, (data) => {
-      if (_.find(registeredJobs, { sourcePath: data })) {
-        logger.log("skipping telemetry import for ", data, " as its already registered");
+    paths = _.filter(paths, (filePath) => {
+      if (this.findPath(registeredJobs.docs, filePath)) {
+        logger.log("skipping telemetry import for ", filePath, " as its already registered");
         return false;
       } else {
         return true;
       }
     });
     return paths;
+  }
+
+  private findPath(docs, filePath: string) {
+    const exist = _.find(docs, (o: any) => {
+      return o.metaData.sourcePath === filePath;
+    });
+    if (exist) { return true; }
+    return false;
   }
 }
