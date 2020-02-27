@@ -1,0 +1,163 @@
+import * as childProcess from "child_process";
+import { ErrorObj } from "./ITelemetryImport";
+import { Inject } from "typescript-ioc";
+import * as path from "path";
+import DatabaseSDK from "../../sdk/database";
+import { logger } from "@project-sunbird/ext-framework-server/logger";
+import { containerAPI, INetworkQueueInstance, ISystemQueue, ITaskExecuter } from "OpenRAP/dist/api";
+import { manifest } from "../../manifest";
+import * as  _ from "lodash";
+import { Observer } from "rxjs";
+import TelemetryHelper from "../../helper/telemetryHelper";
+
+export class ImportTelemetry implements ITaskExecuter {
+  public static taskType = "TELEMETRY_IMPORT";
+  private deviceId: string;
+  private workerProcessRef: childProcess.ChildProcess;
+  @Inject private dbSDK: DatabaseSDK;
+  @Inject private telemetryHelper: TelemetryHelper;
+  private interrupt;
+  private telemetryImportData: ISystemQueue;
+  private observer: Observer<ISystemQueue>;
+  private networkQueue: INetworkQueueInstance;
+  private progress: number = 0;
+  constructor() {
+    this.dbSDK.initialize(manifest.id);
+    this.networkQueue = containerAPI.getNetworkQueueInstance();
+    this.getDeviceId();
+  }
+  public async getDeviceId() {
+    this.deviceId = await containerAPI.getSystemSDKInstance(manifest.id).getDeviceId();
+  }
+  public status() {
+    return this.telemetryImportData;
+  }
+  public async start(telemetryImportData: ISystemQueue, observer: Observer<ISystemQueue>) {
+    logger.debug("Import task executor initialized for ", telemetryImportData);
+    this.telemetryImportData = telemetryImportData;
+    this.observer = observer;
+    this.workerProcessRef = childProcess.fork(path.join(__dirname, "telemetryImportHelper"));
+    this.handleChildProcessMessage();
+    this.handleWorkerCloseEvents();
+    this.parseFile();
+    return true;
+  }
+
+  private parseFile() {
+    this.workerProcessRef.send({
+      message: "PARSE_FILE",
+      telemetryImportData: this.telemetryImportData,
+    });
+  }
+
+  private saveDataFromWorker(telemetryImportData: ISystemQueue) {
+    this.telemetryImportData.metaData = telemetryImportData.metaData;
+  }
+
+  private async saveToDB(item) {
+    try {
+      // TODO check if id exist
+      // await this.networkQueue.query({ selector: { _id: _.get(item, "mid") } });
+      this.updateProgress(_.get(item, "size"));
+      const headers = {
+        "Content-Type": "application/json",
+        "Content-Encoding": "gzip",
+        "did": this.deviceId,
+        "msgid": _.get(item, "mid"),
+      };
+      const dbData = {
+        pathToApi: `${process.env.APP_BASE_URL}/api/data/v1/telemetry`,
+        requestHeaderObj: headers,
+        requestBody: _.get(item, "requestBody"),
+        subType: "TELEMETRY",
+        size: _.get(item, "size"),
+        count: _.get(item, "eventsCount"),
+        bearerToken: true,
+      };
+      await this.networkQueue.add(dbData, _.get(item, "mid"));
+    } catch (err) {
+      logger.error(this.telemetryImportData._id, "Error while saving to db ", err);
+      this.observer.next(this.telemetryImportData);
+      this.observer.error(err);
+    }
+  }
+
+  private updateProgress(size: number) {
+    const percentage = (size * 100) / this.telemetryImportData.metaData.fileSize;
+    this.progress = this.progress + percentage;
+    this.telemetryImportData.progress = this.progress;
+    this.observer.next(this.telemetryImportData);
+  }
+
+  private async handleChildProcessMessage() {
+    this.workerProcessRef.on("message", async (data) => {
+      logger.log("Message from child process for importId:" + _.get(data, "telemetryImportData._id"), data.message);
+      if (data.telemetryImportData && (data && data.message !== "LOG")) {
+        this.saveDataFromWorker(data.telemetryImportData); // save only required data from child,
+      }
+      if (this.interrupt) {
+        return;
+      }
+      if (data.message === "SAVE_TO_DB") {
+        this.saveToDB(data.dbData);
+      } else if (data.message === "COMPLETE") {
+        // Adding telemetry share event
+        // this.constructShareEvent(this.telemetryImportData);
+        logger.info("--------Telemetry import complete-------", JSON.stringify(this.telemetryImportData));
+        this.observer.complete();
+      } else if (data.message === "LOG") {
+        if (logger[data.logType]) {
+          logger[data.logType]("Log from telemetry import worker: ", ...data.logBody);
+        }
+      } else if (data.message === "TELEMETRY_IMPORT_ERROR") {
+        this.handleChildProcessError(data.err);
+      } else {
+        this.handleChildProcessError({ errCode: "UNHANDLED_WORKER_MESSAGE", errMessage: "Unhandled worker message" });
+      }
+    });
+  }
+
+  private handleWorkerCloseEvents() {
+    this.workerProcessRef.on("exit", (code, signal) => {
+      logger.log(this.telemetryImportData._id, "Child process exited with", code, signal);
+      if (this.interrupt) {
+        return;
+      }
+      if (!this.interrupt) {
+        this.handleUnexpectedChildProcessExit(code, signal);
+      }
+    });
+  }
+
+  private async handleUnexpectedChildProcessExit(code, signal) {
+    logger.error("Unexpected exit of child process for importId",
+      this.telemetryImportData._id, "with signal and code", code, signal);
+    this.observer.next(this.telemetryImportData);
+    this.observer.error({
+      code: "WORKER_UNHANDLED_EXCEPTION",
+      message: "Import Worker exited while processing file",
+    });
+  }
+
+  private async handleChildProcessError(err: ErrorObj) {
+    logger.error(this.telemetryImportData._id, "Got error while importing file with importId:", err);
+    this.observer.next(this.telemetryImportData);
+    this.observer.error({
+      code: err.errCode,
+      message: err.errMessage,
+    });
+  }
+
+  private async constructShareEvent(data) {
+    const telemetryShareItems = [{
+      id: _.get(data, "metaData.contentId"),
+      type: _.get(data, "metaData.contentType"),
+      ver: _.toString(_.get(data, "metaData.pkgVersion")),
+      origin: {
+        id: this.deviceId,
+        type: "Device",
+      },
+    }];
+    this.telemetryHelper.logShareEvent(telemetryShareItems, "In", "Content");
+  }
+}
