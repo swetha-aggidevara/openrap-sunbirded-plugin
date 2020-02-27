@@ -45,6 +45,10 @@ export class TelemetryImportManager {
     return ids;
   }
 
+  public async retryImport(importId: string) {
+    return this.systemQueue.retry(importId);
+  }
+
   private getFileSize(filePath): Promise<number> {
     return new Promise((resolve, reject) => {
       fs.stat(filePath, (err, stats) => {

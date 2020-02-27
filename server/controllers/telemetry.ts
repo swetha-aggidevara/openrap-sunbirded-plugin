@@ -103,6 +103,17 @@ export default class Telemetry {
     });
   }
 
+  public async retryImport(req: any, res: any) {
+    this.telemetryImportManager.retryImport(req.params.importId).then((jobIds) => {
+      res.send(Response.success("api.telemetry.import.retry", {
+        jobIds,
+      }, req));
+    }).catch((err) => {
+      res.status(500);
+      res.send(Response.error(`api.telemetry.import.retry`, 400, err.message));
+    });
+  }
+
   public async list(req: any, res: any) {
     try {
       const activeSelector = {
