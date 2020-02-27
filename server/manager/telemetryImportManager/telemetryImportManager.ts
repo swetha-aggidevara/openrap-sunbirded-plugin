@@ -1,9 +1,8 @@
 import * as fs from "fs";
 import * as  _ from "lodash";
-import { Inject, Singleton } from "typescript-ioc";
+import { Singleton } from "typescript-ioc";
 import * as path from "path";
 import { handelError } from "./ITelemetryImport";
-import DatabaseSDK from "./../../sdk/database";
 import { logger } from "@project-sunbird/ext-framework-server/logger";
 import { containerAPI, ISystemQueueInstance, SystemQueueReq } from "OpenRAP/dist/api";
 import { manifest } from "../../manifest";
@@ -11,13 +10,11 @@ import { ImportTelemetry } from "./telemetryImport";
 
 @Singleton
 export class TelemetryImportManager {
-  @Inject private dbSDK: DatabaseSDK;
   private systemQueue: ISystemQueueInstance;
 
   public async initialize() {
     this.systemQueue = containerAPI.getSystemQueueInstance(manifest.id);
     this.systemQueue.register(ImportTelemetry.taskType, ImportTelemetry);
-    this.dbSDK.initialize(manifest.id);
   }
 
   public async add(paths: string[]): Promise<string[]> {
@@ -41,7 +38,6 @@ export class TelemetryImportManager {
           sourcePath: data,
         },
       };
-
       queueReq.push(insertData);
     }
     logger.info("Telemetry import added to queue", queueReq);
@@ -71,7 +67,6 @@ export class TelemetryImportManager {
       return paths;
     }
     logger.debug("---paths--", paths);
-
     paths = _.filter(paths, (data) => {
       if (_.find(registeredJobs, { sourcePath: data })) {
         logger.log("skipping telemetry import for ", data, " as its already registered");
