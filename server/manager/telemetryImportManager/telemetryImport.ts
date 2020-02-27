@@ -2,7 +2,6 @@ import * as childProcess from "child_process";
 import { ErrorObj } from "./ITelemetryImport";
 import { Inject } from "typescript-ioc";
 import * as path from "path";
-import DatabaseSDK from "../../sdk/database";
 import { logger } from "@project-sunbird/ext-framework-server/logger";
 import { containerAPI, INetworkQueueInstance, ISystemQueue, ITaskExecuter } from "OpenRAP/dist/api";
 import { manifest } from "../../manifest";
@@ -14,7 +13,6 @@ export class ImportTelemetry implements ITaskExecuter {
   public static taskType = "TELEMETRY_IMPORT";
   private deviceId: string;
   private workerProcessRef: childProcess.ChildProcess;
-  @Inject private dbSDK: DatabaseSDK;
   @Inject private telemetryHelper: TelemetryHelper;
   private interrupt;
   private telemetryImportData: ISystemQueue;
@@ -22,7 +20,6 @@ export class ImportTelemetry implements ITaskExecuter {
   private networkQueue: INetworkQueueInstance;
   private progress: number = 0;
   constructor() {
-    this.dbSDK.initialize(manifest.id);
     this.networkQueue = containerAPI.getNetworkQueueInstance();
     this.getDeviceId();
   }
@@ -56,25 +53,27 @@ export class ImportTelemetry implements ITaskExecuter {
 
   private async saveToDB(item) {
     try {
-      // TODO check if id exist
-      // await this.networkQueue.query({ selector: { _id: _.get(item, "mid") } });
       this.updateProgress(_.get(item, "size"));
-      const headers = {
-        "Content-Type": "application/json",
-        "Content-Encoding": "gzip",
-        "did": this.deviceId,
-        "msgid": _.get(item, "mid"),
-      };
-      const dbData = {
-        pathToApi: `${process.env.APP_BASE_URL}/api/data/v1/telemetry`,
-        requestHeaderObj: headers,
-        requestBody: _.get(item, "requestBody"),
-        subType: "TELEMETRY",
-        size: _.get(item, "size"),
-        count: _.get(item, "eventsCount"),
-        bearerToken: true,
-      };
-      await this.networkQueue.add(dbData, _.get(item, "mid"));
+      // Check in DB if same id exist - then skip
+      const dbData = await this.networkQueue.query({ selector: { _id: _.get(item, "mid") } });
+      if (_.isEmpty(dbData)) {
+        const headers = {
+          "Content-Type": "application/json",
+          "Content-Encoding": "gzip",
+          "did": this.deviceId,
+          "msgid": _.get(item, "mid"),
+        };
+        const insertDbData = {
+          pathToApi: `${process.env.APP_BASE_URL}/api/data/v1/telemetry`,
+          requestHeaderObj: headers,
+          requestBody: _.get(item, "requestBody"),
+          subType: "TELEMETRY",
+          size: _.get(item, "size"),
+          count: _.get(item, "eventsCount"),
+          bearerToken: true,
+        };
+        await this.networkQueue.add(insertDbData, _.get(item, "mid"));
+      }
     } catch (err) {
       logger.error(this.telemetryImportData._id, "Error while saving to db ", err);
       this.observer.next(this.telemetryImportData);
@@ -102,7 +101,7 @@ export class ImportTelemetry implements ITaskExecuter {
         this.saveToDB(data.dbData);
       } else if (data.message === "COMPLETE") {
         // Adding telemetry share event
-        // this.constructShareEvent(this.telemetryImportData);
+        this.constructShareEvent();
         logger.info("--------Telemetry import complete-------", JSON.stringify(this.telemetryImportData));
         this.observer.complete();
       } else if (data.message === "LOG") {
@@ -148,16 +147,15 @@ export class ImportTelemetry implements ITaskExecuter {
     });
   }
 
-  private async constructShareEvent(data) {
+  private async constructShareEvent() {
     const telemetryShareItems = [{
-      id: _.get(data, "metaData.contentId"),
-      type: _.get(data, "metaData.contentType"),
-      ver: _.toString(_.get(data, "metaData.pkgVersion")),
+      id: this.telemetryImportData._id,
+      type: "File",
       origin: {
         id: this.deviceId,
         type: "Device",
       },
     }];
-    this.telemetryHelper.logShareEvent(telemetryShareItems, "In", "Content");
+    this.telemetryHelper.logShareEvent(telemetryShareItems, "In", "Telemetry");
   }
 }

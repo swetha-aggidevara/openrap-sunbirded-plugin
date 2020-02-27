@@ -133,7 +133,7 @@ export default class Telemetry {
       return res.send(Response.success("api.telemetry.list", {
         response: {
           count: listData.length,
-          items: listData,
+          items: _.uniqBy(_.orderBy(listData, ["createdOn"], ["desc"]), "id"),
         },
       }, req));
     } catch (error) {
