@@ -614,7 +614,7 @@ export class Router {
     app.get("/api/telemetry/v1/info", telemetry.getInfo.bind(telemetry));
     app.post("/api/telemetry/v1/export", telemetry.export.bind(telemetry));
     app.post("/api/telemetry/v1/import", telemetry.import.bind(telemetry));
-    app.post("/api/telemetry/v1/import/retry", telemetry.retryImport.bind(telemetry));
+    app.post("/api/telemetry/v1/import/retry/:importId", telemetry.retryImport.bind(telemetry));
     app.post("/api/telemetry/v1/list", telemetry.list.bind(telemetry));
 
     app.get("/api/app/v1/terms_of_use", proxy(`${proxyUrl}`, {
