@@ -4,9 +4,9 @@ import * as _ from "lodash";
 import { containerAPI, ISystemQueueInstance } from "OpenRAP/dist/api";
 import { Inject } from "typescript-ioc";
 import DatabaseSDK from "../sdk/database";
+import { ImportTelemetry } from "./../manager/telemetryImportManager/telemetryImport";
 import { TelemetryImportManager } from "./../manager/telemetryImportManager/telemetryImportManager";
 import Response from "./../utils/response";
-const sessionStartTime = Date.now();
 
 export default class Telemetry {
   @Inject
@@ -91,7 +91,7 @@ export default class Telemetry {
   public async import(req: any, res: any) {
     const filePaths = req.body;
     if (!filePaths) {
-      return res.status(400).send(Response.error(`api.telemetry.import`, 400, "MISSING_TELEMETRY_IMPORT_PATH"));
+      return res.status(400).send(Response.error(`api.telemetry.import`, 400, "MISSING_FILE_PATHS"));
     }
     this.telemetryImportManager.add(filePaths).then((jobIds) => {
       res.send(Response.success("api.telemetry.import", {
@@ -99,7 +99,7 @@ export default class Telemetry {
       }, req));
     }).catch((err) => {
       res.status(500);
-      res.send(Response.error(`api.telemetry.import`, 400, err.errMessage || err.message, err.code));
+      res.send(Response.error(`api.telemetry.import`, 500, err.errMessage || err.message, err.code));
     });
   }
 
@@ -116,35 +116,22 @@ export default class Telemetry {
 
   public async list(req: any, res: any) {
     try {
-      const activeSelector = {
-        isActive: true,
-      };
-      const inActiveSelector = {
-        isActive: false,
-        updatedOn: { $gt: sessionStartTime },
-      };
-      const activeDbData = await this.systemQueue.query(activeSelector);
-      const inActiveDbData = await this.systemQueue.query(inActiveSelector);
-      const dbData = _.concat(activeDbData.docs, inActiveDbData.docs);
-      const listData = [];
-      _.forEach(dbData, (data) => {
-        const listObj = {
-          id: _.get(data, "_id"),
-          name: _.get(data, "name"),
-          progress: _.get(data, "progress"),
-          failedCode: _.get(data, "failedCode"),
-          failedReason: _.get(data, "failedReason"),
-          addedUsing: _.toLower(_.get(data, "type")),
-          totalSize: _.get(data, "metaData.fileSize"),
-          createdOn: _.get(data, "createdOn"),
-          status: _.get(data, "status"),
-        };
-        listData.push(listObj);
-      });
+      let dbData = await this.systemQueue.query({ type: ImportTelemetry.taskType });
+      dbData = _.map(dbData.docs, (data) => ({
+        id: _.get(data, "_id"),
+        name: _.get(data, "name"),
+        progress: _.get(data, "progress"),
+        failedCode: _.get(data, "failedCode"),
+        failedReason: _.get(data, "failedReason"),
+        addedUsing: _.toLower(_.get(data, "type")),
+        totalSize: _.get(data, "metaData.fileSize"),
+        createdOn: _.get(data, "createdOn"),
+        status: _.get(data, "status"),
+      }));
       return res.send(Response.success("api.telemetry.list", {
         response: {
-          count: listData.length,
-          items: _.uniqBy(_.orderBy(listData, ["createdOn"], ["desc"]), "id"),
+          count: dbData.length,
+          items: _.orderBy(dbData, ["createdOn"], ["desc"]),
         },
       }, req));
     } catch (error) {

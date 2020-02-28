@@ -1,13 +1,14 @@
 import * as childProcess from "child_process";
-import { ErrorObj } from "./ITelemetryImport";
+import { ErrorObj, ITelemetrySkipped } from "./ITelemetryImport";
 import { Inject } from "typescript-ioc";
 import * as path from "path";
 import { logger } from "@project-sunbird/ext-framework-server/logger";
-import { containerAPI, INetworkQueueInstance, ISystemQueue, ITaskExecuter } from "OpenRAP/dist/api";
+import { containerAPI, ISystemQueue, ITaskExecuter } from "OpenRAP/dist/api";
 import { manifest } from "../../manifest";
 import * as  _ from "lodash";
 import { Observer } from "rxjs";
 import TelemetryHelper from "../../helper/telemetryHelper";
+import { NetworkQueue } from "OpenRAP/dist/services/queue";
 
 export class ImportTelemetry implements ITaskExecuter {
   public static taskType = "TELEMETRY_IMPORT";
@@ -17,8 +18,9 @@ export class ImportTelemetry implements ITaskExecuter {
   private interrupt;
   private telemetryImportData: ISystemQueue;
   private observer: Observer<ISystemQueue>;
-  private networkQueue: INetworkQueueInstance;
+  private networkQueue: NetworkQueue;
   private progress: number = 0;
+  private skippedFiles: ITelemetrySkipped[] = [];
   constructor() {
     this.networkQueue = containerAPI.getNetworkQueueInstance();
     this.getDeviceId();
@@ -55,7 +57,7 @@ export class ImportTelemetry implements ITaskExecuter {
     try {
       this.updateProgress(_.get(item, "size"));
       // Check in DB if same id exist - then skip
-      const dbData = await this.networkQueue.query({ selector: { _id: _.get(item, "mid") } });
+      const dbData = await this.networkQueue.getByQuery({ selector: { _id: _.get(item, "mid") } });
       if (_.isEmpty(dbData)) {
         const headers = {
           "Content-Type": "application/json",
@@ -73,6 +75,10 @@ export class ImportTelemetry implements ITaskExecuter {
           bearerToken: true,
         };
         await this.networkQueue.add(insertDbData, _.get(item, "mid"));
+      } else {
+        this.skippedFiles.push({ id: _.get(item, "mid"), reason: "ARTIFACT_MISSING" });
+        this.telemetryImportData.metaData.skippedFiles = this.skippedFiles;
+        this.observer.next(this.telemetryImportData);
       }
     } catch (err) {
       logger.error(this.telemetryImportData._id, "Error while saving to db ", err);
@@ -131,6 +137,7 @@ export class ImportTelemetry implements ITaskExecuter {
   private async handleUnexpectedChildProcessExit(code, signal) {
     logger.error("Unexpected exit of child process for importId",
       this.telemetryImportData._id, "with signal and code", code, signal);
+    this.skippedFiles = [];
     this.observer.next(this.telemetryImportData);
     this.observer.error({
       code: "WORKER_UNHANDLED_EXCEPTION",
@@ -151,7 +158,7 @@ export class ImportTelemetry implements ITaskExecuter {
     const telemetryShareItems = [{
       id: this.telemetryImportData._id,
       type: "File",
-      origin: {
+      to: {
         id: this.deviceId,
         type: "Device",
       },
