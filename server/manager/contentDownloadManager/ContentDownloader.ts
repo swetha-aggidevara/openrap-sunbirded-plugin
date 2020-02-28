@@ -180,7 +180,9 @@ export class ContentDownloader implements ITaskExecuter {
         return;
       }
       for (const item of itemsToDelete) {
-        await this.fileSDK.remove(item);
+        await this.fileSDK.remove(item).catch((error) => {
+          logger.error(`Received error while deleting content path: ${path} and error: ${error}`);
+        });
       }
       this.checkForAllTaskCompletion();
     } catch (err) {
