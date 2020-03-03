@@ -43,8 +43,7 @@ class ContentDeleteProcess {
                         this.next();
                     },
                     error: (err) => {
-                        logger.warn(`${err}: Retried 5 times then quit!`);
-                        logger.error(`error while deleting the content ${err.stack}`);
+                        logger.error(`error while deleting the content ${err.stack} and retried for 5 times`);
                         this.running--;
                         this.next();
                     },
