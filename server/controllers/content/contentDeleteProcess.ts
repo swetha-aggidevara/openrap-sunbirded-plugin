@@ -1,7 +1,10 @@
+
 import { logger } from "@project-sunbird/ext-framework-server/logger";
 import * as _ from "lodash";
 import { containerAPI } from "OpenRAP/dist/api";
 import { manifest } from '../../manifest';
+import { of } from 'rxjs';
+import { mergeMap, retry } from 'rxjs/operators';
 
 process.on("message", (filePaths) => {
     for (const filePath of filePaths) {
@@ -29,14 +32,23 @@ class ContentDeleteProcess {
     private next() {
         while (this.running < this.concurrency && this.queue.length) {
             const path = this.queue.shift();
-            this.fileSDK.remove(path).then(() => {
-                this.running--;
-                this.next();
-            }).catch((err: { stack: any; }) => {
-              logger.error(`error while deleting the content ${err.stack}`);
-              this.running--;
-              this.next();
-            });
+            const fileSub = of(this.fileSDK.remove(path)).pipe(mergeMap((data) => {
+                return of (data);
+            }),
+            retry(5),
+            );
+            const fileSubscription = fileSub.subscribe({
+                    next: (val) => {
+                        this.running--;
+                        this.next();
+                    },
+                    error: (err) => {
+                        logger.warn(`${err}: Retried 5 times then quit!`);
+                        logger.error(`error while deleting the content ${err.stack}`);
+                        this.running--;
+                        this.next();
+                    },
+                  });
             this.running++;
         }
         if (this.queue.length === 0) {
