@@ -16,6 +16,7 @@ const initialzeEnv = new InitializeEnv();
 const server = new ConnectToServer();
 let app;
 let importId;
+let telemetryImportId;
 
 initialzeEnv.init();
 
@@ -1636,6 +1637,86 @@ describe('Telemetry Info', () => {
                 done();
             });
     });
+
+    it("#Import telemetry file  ", (done) => {
+        const filePath = [`${__dirname}/test_data/to_import_telemetry/telemetryimport1.zip`];
+        const req = supertest(app)
+        .post("/api/telemetry/v1/import");
+        req.send(filePath);
+        req.expect(200);
+        req.end((err, res) => {
+            telemetryImportId = res.body.result.importedJobIds[0];
+            expect(res.body.id).to.equal("api.telemetry.import").to.be.a("string");
+            expect(res.body.ver).to.equal("1.0").to.be.a("string");
+            expect(res.body.result.importedJobIds).to.be.an("array");
+            expect(res.body.result).to.have.property("importedJobIds");
+            done();
+        });
+    });
+
+    it("#import  telemetry retry and error case ", (done) => {
+        const req = supertest(app)
+        .post(`/api/telemetry/v1/import/retry/${telemetryImportId}`);
+        req.send({});
+        req.expect(500);
+        req.end((err, res) => {
+            expect(res.body.id).to.equal("api.telemetry.import.retry").to.be.a("string");
+            expect(res.body.ver).to.equal("1.0").to.be.a("string");
+            expect(res.body.params.status).to.be.a("string");
+            expect(res.body.params.status).to.equal("failed");
+            expect(res.body.result).to.be.an("object");
+            done();
+        });
+    });
+
+    it("#Import invalid telemetry file  ", (done) => {
+        const filePath = [`${__dirname}/test_data/to_import_telemetry/telemetryimportManifestMissing.zip`];
+        const req = supertest(app)
+        .post("/api/telemetry/v1/import");
+        req.send(filePath);
+        req.expect(200);
+        req.end((err, res) => {
+            telemetryImportId = res.body.result.importedJobIds[0];
+            expect(res.body.id).to.equal("api.telemetry.import").to.be.a("string");
+            expect(res.body.ver).to.equal("1.0").to.be.a("string");
+            expect(res.body.result.importedJobIds).to.be.an("array");
+            expect(res.body.result).to.have.property("importedJobIds");
+            done();
+        });
+    });
+
+    it("#import  telemetry list", (done) => {
+        const interval = setInterval(() => {
+        supertest(app)
+            .post("/api/telemetry/v1/list")
+            .send({})
+            .expect(200)
+            .end((err, res) => {
+                expect(res.body.id).to.equal("api.telemetry.list").to.be.a("string");
+                expect(res.body.ver).to.equal("1.0").to.be.a("string");
+                expect(res.body.result.response.items).to.be.an("array");
+                expect(res.body.result.response.items[0]).to.have.property("id");
+                done();
+            });
+
+        }, 2000);
+    }).timeout(210000);
+
+    it("#import  telemetry retry and success case ", (done) => {
+        const req = supertest(app)
+        .post(`/api/telemetry/v1/import/retry/${telemetryImportId}`);
+        req.send({});
+        req.expect(200);
+        req.end((err, res) => {
+            expect(res.body.id).to.equal("api.telemetry.import.retry").to.be.a("string");
+            expect(res.body.ver).to.equal("1.0").to.be.a("string");
+            expect(res.body.params.status).to.be.a("string");
+            expect(res.body.params.status).to.equal("successful");
+            expect(res.body.result).to.be.an("object");
+            done();
+        });
+    });
+
 });
 
 after("Disconnect Server", (done) => {
