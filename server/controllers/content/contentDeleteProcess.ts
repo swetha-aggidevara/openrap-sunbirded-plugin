@@ -32,12 +32,12 @@ class ContentDeleteProcess {
     private next() {
         while (this.running < this.concurrency && this.queue.length) {
             const path = this.queue.shift();
-            const fileSub = of(this.fileSDK.remove(path)).pipe(mergeMap((data) => {
+            const deleteSub = of(this.fileSDK.remove(path)).pipe(mergeMap((data) => {
                 return of (data);
             }),
             retry(5),
             );
-            const fileSubscription = fileSub.subscribe({
+            const deleteSubscription = deleteSub.subscribe({
                     next: (val) => {
                         this.running--;
                         this.next();
