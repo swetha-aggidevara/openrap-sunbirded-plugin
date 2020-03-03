@@ -29,13 +29,13 @@ export class ExportContent {
         this.dbParentNode = _.get(this.parentManifest, "archive.items[0]");
         const response = await this.loadParentCollection();
         if(!response){
-          throw new Error("INVALID_COLLECTION");
+          throw new Error("COLLECTION_FILE_MISSING");
         }
       } else {
         this.dbParentNode.visibility = "Default";
         const response  = await this.loadContent(this.dbParentNode, false);
         if(!response){
-          throw new Error("INVALID_CONTENT");
+          throw new Error("CONTENT_FILE_MISSING");
         }
       }
       // this.interval = setInterval(() => logger.log(this.parentArchive.pointer(),
