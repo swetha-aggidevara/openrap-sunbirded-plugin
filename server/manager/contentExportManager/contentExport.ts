@@ -161,6 +161,7 @@ export class ExportContent {
       }
     } else {
       let hasZipEntry: any = await this.readDirectory(path.join(this.contentBaseFolder, contentDetails.identifier));
+      hasZipEntry = _.remove(hasZipEntry, (entry: any) =>  !(_.endsWith(entry, ".zip")));
       hasZipEntry = _.filter(hasZipEntry, (entry) => {
         if ((contentDetails.appIcon && contentDetails.appIcon.includes(entry))
           || entry === "manifest.json") {
@@ -177,7 +178,8 @@ export class ExportContent {
   private async loadZipContent(contentDetails, child) {
     const baseDestPath = child ? contentDetails.identifier + "/" : "";
     const childArchive = fileSDK.archiver();
-    const toBeZipped: any = await this.readDirectory(path.join(this.contentBaseFolder, contentDetails.identifier));
+    let toBeZipped: any = await this.readDirectory(path.join(this.contentBaseFolder, contentDetails.identifier));
+    toBeZipped = _.remove(toBeZipped, (entry: any) =>  !(_.endsWith(entry, ".zip")));
     for (const items of toBeZipped) {
       if ((!contentDetails.appIcon || !contentDetails.appIcon.includes(items)) && items !== "manifest.json") {
         if (path.extname(items)) {
