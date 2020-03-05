@@ -48,7 +48,6 @@ export class ContentDeleteHelper implements ITaskExecuter {
                 },
                 error: (err) => {
                     this.observer.error(err);
-                    this.observer.complete();
                     logger.error(`error while deleting the content ${err.stack} and retried for 5 times`);
                 },
               });
