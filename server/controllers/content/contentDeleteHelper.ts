@@ -43,7 +43,6 @@ export class ContentDeleteHelper implements ITaskExecuter {
                 next: (val) => {
                     if (this.queue.length === 0) {
                       this.observer.complete();
-                      deleteSubscription.unsubscribe();
                     }
                 },
                 error: (err) => {
