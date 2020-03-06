@@ -209,10 +209,6 @@ const extractEcar = async () => {
     sendMessage(ImportSteps.extractEcar);
   } catch (err) {
     sendMessage("IMPORT_ERROR", getErrorObj(err, "UNHANDLED_EXTRACT_ECAR_ERROR"));
-  } finally {
-    if (zipHandler.close) {
-      zipHandler.close();
-    }
   }
 };
 
