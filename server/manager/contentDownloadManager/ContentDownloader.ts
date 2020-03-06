@@ -316,6 +316,7 @@ export class ContentDownloader implements ITaskExecuter {
       throw { message: "Disk space is low, couldn't extract Ecar", code: "LOW_DISK_SPACE" };
     }
     if (closeZipHandler) {
+
         zipHandler.close();
     }
   }
