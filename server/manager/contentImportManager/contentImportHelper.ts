@@ -246,6 +246,7 @@ const extractZipArtifact = async (artifact) => {
   await unzipFile(artifact.src);
   await removeFile(artifact.src);
   contentImportData.metaData.contentAdded.push(artifact.contentId);
+  zipArtifactZipHandler.close();
 };
 
 const loadZipHandler = async (filePath) => {
