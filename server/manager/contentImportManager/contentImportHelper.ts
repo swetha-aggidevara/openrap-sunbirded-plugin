@@ -8,7 +8,7 @@ import { containerAPI, ISystemQueue } from "OpenRAP/dist/api";
 import config from "../../config";
 import { Subject } from "rxjs";
 import { throttleTime } from "rxjs/operators";
-import * as os from "os";
+import HardDiskInfo from "../../utils/hardDiskInfo";
 const collectionMimeType = "application/vnd.ekstep.content-collection";
 let zipHandler;
 let zipEntries;
@@ -35,23 +35,10 @@ const syncCloser = (initialProgress, percentage, totalSize = contentImportData.m
     return subscription;
   };
 };
-const getAvailableDiskSpace = () => {
-  return systemSDK.getHardDiskInfo().then(({availableHarddisk, fsSize}) => {
-    if (os.platform() === "win32") {
-      const fileSize: any = fsSize;
-      const totalHarddisk = _.find(fileSize, { mount: "C:" })["size"] || 0;
-      const usedHarddisk = _.find(fileSize, { mount: "C:" })["used"] || 0;
-      const availableHardDisk = totalHarddisk - usedHarddisk;
-      return availableHardDisk - 3e+8; // keeping buffer of 300 mb, this can be configured
-    } else {
-      return availableHarddisk - 3e+8; // keeping buffer of 300 mb, this can be configured
-    }
-  });
-};
 
 const copyEcar = async () => {
   try {
-    const availableDiskSpace = await getAvailableDiskSpace();
+    const availableDiskSpace = await HardDiskInfo.getAvailableDiskSpace();
     process.send({ message: "LOG", logType: "info",
     logBody: [contentImportData._id, "Disk Space availability check",
     contentImportData.metaData.contentSize, availableDiskSpace] });
@@ -138,7 +125,7 @@ const extractZipEntry = async (identifier: string, contentBasePath: string[], en
   return entryObj;
 };
 const checkSpaceAvailability = async (entries, extractedEntries = contentImportData.metaData.extractedEcarEntries) => {
-  const availableDiskSpace = await getAvailableDiskSpace();
+  const availableDiskSpace = await HardDiskInfo.getAvailableDiskSpace();
   let contentSize = 0; // size in bytes
   for (const entry of _.values(entries) as any) {
     if (!extractedEntries[entry.name]) {

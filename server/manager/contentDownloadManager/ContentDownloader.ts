@@ -10,7 +10,7 @@ import { containerAPI, ITaskExecuter, ISystemQueue, SystemQueueStatus } from "Op
 import { IDownloadMetadata, IContentDownloadList } from "./IContentDownload";
 import * as  StreamZip from "node-stream-zip";
 import TelemetryHelper from "../../helper/telemetryHelper";
-import * as os from "os";
+import HardDiskInfo from "../../utils/hardDiskInfo";
 
 export class ContentDownloader implements ITaskExecuter {
   public static taskType = "DOWNLOAD";
@@ -308,7 +308,7 @@ export class ContentDownloader implements ITaskExecuter {
     }
     zipHandler = zipHandler || await this.loadZipHandler(zipPath);
     const entries = zipHandler.entries();
-    const availableDiskSpace = await this.getAvailableDiskSpace();
+    const availableDiskSpace = await HardDiskInfo.getAvailableDiskSpace();
     let contentSize = 0; // size in bytes
     for (const entry of _.values(entries) as any) {
       contentSize += entry.size;
@@ -325,19 +325,6 @@ export class ContentDownloader implements ITaskExecuter {
     return new Promise((resolve, reject) => {
       zip.on("ready", () => resolve(zip));
       zip.on("error", reject);
-    });
-  }
-  private async getAvailableDiskSpace() {
-    return this.systemSDK.getHardDiskInfo().then(({ availableHarddisk, fsSize }) => {
-      if (os.platform() === "win32") {
-        const fileSize: any = fsSize;
-        const totalHarddisk = _.find(fileSize, { mount: "C:" })["size"] || 0;
-        const usedHarddisk = _.find(fileSize, { mount: "C:" })["used"] || 0;
-        const availableHardDisk = totalHarddisk - usedHarddisk;
-        return availableHardDisk - 3e+8; // keeping buffer of 300 mb, this can be configured
-      } else {
-        return availableHarddisk - 3e+8; // keeping buffer of 300 mb, this can be configured
-      }
     });
   }
   private createHierarchy(items: any[], parent: any, tree?: any[]): any {

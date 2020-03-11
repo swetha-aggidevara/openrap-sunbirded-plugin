@@ -13,6 +13,8 @@ import uuid = require("uuid");
 const ContentReadUrl = `${process.env.APP_BASE_URL}/api/content/v1/read`;
 const ContentSearchUrl = `${process.env.APP_BASE_URL}/api/content/v1/search`;
 const DefaultRequestOptions = { headers: { "Content-Type": "application/json" } };
+import HardDiskInfo from "../../utils/hardDiskInfo";
+
 @Singleton
 export class ContentDownloadManager {
   @Inject private dbSDK: DatabaseSDK;
@@ -293,8 +295,7 @@ export class ContentDownloadManager {
       .then((response) => _.get(response, "docs") || []);
   }
   private async checkDiskSpaceAvailability(zipSize, collection) {
-    const availableDiskSpace = await this.systemSDK.getHardDiskInfo()
-      .then(({ availableHarddisk }) => availableHarddisk - 3e+8); // keeping buffer of 300 mb, this can be configured);
+    const availableDiskSpace = await HardDiskInfo.getAvailableDiskSpace();
     if (!collection && (zipSize + (zipSize * 1.5) > availableDiskSpace)) {
       throw { message: "Disk space is low, couldn't copy Ecar", code: "LOW_DISK_SPACE" };
     } else if (zipSize * 1.5 > availableDiskSpace) {
