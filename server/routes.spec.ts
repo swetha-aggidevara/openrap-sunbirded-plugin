@@ -791,7 +791,7 @@ describe("App Update", () => {
                 expect(res.body.params.status).to.equal("successful");
                 expect(res.body.id).to.equal("api.desktop.update").to.be.a("string");
                 expect(res.body.ver).to.equal("1.0").to.be.a("string");
-                expect(res.body.result.updateAvailable).to.be.false;
+                expect(res.body.result.updateInfo.updateAvailable).to.be.false;
                 done();
             });
     });
@@ -805,9 +805,7 @@ describe("App Update", () => {
                 expect(res.body.params.status).to.equal("successful");
                 expect(res.body.id).to.equal("api.desktop.update").to.be.a("string");
                 expect(res.body.ver).to.equal("1.0").to.be.a("string");
-                expect(res.body.result.updateAvailable).to.be.true;
-                expect(res.body.result.version).not.to.be.empty;
-                expect(res.body.result.url).not.to.be.empty;
+                expect(res.body.result.updateInfo).to.contain(mockData.appUpdate.updateInfo);
                 done();
             });
     });
@@ -826,33 +824,35 @@ describe("App Update", () => {
             });
     });
 
-    it("#app INFO", (done) => {
+    it("#app INFO updated", (done) => {
         const HTTPServiceSpy = spy.on(HTTPService, "post", (data) => of({data: {result: mockData.appUpdate}}));
         process.env.RELEASE_DATE = "16 December 2019";
         supertest(app)
             .get("/api/app/v1/info")
+            .expect((res) => res.body = mockData.appUpdate)
             .expect(200)
             .end((err, res) => {
-                expect(res.body.result.termsOfUseUrl).to.be.a("string").and.to.equal(`${process.env.APP_BASE_URL}/term-of-use.html`);
-                expect(res.body.result.deviceId).to.be.a("string");
-                expect(res.body.result.languages).to.equal("English, Hindi");
-                expect(res.body.result.releaseDate).to.equal(process.env.RELEASE_DATE);
-                expect(res.body.result.updateInfo).to.contain(mockData.appUpdate);
+                expect(res.body.termsOfUseUrl).to.be.a("string").and.to.equal(`${process.env.APP_BASE_URL}/term-of-use.html`);
+                expect(res.body.deviceId).to.be.a("string");
+                expect(res.body.languages).to.equal("English, Hindi");
+                expect(res.body.releaseDate).to.equal(process.env.RELEASE_DATE);
+                expect(res.body.updateInfo).to.contain(mockData.appUpdate.updateInfo);
                 done();
             });
     });
 
-    it("#app INFO ", (done) => {
+    it("#app INFO not updated ", (done) => {
         const HTTPServiceSpy = spy.on(HTTPService, "post", (data) => of({data: {result: mockData.not_updated}}));
         process.env.RELEASE_DATE = "16 December 2019";
         supertest(app)
             .get("/api/app/v1/info")
+            .expect((res) => res.body = mockData.not_updated)
             .expect(200)
             .end((err, res) => {
-                expect(res.body.result.deviceId).to.be.a("string");
-                expect(res.body.result.languages).to.equal("English, Hindi");
-                expect(res.body.result.releaseDate).to.equal(process.env.RELEASE_DATE);
-                expect(res.body.result.updateInfo).to.contain(mockData.not_updated);
+                expect(res.body.deviceId).to.be.a("string");
+                expect(res.body.languages).to.equal("English, Hindi");
+                expect(res.body.releaseDate).to.equal(process.env.RELEASE_DATE);
+                expect(res.body.updateInfo).to.contain(mockData.not_updated.updateInfo);
                 done();
             });
     });
@@ -863,6 +863,7 @@ describe("App Update", () => {
         process.env.RELEASE_DATE = "16 December 2019";
         supertest(app)
             .get("/api/app/v1/info")
+            .expect(res => res.body = mockData.app_update_error)
             .expect(200)
             .end((err, res) => {
                 expect(res.body.result.deviceId).to.be.a("string");
