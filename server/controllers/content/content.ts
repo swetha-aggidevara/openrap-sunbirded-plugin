@@ -237,24 +237,21 @@ export default class Content {
     }
 
     getFacets(facets, contents) {
-
         const facetData = [];
-        const finalFacetData = [];
-        _.forEach(facets, facet => {
-            const facetValues = { [facet]: []};
-            _.forEach(contents, content => {
-                facetValues[facet].push(_.get(content, `${facet}`));
+        if (contents.length === 0) {
+            _.forEach(facets, (facet) => {
+                facetData.push({name: facet, values: []});
             });
-            facetData.push(facetValues)
-        });
-
-        _.forEach(facets, facet => {
-            const facetD = (_.get(_.find(facetData, facet), facet));
-            const result = _.values(_.groupBy(facetD)).map((d) =>
-                ({name: (_.isArray(d[0]) ? d[0][0] : d[0]) || "", count: d.length}));
-            finalFacetData.push({name: facet, values: result || []});
-        });
-        return finalFacetData;
+            return facetData;
+        } else {
+            _.forEach(facets, (facet) => {
+                const eachFacetData = _.map(contents, (content) => _.get(content, facet));
+                const result = _.values(_.groupBy(eachFacetData)).map((d) =>
+                ({ name: (_.isArray(d[0]) ? d[0][0] : d[0]) || "", count: d.length }));
+                facetData.push({ name: facet, values: result || []});
+            });
+            return facetData;
+        }
     }
     public async import(req: any, res: any) {
         const ecarFilePaths = req.body;
