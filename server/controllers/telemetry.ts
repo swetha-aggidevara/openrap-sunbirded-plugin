@@ -73,6 +73,40 @@ export default class Telemetry {
     });
   }
 
+  public getIsTelemetrySyncToServer(req, res) {
+    this.telemetrySDK.getIsTelemetrySyncToServer((err, data) => {
+      if (err) {
+        res.status(err.status || 500);
+        return res.send(Response.error("api.telemetry.syncToServer.info", err.status || 500
+          , err.errMessage || err.message, err.code));
+      }
+      res.status(200);
+      res.send(Response.success(`api.telemetry.syncToServer.info`, {
+        response: data,
+      }, req));
+    });
+  }
+
+  public setIsTelemetrySyncToServer(req, res) {
+    const syncToServer = _.get(req, "body.request.syncToServer");
+    if (syncToServer === undefined || typeof syncToServer !== "boolean") {
+      res.status(400);
+      return res.send(Response.error("api.telemetry.syncToServer.update", 400
+        , "SyncToServer key should exist and it should be boolean"));
+    }
+    this.telemetrySDK.setIsTelemetrySyncToServer(syncToServer, (err, data) => {
+      if (err) {
+        res.status(err.status || 500);
+        return res.send(Response.error("api.telemetry.syncToServer.update", err.status || 500
+          , err.errMessage || err.message, err.code));
+      }
+      res.status(200);
+      res.send(Response.success(`api.telemetry.syncToServer.update`, {
+        response: data,
+      }, req));
+    });
+  }
+
   public export(req, res) {
     const destFolder = req.query.destFolder;
     this.telemetrySDK.export(destFolder, (err, data) => {
