@@ -190,11 +190,16 @@ export default class Content {
             .then(async data => {
                 data = _.map(data.docs, doc => _.omit(doc, ['_id', '_rev']));
                 let resObj = {};
+                let facets = [];
+                if (_.get(reqBody, "request.facets")) {
+                    facets = this.getFacets(_.get(reqBody, "request.facets"), data);
+                }
                 if (data.length === 0) {
                     logger.info(`ReqId = "${req.headers['X-msgid']}": Contents NOT found in DB`);
                     resObj = {
                         content: [],
-                        count: 0
+                        count: 0,
+                        facets,
                     };
                 } else {
                     const downloadedContents = await this.changeContentStatus(data, req.headers['X-msgid']);
@@ -204,7 +209,8 @@ export default class Content {
                     logger.info(`ReqId = "${req.headers['X-msgid']}": Contents = ${data.length} found in DB`)
                     resObj = {
                         content: data,
-                        count: data.length
+                        count: data.length,
+                        facets,
                     };
                 }
 
@@ -230,6 +236,26 @@ export default class Content {
             });
     }
 
+    getFacets(facets, contents) {
+
+        const facetData = [];
+        const finalFacetData = [];
+        _.forEach(facets, facet => {
+            const facetValues = { [facet]: []};
+            _.forEach(contents, content => {
+                facetValues[facet].push(_.get(content, `${facet}`));
+            });
+            facetData.push(facetValues)
+        });
+
+        _.forEach(facets, facet => {
+            const facetD = (_.get(_.find(facetData, facet), facet));
+            const result = _.values(_.groupBy(facetD)).map((d) =>
+                ({name: (_.isArray(d[0]) ? d[0][0] : d[0]) || "", count: d.length}));
+            finalFacetData.push({name: facet, values: result || []});
+        });
+        return finalFacetData;
+    }
     public async import(req: any, res: any) {
         const ecarFilePaths = req.body;
         if (!ecarFilePaths) {
