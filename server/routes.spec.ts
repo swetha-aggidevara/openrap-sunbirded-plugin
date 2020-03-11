@@ -863,6 +863,7 @@ describe("App Update", () => {
         process.env.RELEASE_DATE = "16 December 2019";
         supertest(app)
             .get("/api/app/v1/info")
+            .expect(res => res.body = mockData.app_update_error)
             .expect(200)
             .end((err, res) => {
                 expect(res.body.result.deviceId).to.be.a("string");

@@ -94,5 +94,10 @@ export const app_update_error = {
     'errmsg': 'Error while processing the request'
   },
   'responseCode': 'INTERNAL_SERVER_ERROR',
-  'result': {}
+  'result': {
+    termsOfUseUrl: `${env.APP_BASE_URL}/term-of-use.html`,
+    deviceId: '687476',
+    languages: 'English, Hindi',
+    releaseDate: '16 December 2019',
+  }
 }
