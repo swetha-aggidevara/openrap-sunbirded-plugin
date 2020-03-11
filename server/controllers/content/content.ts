@@ -244,14 +244,23 @@ export default class Content {
             });
             return facetData;
         } else {
-            _.forEach(facets, (facet) => {
-                const eachFacetData = _.map(contents, (content) => _.get(content, facet));
-                const result = _.values(_.groupBy(eachFacetData)).map((d) =>
-                ({ name: (_.isArray(d[0]) ? d[0][0] : d[0]) || "", count: d.length }));
-                facetData.push({ name: facet, values: result || [] });
-            });
-            return facetData;
-        }
+                _.forEach(facets, (facet) => {
+                    let eachFacetData = _.map(contents, (content) => _.get(content, facet));
+                    const arrayData = [];
+                    _.forEach(eachFacetData, (data) => {
+                        if (_.isArray(data)) {
+                          _.map(data, (d) => arrayData.push(d));
+                        } else {
+                            arrayData.push(data);
+                        }
+                    });
+                    eachFacetData = arrayData;
+                    const result = _.values(_.groupBy(eachFacetData)).map((data) =>
+                    ({ name: (_.isArray(data[0]) ? data[0][0] : data[0]) || "", count: data.length }));
+                    facetData.push({ name: facet, values: result || [] });
+                });
+                return facetData;
+            }
     }
     public async import(req: any, res: any) {
         const ecarFilePaths = req.body;
