@@ -1,3 +1,4 @@
+import { env } from './routes.spec.data';
 export const location_state = {
         result: {
             response: [
@@ -62,12 +63,24 @@ export const location_district_empty = {
 }
 }
 export const appUpdate = {
-            updateAvailable: true,
-            url: 'https://localhost:9000/app_updated.dmg',
-            version: '1.0.2'
+  termsOfUseUrl: `${env.APP_BASE_URL}/term-of-use.html`,
+  deviceId: '687476',
+  languages: 'English, Hindi',
+  releaseDate: '16 December 2019',
+  updateInfo: {
+    updateAvailable: true,
+    url: 'https://localhost:9000/app_updated.dmg',
+    version: '1.0.2'
+  }
 }
 export const not_updated = {
-            updateAvailable: false
+  termsOfUseUrl: `${env.APP_BASE_URL}/term-of-use.html`,
+  deviceId: '687476',
+  languages: 'English, Hindi',
+  releaseDate: '16 December 2019',
+  updateInfo: {
+    updateAvailable: false,
+  }
 }
 export const app_update_error = {
   'id': 'api.desktop.update',

@@ -190,11 +190,16 @@ export default class Content {
             .then(async data => {
                 data = _.map(data.docs, doc => _.omit(doc, ['_id', '_rev']));
                 let resObj = {};
+                let facets = [];
+                if (_.get(reqBody, "request.facets")) {
+                    facets = this.getFacets(_.get(reqBody, "request.facets"), data);
+                }
                 if (data.length === 0) {
                     logger.info(`ReqId = "${req.headers['X-msgid']}": Contents NOT found in DB`);
                     resObj = {
                         content: [],
-                        count: 0
+                        count: 0,
+                        facets,
                     };
                 } else {
                     const downloadedContents = await this.changeContentStatus(data, req.headers['X-msgid']);
@@ -204,7 +209,8 @@ export default class Content {
                     logger.info(`ReqId = "${req.headers['X-msgid']}": Contents = ${data.length} found in DB`)
                     resObj = {
                         content: data,
-                        count: data.length
+                        count: data.length,
+                        facets,
                     };
                 }
 
@@ -230,6 +236,32 @@ export default class Content {
             });
     }
 
+    getFacets(facets, contents) {
+        const facetData = [];
+        if (contents.length === 0) {
+            _.forEach(facets, (facet) => {
+                facetData.push({name: facet, values: []});
+            });
+            return facetData;
+        } else {
+                _.forEach(facets, (facet) => {
+                    let eachFacetData = _.map(contents, (content) => _.get(content, facet));
+                    const arrayData = [];
+                    _.forEach(eachFacetData, (data) => {
+                        if (_.isArray(data)) {
+                          _.map(data, (d) => arrayData.push(d));
+                        } else {
+                            arrayData.push(data);
+                        }
+                    });
+                    eachFacetData = arrayData;
+                    const result = _.values(_.groupBy(eachFacetData)).map((data) =>
+                    ({ name: (_.isArray(data[0]) ? data[0][0] : data[0]) || "", count: data.length }));
+                    facetData.push({ name: facet, values: result || [] });
+                });
+                return facetData;
+            }
+    }
     public async import(req: any, res: any) {
         const ecarFilePaths = req.body;
         if (!ecarFilePaths) {
