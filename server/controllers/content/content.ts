@@ -255,9 +255,12 @@ export default class Content {
                         }
                     });
                     eachFacetData = arrayData;
-                    const result = _.values(_.groupBy(eachFacetData)).map((data) =>
-                    ({ name: (_.isArray(data[0]) ? data[0][0] : data[0]) || "", count: data.length }));
-                    facetData.push({ name: facet, values: result || [] });
+                    const result = _.values(_.groupBy(eachFacetData)).map((data) => {
+                        if (!_.isEmpty(data[0])) {
+                            return ({ name: data[0], count: data.length});
+                        }
+                    });
+                    facetData.push({ name: facet, values: _.compact(result) || [] });
                 });
                 return facetData;
             }
