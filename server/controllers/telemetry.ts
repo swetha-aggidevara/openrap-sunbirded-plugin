@@ -96,6 +96,11 @@ export default class Telemetry {
     logger.debug(`ReqId =  ${req.headers["X-msgid"]}: Set Telemetry config to sync server is called`);
     try {
       const enable = _.get(req, "body.request.enable");
+      if (enable === undefined || typeof enable !== "boolean") {
+        res.status(400);
+        return res.send(Response.error("api.telemetry.set.config", 400
+        , "Enable key should exist and it should be boolean"));
+      }
       await this.telemetrySDK.setTelemetrySyncSetting(enable);
       res.status(200);
       return res.send(Response.success("api.telemetry.set.config",
