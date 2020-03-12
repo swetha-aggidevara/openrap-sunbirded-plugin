@@ -73,10 +73,10 @@ export default class Telemetry {
     });
   }
 
-  public async getTelemetryConfigSyncToServer(req, res) {
+  public async getTelemetrySyncSetting(req, res) {
     logger.debug(`ReqId =  ${req.headers["X-msgid"]}: Get telemetry config to sync server is called`);
     try {
-      const telemetryConfigData = await this.telemetrySDK.getTelemetryConfigSyncToServer();
+      const telemetryConfigData = await this.telemetrySDK.getTelemetrySyncSetting();
       res.status(200);
       return res.send(Response.success("api.telemetry.config.info",
       { response: telemetryConfigData }, req));
@@ -92,11 +92,11 @@ export default class Telemetry {
     }
   }
 
-  public async setTelemetryConfigSyncToServer(req, res) {
+  public async setTelemetrySyncSetting(req, res) {
     logger.debug(`ReqId =  ${req.headers["X-msgid"]}: Set Telemetry config to sync server is called`);
     try {
-      const syncToServer = _.get(req, "body.request.syncToServer");
-      await this.telemetrySDK.setTelemetryConfigSyncToServer(syncToServer);
+      const enable = _.get(req, "body.request.enable");
+      await this.telemetrySDK.setTelemetrySyncSetting(enable);
       res.status(200);
       return res.send(Response.success("api.telemetry.set.config",
         { response: { message: "Successfully updated" } }, req));
