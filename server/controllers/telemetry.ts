@@ -102,7 +102,7 @@ export default class Telemetry {
       }
       res.status(200);
       res.send(Response.success(`api.telemetry.syncToServer.update`, {
-        response: data,
+        response: { message: "Successfully updated" },
       }, req));
     });
   }
