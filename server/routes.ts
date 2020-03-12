@@ -611,13 +611,18 @@ export class Router {
     const contentDelete = new ContentDelete(manifest);
     app.post("/api/content/v1/delete", contentDelete.delete.bind(contentDelete));
 
-    app.get("/api/telemetry/v1/info", telemetry.getInfo.bind(telemetry));
+    app.get("/api/telemetry/v1/info", (req, res) => {
+      if (_.get(req, "query.syncConfig") === "true") {
+        telemetry.getTelemetrySyncSetting(req, res);
+      } else {
+        telemetry.getInfo(req, res);
+      }
+    });
     app.post("/api/telemetry/v1/export", telemetry.export.bind(telemetry));
     app.post("/api/telemetry/v1/import", telemetry.import.bind(telemetry));
     app.post("/api/telemetry/v1/import/retry/:importId", telemetry.retryImport.bind(telemetry));
     app.post("/api/telemetry/v1/list", telemetry.list.bind(telemetry));
-    app.post("/api/telemetry/v1/update/config", telemetry.setTelemetrySyncSetting.bind(telemetry));
-    app.post("/api/telemetry/v1/info", telemetry.getTelemetrySyncSetting.bind(telemetry));
+    app.post("/api/telemetry/v1/config", telemetry.setTelemetrySyncSetting.bind(telemetry));
 
     app.get("/api/app/v1/terms_of_use", proxy(`${proxyUrl}`, {
       proxyReqPathResolver() {
