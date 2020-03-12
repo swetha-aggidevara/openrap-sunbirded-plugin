@@ -1718,6 +1718,52 @@ describe('Telemetry Info', () => {
         });
     });
 
+    it("#telemetry set config success ", (done) => {
+        const req = supertest(app)
+            .post("/api/telemetry/v1/update/config");
+        req.send({ request: { enable: true } });
+        req.expect(200);
+        req.end((err, res) => {
+            expect(res.body.id).to.equal("api.telemetry.set.config").to.be.a("string");
+            expect(res.body.ver).to.equal("1.0").to.be.a("string");
+            expect(res.body.params.status).to.be.a("string");
+            expect(res.body.params.status).to.equal("successful");
+            expect(res.body.result).to.be.an("object");
+            done();
+        });
+    });
+
+    it("#telemetry set config error ", (done) => {
+        const req = supertest(app)
+            .post("/api/telemetry/v1/update/config");
+        req.send({});
+        req.expect(400);
+        req.end((err, res) => {
+            expect(res.body.id).to.equal("api.telemetry.set.config").to.be.a("string");
+            expect(res.body.ver).to.equal("1.0").to.be.a("string");
+            expect(res.body.params.status).to.be.a("string");
+            expect(res.body.params.status).to.equal("failed");
+            expect(res.body.result).to.be.an("object");
+            done();
+        });
+    });
+
+    it("#telemetry get config success ", (done) => {
+        const req = supertest(app)
+            .post("/api/telemetry/v1/info");
+        req.send({});
+        req.expect(200);
+        req.end((err, res) => {
+            expect(res.body.id).to.equal("api.telemetry.config.info").to.be.a("string");
+            expect(res.body.ver).to.equal("1.0").to.be.a("string");
+            expect(res.body.params.status).to.be.a("string");
+            expect(res.body.params.status).to.equal("successful");
+            expect(res.body.result).to.be.an("object");
+            expect(res.body.result).to.have.property("enable");
+            done();
+        });
+    });
+
 });
 
 after("Disconnect Server", (done) => {

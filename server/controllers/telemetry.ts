@@ -78,8 +78,7 @@ export default class Telemetry {
     try {
       const telemetryConfigData = await this.telemetrySDK.getTelemetrySyncSetting();
       res.status(200);
-      return res.send(Response.success("api.telemetry.config.info",
-      { response: telemetryConfigData }, req));
+      return res.send(Response.success("api.telemetry.config.info", telemetryConfigData , req));
     } catch (err) {
       logger.error(
         `ReqId = "${req.headers[
@@ -103,8 +102,7 @@ export default class Telemetry {
       }
       await this.telemetrySDK.setTelemetrySyncSetting(enable);
       res.status(200);
-      return res.send(Response.success("api.telemetry.set.config",
-        { response: { message: "Successfully updated" } }, req));
+      return res.send(Response.success("api.telemetry.set.config", { message: "Successfully updated" }, req));
     } catch (err) {
       logger.error(
         `ReqId = "${req.headers[
