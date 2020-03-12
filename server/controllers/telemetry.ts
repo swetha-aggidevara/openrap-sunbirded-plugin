@@ -73,38 +73,43 @@ export default class Telemetry {
     });
   }
 
-  public getIsTelemetrySyncToServer(req, res) {
-    this.telemetrySDK.getIsTelemetrySyncToServer((err, data) => {
-      if (err) {
-        res.status(err.status || 500);
-        return res.send(Response.error("api.telemetry.syncToServer.info", err.status || 500
-          , err.errMessage || err.message, err.code));
-      }
+  public async getTelemetryConfigSyncToServer(req, res) {
+    logger.debug(`ReqId =  ${req.headers["X-msgid"]}: Get telemetry config to sync server is called`);
+    try {
+      const telemetryConfigData = await this.telemetrySDK.getTelemetryConfigSyncToServer();
       res.status(200);
-      res.send(Response.success(`api.telemetry.syncToServer.info`, {
-        response: data,
-      }, req));
-    });
+      return res.send(Response.success("api.telemetry.config.info",
+      { response: telemetryConfigData }, req));
+    } catch (err) {
+      logger.error(
+        `ReqId = "${req.headers[
+        "X-msgid"
+        ]}": Received error while getting telemetry config and err.message: ${err.message} ${err}`,
+      );
+      res.status(err.status || 500);
+      return res.send(Response.error("api.telemetry.config.info", err.status || 500
+        , err.errMessage || err.message, err.code));
+    }
   }
 
-  public setIsTelemetrySyncToServer(req, res) {
-    const syncToServer = _.get(req, "body.request.syncToServer");
-    if (syncToServer === undefined || typeof syncToServer !== "boolean") {
-      res.status(400);
-      return res.send(Response.error("api.telemetry.syncToServer.update", 400
-        , "SyncToServer key should exist and it should be boolean"));
-    }
-    this.telemetrySDK.setIsTelemetrySyncToServer(syncToServer, (err, data) => {
-      if (err) {
-        res.status(err.status || 500);
-        return res.send(Response.error("api.telemetry.syncToServer.update", err.status || 500
-          , err.errMessage || err.message, err.code));
-      }
+  public async setTelemetryConfigSyncToServer(req, res) {
+    logger.debug(`ReqId =  ${req.headers["X-msgid"]}: Set Telemetry config to sync server is called`);
+    try {
+      const syncToServer = _.get(req, "body.request.syncToServer");
+      await this.telemetrySDK.setTelemetryConfigSyncToServer(syncToServer);
       res.status(200);
-      res.send(Response.success(`api.telemetry.syncToServer.update`, {
-        response: { message: "Successfully updated" },
-      }, req));
-    });
+      return res.send(Response.success("api.telemetry.set.config",
+        { response: { message: "Successfully updated" } }, req));
+    } catch (err) {
+      logger.error(
+        `ReqId = "${req.headers[
+        "X-msgid"
+        ]}": Received error while setting telemetry config and err.message: ${err.message} ${err}`,
+      );
+      res.status(err.status || 500);
+      return res.send(Response.error("api.telemetry.set.config", err.status || 500
+        , err.errMessage || err.message, err.code));
+    }
   }
 
   public export(req, res) {
