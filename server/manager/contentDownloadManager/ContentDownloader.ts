@@ -10,6 +10,7 @@ import { containerAPI, ITaskExecuter, ISystemQueue, SystemQueueStatus } from "Op
 import { IDownloadMetadata, IContentDownloadList } from "./IContentDownload";
 import * as  StreamZip from "node-stream-zip";
 import TelemetryHelper from "../../helper/telemetryHelper";
+import HardDiskInfo from "../../utils/hardDiskInfo";
 
 export class ContentDownloader implements ITaskExecuter {
   public static taskType = "DOWNLOAD";
@@ -215,6 +216,7 @@ export class ContentDownloader implements ITaskExecuter {
       await this.extractZipEntry(zipHandler, entry.name,
         path.join(this.fileSDK.getAbsPath("content"), contentDetails.identifier));
     }
+    zipHandler.close();
     logger.debug(`${this.contentDownloadData._id}:Extracted content: ${contentId}`);
     itemsToDelete.push(path.join("ecars", contentDetails.downloadId));
     const manifestJson = await this.fileSDK.readJSON(
@@ -300,9 +302,13 @@ export class ContentDownloader implements ITaskExecuter {
     }
   }
   private async checkSpaceAvailability(zipPath, zipHandler?) {
+    let closeZipHandler = true;
+    if (zipHandler) {
+      closeZipHandler = false;
+    }
     zipHandler = zipHandler || await this.loadZipHandler(zipPath);
     const entries = zipHandler.entries();
-    const availableDiskSpace = await this.getAvailableDiskSpace();
+    const availableDiskSpace = await HardDiskInfo.getAvailableDiskSpace();
     let contentSize = 0; // size in bytes
     for (const entry of _.values(entries) as any) {
       contentSize += entry.size;
@@ -310,17 +316,15 @@ export class ContentDownloader implements ITaskExecuter {
     if (contentSize > availableDiskSpace) {
       throw { message: "Disk space is low, couldn't extract Ecar", code: "LOW_DISK_SPACE" };
     }
+    if (closeZipHandler) {
+        zipHandler.close();
+    }
   }
   private async loadZipHandler(filePath) {
     const zip = new StreamZip({ file: filePath, storeEntries: true, skipEntryNameValidation: true });
     return new Promise((resolve, reject) => {
       zip.on("ready", () => resolve(zip));
       zip.on("error", reject);
-    });
-  }
-  private async getAvailableDiskSpace() {
-    return this.systemSDK.getHardDiskInfo().then(({ availableHarddisk }) => {
-      return availableHarddisk - 3e+8; // keeping buffer of 300 mb, this can be configured
     });
   }
   private createHierarchy(items: any[], parent: any, tree?: any[]): any {

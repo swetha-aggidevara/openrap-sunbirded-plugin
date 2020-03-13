@@ -8,6 +8,7 @@ import { containerAPI, ISystemQueue } from "OpenRAP/dist/api";
 import config from "../../config";
 import { Subject } from "rxjs";
 import { throttleTime } from "rxjs/operators";
+import HardDiskInfo from "../../utils/hardDiskInfo";
 const collectionMimeType = "application/vnd.ekstep.content-collection";
 let zipHandler;
 let zipEntries;
@@ -34,15 +35,10 @@ const syncCloser = (initialProgress, percentage, totalSize = contentImportData.m
     return subscription;
   };
 };
-const getAvailableDiskSpace = () => {
-  return systemSDK.getHardDiskInfo().then(({availableHarddisk}) => {
-    return availableHarddisk - 3e+8; // keeping buffer of 300 mb, this can be configured
-  });
-};
 
 const copyEcar = async () => {
   try {
-    const availableDiskSpace = await getAvailableDiskSpace();
+    const availableDiskSpace = await HardDiskInfo.getAvailableDiskSpace();
     process.send({ message: "LOG", logType: "info",
     logBody: [contentImportData._id, "Disk Space availability check",
     contentImportData.metaData.contentSize, availableDiskSpace] });
@@ -107,6 +103,7 @@ const parseEcar = async () => {
     contentImportData.progress = ImportProgress.EXTRACT_ECAR;
     sendMessage(ImportSteps.parseEcar);
   } catch (err) {
+    zipHandler.close();
     sendMessage("IMPORT_ERROR", getErrorObj(err, "UNHANDLED_PARSE_ECAR_ERROR"));
   }
 };
@@ -128,7 +125,7 @@ const extractZipEntry = async (identifier: string, contentBasePath: string[], en
   return entryObj;
 };
 const checkSpaceAvailability = async (entries, extractedEntries = contentImportData.metaData.extractedEcarEntries) => {
-  const availableDiskSpace = await getAvailableDiskSpace();
+  const availableDiskSpace = await HardDiskInfo.getAvailableDiskSpace();
   let contentSize = 0; // size in bytes
   for (const entry of _.values(entries) as any) {
     if (!extractedEntries[entry.name]) {
@@ -208,11 +205,8 @@ const extractEcar = async () => {
     await removeFile(path.join("content", contentImportData._id)); // delete temp content folder which has manifest.json
     sendMessage(ImportSteps.extractEcar);
   } catch (err) {
+    zipHandler.close();
     sendMessage("IMPORT_ERROR", getErrorObj(err, "UNHANDLED_EXTRACT_ECAR_ERROR"));
-  } finally {
-    if (zipHandler.close) {
-      zipHandler.close();
-    }
   }
 };
 
@@ -246,6 +240,7 @@ const extractZipArtifact = async (artifact) => {
   await unzipFile(artifact.src);
   await removeFile(artifact.src);
   contentImportData.metaData.contentAdded.push(artifact.contentId);
+  zipArtifactZipHandler.close();
 };
 
 const loadZipHandler = async (filePath) => {
