@@ -103,9 +103,9 @@ export default class Telemetry {
         return res.send(Response.error("api.telemetry.set.config", 400
         , "Enable key should exist and it should be boolean"));
       }
-      await this.telemetrySDK.setTelemetrySyncSetting(enable);
+      const resp = await this.telemetrySDK.setTelemetrySyncSetting(enable);
       res.status(200);
-      return res.send(Response.success("api.telemetry.set.config", { message: "Successfully updated" }, req));
+      return res.send(Response.success("api.telemetry.set.config", { response: resp }, req));
     } catch (err) {
       logger.error(
         `ReqId = "${req.headers[
