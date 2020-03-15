@@ -2,6 +2,7 @@ import { logger } from "@project-sunbird/ext-framework-server/logger";
 import { Manifest } from "@project-sunbird/ext-framework-server/models";
 import * as _ from "lodash";
 import { containerAPI, ISystemQueueInstance } from "OpenRAP/dist/api";
+import { NetworkQueue } from "OpenRAP/dist/services/queue";
 import { Inject } from "typescript-ioc";
 import DatabaseSDK from "../sdk/database";
 import { ImportTelemetry } from "./../manager/telemetryImportManager/telemetryImport";
@@ -13,6 +14,7 @@ export default class Telemetry {
   private databaseSdk: DatabaseSDK;
   private telemetrySDK;
   private systemQueue: ISystemQueueInstance;
+  private networkQueue: NetworkQueue;
 
   @Inject private telemetryImportManager: TelemetryImportManager;
 
@@ -21,6 +23,7 @@ export default class Telemetry {
     this.telemetrySDK = containerAPI.getTelemetrySDKInstance();
     this.telemetryImportManager.initialize();
     this.systemQueue = containerAPI.getSystemQueueInstance(manifest.id);
+    this.networkQueue = containerAPI.getNetworkQueueInstance();
   }
 
   public addEvents(req, res) {
@@ -100,9 +103,9 @@ export default class Telemetry {
         return res.send(Response.error("api.telemetry.set.config", 400
         , "Enable key should exist and it should be boolean"));
       }
-      await this.telemetrySDK.setTelemetrySyncSetting(enable);
+      const resp = await this.telemetrySDK.setTelemetrySyncSetting(enable);
       res.status(200);
-      return res.send(Response.success("api.telemetry.set.config", { message: "Successfully updated" }, req));
+      return res.send(Response.success("api.telemetry.set.config", { response: resp }, req));
     } catch (err) {
       logger.error(
         `ReqId = "${req.headers[
@@ -112,6 +115,23 @@ export default class Telemetry {
       res.status(err.status || 500);
       return res.send(Response.error("api.telemetry.set.config", err.status || 500
         , err.errMessage || err.message, err.code));
+    }
+  }
+
+  public async sync(req, res) {
+    try {
+      const type = _.get(req, "body.request.type");
+      if (type === undefined || !_.isArray(type)) {
+        res.status(400);
+        return res.send(Response.error("api.desktop.sync", 400
+          , "Type key should exist and it should be an array"));
+      }
+      const data = await this.networkQueue.forceSync(type);
+      res.status(200);
+      return res.send(Response.success("api.desktop.sync", { response: data }, req));
+    } catch (err) {
+      res.status(err.status || 500);
+      return res.send(Response.error("api.desktop.sync", err.status || 500, err.errMessage || err.message, err.code));
     }
   }
 
