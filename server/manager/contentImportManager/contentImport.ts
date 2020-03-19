@@ -13,10 +13,10 @@ import TelemetryHelper from "../../helper/telemetryHelper";
 
 import { ClassLogger } from "@project-sunbird/logger/decorator";
 
-@ClassLogger({
+/*@ClassLogger({
   logLevel: "debug",
   logTime: true,
-})
+})*/
 export class ImportContent implements ITaskExecuter {
   private deviceId: string;
   public static taskType = "IMPORT";

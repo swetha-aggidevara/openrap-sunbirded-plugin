@@ -12,10 +12,10 @@ import { IContentDelete, IDeletePath } from "./IContent";
 
 import { ClassLogger } from "@project-sunbird/logger/decorator";
 
-@ClassLogger({
+/*@ClassLogger({
   logLevel: "debug",
   logTime: true,
-})
+})*/
 export default class ContentDelete {
     @Inject
     private databaseSdk: DatabaseSDK;

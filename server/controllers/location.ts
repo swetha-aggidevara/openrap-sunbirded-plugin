@@ -12,10 +12,10 @@ import { ILocation } from "./ILocation";
 
 import { ClassLogger } from "@project-sunbird/logger/decorator";
 
-@ClassLogger({
+/*@ClassLogger({
   logLevel: "debug",
   logTime: true,
-})
+})*/
 export class Location {
     @Inject private databaseSdk: DatabaseSDK;
     @Inject private telemetryHelper: TelemetryHelper;

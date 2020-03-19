@@ -13,10 +13,10 @@ import * as  StreamZip from "node-stream-zip";
 import TelemetryHelper from "../../helper/telemetryHelper";
 import HardDiskInfo from "../../utils/hardDiskInfo";
 
-@ClassLogger({
+/*@ClassLogger({
   logLevel: "debug",
   logTime: true,
-})
+})*/
 export class ContentDownloader implements ITaskExecuter {
   public static taskType = "DOWNLOAD";
   public static group = "CONTENT_MANAGER";

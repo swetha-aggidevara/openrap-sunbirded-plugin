@@ -20,11 +20,11 @@ const systemInfo = {
     linux: "linux",
 };
 
-@ClassLogger({
-    logLevel: "debug",
-    logTime: true,
-    logMethods: ["getDeviceId", "getDesktopAppUpdate", "getAppInfo" ],
-  })
+// @ClassLogger({
+//     logLevel: "debug",
+//     logTime: true,
+//     logMethods: ["getDeviceId", "getDesktopAppUpdate", "getAppInfo" ],
+//   })
 export default class Appupdate {
     private deviceId;
 

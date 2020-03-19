@@ -9,11 +9,11 @@ import Response from "./../utils/response";
 
 import { ClassLogger } from "@project-sunbird/logger/decorator";
 
-@ClassLogger({
+/*@ClassLogger({
   logLevel: "debug",
   logTime: true,
 
-})
+})*/
 export class ResourceBundle {
   // resourceBundleFiles
   @Inject

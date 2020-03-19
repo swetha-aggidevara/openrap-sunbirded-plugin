@@ -7,10 +7,10 @@ import { manifest } from "../../manifest";
 
 import { ClassLogger } from "@project-sunbird/logger/decorator";
 
-@ClassLogger({
+/*@ClassLogger({
   logLevel: "debug",
   logTime: true,
-})
+})*/
 export class ContentDeleteHelper implements ITaskExecuter {
   public static taskType = "DELETE";
   public concurrency = 1;
