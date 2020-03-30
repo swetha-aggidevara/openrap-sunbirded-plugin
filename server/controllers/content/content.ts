@@ -197,7 +197,7 @@ export default class Content {
                 let resObj = {};
                 let facets = [];
                 if (_.get(reqBody, "request.facets")) {
-                    facets = this.getFacets(_.get(reqBody, "request.facets"), data);
+                    facets = await this.getFacets(_.get(reqBody, "request.facets"), data);
                 }
                 if (data.length === 0) {
                     logger.info(`ReqId = "${req.headers['X-msgid']}": Contents NOT found in DB`);
