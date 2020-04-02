@@ -180,11 +180,15 @@ export default class Content {
         let reqBody = req.body;
         let pageReqFilter = _.get(reqBody, 'request.filters');
         let contentSearchFields = config.get('CONTENT_SEARCH_FIELDS').split(',');
+        const mode = _.get(reqBody, 'request.mode');
         logger.info(`ReqId = "${req.headers['X-msgid']}": picked filters from the request`);
         let filters = _.pick(pageReqFilter, contentSearchFields);
         filters = _.mapValues(filters, function (v) {
             return _.isString(v) ? [v] : v;
         });
+
+        filters = mode ? _.omit(filters, ['board', 'medium', 'gradeLevel', 'subjects']) : filters;
+
         let query = _.get(reqBody, 'request.query');
         if (!_.isEmpty(query)) {
             filters.query = query;
@@ -202,7 +206,9 @@ export default class Content {
                 if (data.length === 0) {
                     logger.info(`ReqId = "${req.headers['X-msgid']}": Contents NOT found in DB`);
                     if (_.get(filters, "dialcodes")) {
-                        const contents = await this.getMimeTypeCollections(_.get(filters, "dialcodes")[0]);
+                        let contents = await this.getMimeTypeCollections(_.get(filters, "dialcodes")[0]);
+                        contents = mode ? this.getOrderedContents(contents, _.omit(pageReqFilter, 'contentType'))
+                        : contents;
                         resObj = {
                             content: contents,
                             count: contents.length,
@@ -220,6 +226,7 @@ export default class Content {
                     if (downloadedContents.length > 0) {
                         data = downloadedContents;
                     }
+                    data = mode ? this.getOrderedContents(data,  _.omit(pageReqFilter, 'contentType')) : data;
                     logger.info(`ReqId = "${req.headers['X-msgid']}": Contents = ${data.length} found in DB`)
                     resObj = {
                         content: data,
@@ -248,6 +255,24 @@ export default class Content {
                     return res.send(Response.error('api.content.search', status));
                 }
             });
+    }
+
+    getOrderedContents(contents, filters) {
+        const orderedContents = [];
+        _.forEach(filters, (filter, key) => {
+             _.map(contents, (content) => {
+            const matched =  _.isArray(_.get(content, key)) ? !_.isEmpty(_.intersection(filters[key],
+                _.get(content, key))) : _.includes(filters[key], _.get(content, key));
+            if (matched) {
+                contents = _.reject(contents, {identifier: content.identifier});
+                return orderedContents.push(content);
+                }
+            });
+        });
+        _.forEach(contents, (content) => {
+            orderedContents.push(content);
+        });
+        return orderedContents;
     }
 
     private async getMimeTypeCollections(dialCode: string) {
