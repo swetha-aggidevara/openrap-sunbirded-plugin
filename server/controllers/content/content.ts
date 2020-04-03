@@ -186,9 +186,7 @@ export default class Content {
         filters = _.mapValues(filters, function (v) {
             return _.isString(v) ? [v] : v;
         });
-
         filters = mode ? _.omit(filters, ['board', 'medium', 'gradeLevel', 'subjects']) : filters;
-
         let query = _.get(reqBody, 'request.query');
         if (!_.isEmpty(query)) {
             filters.query = query;
@@ -207,7 +205,8 @@ export default class Content {
                     logger.info(`ReqId = "${req.headers['X-msgid']}": Contents NOT found in DB`);
                     if (_.get(filters, "dialcodes")) {
                         let contents = await this.getMimeTypeCollections(_.get(filters, "dialcodes")[0]);
-                        contents = mode ? this.getOrderedContents(contents, _.omit(pageReqFilter, 'contentType'))
+                        contents = _.isEqual(mode, `soft`) ? await this.getOrderedContents(contents,
+                            _.omit(pageReqFilter, `contentType`))
                         : contents;
                         resObj = {
                             content: contents,
@@ -226,7 +225,8 @@ export default class Content {
                     if (downloadedContents.length > 0) {
                         data = downloadedContents;
                     }
-                    data = mode ? this.getOrderedContents(data,  _.omit(pageReqFilter, 'contentType')) : data;
+                    data = _.isEqual(mode, `soft`) ? await this.getOrderedContents(data,
+                        _.omit(pageReqFilter, `contentType`)) : data;
                     logger.info(`ReqId = "${req.headers['X-msgid']}": Contents = ${data.length} found in DB`)
                     resObj = {
                         content: data,
@@ -257,22 +257,46 @@ export default class Content {
             });
     }
 
-    getOrderedContents(contents, filters) {
-        const orderedContents = [];
-        _.forEach(filters, (filter, key) => {
-             _.map(contents, (content) => {
-            const matched =  _.isArray(_.get(content, key)) ? !_.isEmpty(_.intersection(filters[key],
-                _.get(content, key))) : _.includes(filters[key], _.get(content, key));
-            if (matched) {
-                contents = _.reject(contents, {identifier: content.identifier});
-                return orderedContents.push(content);
+    private getOrderedContents(contents, userFilters) {
+        return new Promise(async (resolve, reject) => {
+            const matchedContents = { all: [], some: [], one: []};
+            _.forEach(contents,  (content) => {
+                const contentFilters = _.pick(content, [`board`, `medium`, `gradeLevel`, `subject`]);
+                let matchCount = 0;
+                _.forEach(userFilters,  (value, key) => {
+                    // check if content matches with the user filters
+                   const matched = _.isArray(contentFilters[key]) ? !_.isEmpty(_.intersection(value, content[key]))
+                   : _.includes(value, _.get(content, key));
+                    // increase the matchCount if content matches with userFilters
+                   matched ? matchCount++ : ``;
+                });
+
+                // orderContents based on userFilters match count
+                if (matchCount === Object.keys(userFilters).length) {
+                    // if the content matches all user filters
+                    matchedContents.all.push(content);
+                    // delete the matched content from contents array
+                    contents = _.reject(contents, {identifier: content.identifier});
+                } else if (matchCount > 1 && matchCount < Object.keys(userFilters).length ) {
+                     // if the content matches only some user filters
+                    matchedContents.some.push(content);
+                    contents = _.reject(contents, {identifier: content.identifier});
+                } else if (matchCount === 1) {
+                     // if the content matches only one user filters
+                    matchedContents.one.push(content);
+                    contents = _.reject(contents, {identifier: content.identifier});
                 }
             });
+
+            const orderContents: object[] = _.concat(matchedContents.all, matchedContents.some, matchedContents.one);
+            // push the unmatched contents at the end of the orderContents
+            _.forEach(contents, (content) => {
+                orderContents.push(content);
+            });
+
+            resolve(orderContents);
         });
-        _.forEach(contents, (content) => {
-            orderedContents.push(content);
-        });
-        return orderedContents;
+
     }
 
     private async getMimeTypeCollections(dialCode: string) {
