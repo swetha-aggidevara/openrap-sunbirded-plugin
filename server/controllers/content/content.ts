@@ -186,7 +186,7 @@ export default class Content {
         filters = _.mapValues(filters, function (v) {
             return _.isString(v) ? [v] : v;
         });
-        filters = mode ? _.omit(filters, ['board', 'medium', 'gradeLevel', 'subjects']) : filters;
+        filters = mode ? _.omit(filters, ['board', 'medium', 'gradeLevel', 'subject']) : filters;
         let query = _.get(reqBody, 'request.query');
         if (!_.isEmpty(query)) {
             filters.query = query;
