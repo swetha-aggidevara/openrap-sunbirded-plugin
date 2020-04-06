@@ -689,7 +689,7 @@ export class Router {
     );
   }
 
-  public setConnectionTimeout(time: Number) {
+  public setConnectionTimeout(time: number) {
     return (req, res, next) => {
       req.connection.setTimeout(time);
       next();
@@ -733,6 +733,7 @@ export class Router {
     locals.deviceId = deviceId;
     locals.deviceProfileApi = "/api/v3/device/profile";
     locals.deviceApi = `${process.env.APP_BASE_URL}/api/`;
+    locals.baseUrl = process.env.APP_BASE_URL;
     return locals;
   }
 }
