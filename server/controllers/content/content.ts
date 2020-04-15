@@ -18,6 +18,8 @@ import { ExportContent } from "../../manager/contentExportManager"
 import TelemetryHelper from "../../helper/telemetryHelper";
 import { response } from "express";
 const sessionStartTime = Date.now();
+const ContentSearchUrl = `${process.env.APP_BASE_URL}/api/content/v1/search`;
+const DefaultRequestOptions = { headers: { "Content-Type": "application/json" } };
 import { ClassLogger } from "@project-sunbird/logger/decorator";
 
 const INTERVAL_TO_CHECKUPDATE = 1
@@ -256,6 +258,73 @@ export default class Content {
                 }
             });
     }
+
+
+    searchDialCode(req: any, res: any): any {
+        return res.send(Response.success(`api.page.assemble`, [], req));
+    }
+
+    public decorateDialSearchContents(sections, msgId) {
+        return new Promise(async (resolve, reject) => {
+            const dialCode = { contents: [], contentIds: [] };
+            if (sections.length > 1) {
+                for (const section of sections) {
+                    const data = await this.getSectionContents(section);
+                    dialCode.contentIds = _.concat(dialCode.contentIds, data[`contentIds`]);
+                    dialCode.contents = _.concat(dialCode.contents, _.get(data, `contents`));
+                }
+            } else {
+                const data = await this.getSectionContents(sections[0]);
+                dialCode.contentIds = _.get(data, `contentIds`);
+                dialCode.contents = _.get(data, `contents`);
+            }
+            if (dialCode.contentIds.length > 0) {
+                dialCode.contentIds = _.uniq(dialCode.contentIds);
+                const childContents = await this.getChildDataFromApi(dialCode.contentIds);
+                dialCode.contents = _.concat(dialCode.contents, childContents);
+            }
+            dialCode.contents = _.uniqBy(dialCode.contents, `identifier`);
+            sections[0].contents = dialCode.contents;
+            resolve(sections);
+        });
+    }
+
+    private getSectionContents (section) {
+    return new Promise(async (resolve, reject) => {
+        let contents = [];
+        let contentIds = [];
+        if (_.get(section, `collectionsCount`) > 1) {
+            contents = _.get(section, `collections`);
+            resolve({contents, contentIds});
+        } else {
+            _.forEach(_.get(section, `contents`), (content) => {
+                if (_.get(content, `contentType`) === `TextBook`) {
+                    contents.push(content);
+                } else if (_.get(content, `contentType`) === `TextBookUnit`) {
+                    contentIds = _.uniq(_.concat(contentIds, _.get(content, `children`)));
+                }
+            });
+            resolve({contents, contentIds});
+        }
+    });
+    }
+
+    private getChildDataFromApi (childNodes) {
+        if (!childNodes || !childNodes.length) {
+            return Promise.resolve([]);
+          }
+        const requestBody = {
+            request: {
+              filters: {
+                identifier: childNodes,
+                mimeType: { "!=": "application/vnd.ekstep.content-collection" },
+              },
+              limit: childNodes.length,
+            },
+          };
+        return HTTPService.post(ContentSearchUrl, requestBody, DefaultRequestOptions).toPromise()
+            .then((response) => _.get(response, "data.result.content") || []);
+        }
 
     private getOrderedContents(contents, userFilters) {
         return new Promise(async (resolve, reject) => {
