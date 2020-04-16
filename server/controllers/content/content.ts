@@ -334,9 +334,9 @@ export default class Content {
             resolve({contents, contentIds});
         } else {
             _.forEach(_.get(section, `contents`), (content) => {
-                if (_.get(content, `contentType`) === `TextBook`) {
+                if ((_.get(content, `contentType`)).toLowerCase() === `textbook`) {
                     contents.push(content);
-                } else if (_.get(content, `contentType`) === `TextBookUnit`) {
+                } else if ((_.get(content, `contentType`)).toLowerCase() === `textbookunit`) {
                     contentIds = _.uniq(_.concat(contentIds, _.get(content, `children`)));
                 }
             });
@@ -431,14 +431,14 @@ export default class Content {
             if (node.model.dialcodes &&
                 (_.includes(node.model.dialcodes, (dialCode).toUpperCase()) ||
                 _.includes(node.model.dialcodes, (dialCode).toLowerCase()))) {
-                if (node.model.contentType === "TextBookUnit" &&
+                if ((node.model.contentType).toLowerCase() === "textbookunit" &&
                     node.model.mimeType === "application/vnd.ekstep.content-collection") {
                     node.all((childNode) => {
                         if (childNode.model.mimeType !== "application/vnd.ekstep.content-collection") {
                             contentIds.push(childNode.model.identifier);
                         }
                     });
-                } else if (node.model.contentType === "TextBook") {
+                } else if ((node.model.contentType).toLowerCase() === "textbook") {
                     contentIds.push(node.model.identifier);
                 }
             }
