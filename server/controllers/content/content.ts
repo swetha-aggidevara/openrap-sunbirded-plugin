@@ -319,7 +319,10 @@ export default class Content {
                 dialCode.contents = _.concat(dialCode.contents, childContents);
             }
             dialCode.contents = _.uniqBy(dialCode.contents, `identifier`);
+<<<<<<< HEAD
             dialCode.contents =  await this.decorateContentWithProperty(dialCode.contents, msgId);
+=======
+>>>>>>> upstream/release-2.10.0
             sections[0].contents = dialCode.contents;
             resolve(sections);
         });
