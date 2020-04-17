@@ -12,6 +12,7 @@ import { Observer } from "rxjs";
 import TelemetryHelper from "../../helper/telemetryHelper";
 
 import { ClassLogger } from "@project-sunbird/logger/decorator";
+import ContentLocation from "../../controllers/contentLocation";
 
 /*@ClassLogger({
   logLevel: "debug",
@@ -28,9 +29,12 @@ export class ImportContent implements ITaskExecuter {
   private interrupt;
   private contentImportData: ISystemQueue;
   private observer: Observer<ISystemQueue>;
+  private contentLocation: any;
+  private contentFolderPath: string;
   constructor() {
     this.dbSDK.initialize(manifest.id);
     this.fileSDK = containerAPI.getFileSDKInstance(manifest.id);
+    this.contentLocation = new ContentLocation(manifest.id);
     this.getDeviceId();
   }
   public async getDeviceId() {
@@ -40,8 +44,11 @@ export class ImportContent implements ITaskExecuter {
     return this.contentImportData;
   }
   public async start(contentImportData: ISystemQueue, observer: Observer<ISystemQueue>) {
+    const contentLocationPath = await this.contentLocation.get();
+    this.fileSDK = containerAPI.getFileSDKInstance(manifest.id, contentLocationPath);
     this.contentImportData = contentImportData;
     this.observer = observer;
+    this.contentFolderPath = await this.contentLocation.get();
     this.workerProcessRef = childProcess.fork(path.join(__dirname, "contentImportHelper"));
     this.handleChildProcessMessage();
     this.handleWorkerCloseEvents();
@@ -57,6 +64,7 @@ export class ImportContent implements ITaskExecuter {
         this.workerProcessRef.send({
           message: this.contentImportData.metaData.step,
           contentImportData: this.contentImportData,
+          contentFolder: this.contentFolderPath,
         });
         break;
       }
@@ -77,8 +85,10 @@ export class ImportContent implements ITaskExecuter {
   }
 
   public cleanUpAfterErrorOrCancel() {
-    this.fileSDK.remove(path.join("ecars", this.contentImportData._id + ".ecar")).catch((err) => logger.debug(`Error while deleting file ${path.join("ecars", this.contentImportData._id + ".ecar")}`));
-    this.fileSDK.remove(path.join("content", this.contentImportData._id)).catch((err) => logger.debug(`Error while deleting folder ${path.join("content", this.contentImportData._id)}`));
+    const fileSDKEcarInstance = containerAPI.getFileSDKInstance(manifest.id);
+    fileSDKEcarInstance.remove(path.join("ecars", this.contentImportData._id + ".ecar")).catch((err) => logger.debug(`Error while deleting file ${path.join("ecars", this.contentImportData._id + ".ecar")}`));
+
+    this.fileSDK.remove(path.join(this.contentFolderPath, this.contentImportData._id)).catch((err) => logger.debug(`Error while deleting folder ${path.join("content", this.contentImportData._id)}`));
     // TODO: delete content folder if there"s no record in db;
   }
 
@@ -125,6 +135,7 @@ export class ImportContent implements ITaskExecuter {
         message: this.contentImportData.metaData.step,
         contentImportData: this.contentImportData,
         dbContents,
+        contentFolder: this.contentFolderPath,
       });
     } catch (err) {
       this.observer.next(this.contentImportData);
@@ -178,7 +189,7 @@ export class ImportContent implements ITaskExecuter {
 
   private async saveContentsToDb(dbContents) {
     this.manifestJson = await this.fileSDK.readJSON(
-      path.join(path.join(this.fileSDK.getAbsPath("content"), this.contentImportData.metaData.contentId), "manifest.json"));
+      path.join(path.join(this.fileSDK.getAbsPath(""), this.contentImportData.metaData.contentId), "manifest.json"));
     const resources = _.reduce(_.get(this.manifestJson, "archive.items"), (acc, item) => {
       const parentContent = item.identifier === this.contentImportData.metaData.contentId;
       if (item.mimeType === "application/vnd.ekstep.content-collection" && !parentContent) {
@@ -231,6 +242,7 @@ export class ImportContent implements ITaskExecuter {
     this.workerProcessRef.send({
       message: this.contentImportData.metaData.step,
       contentImportData: this.contentImportData,
+      contentFolder: this.contentFolderPath,
     });
   }
 

@@ -15,6 +15,7 @@ import DesktopAppUpdate from "./controllers/appUpdate";
 import { Channel } from "./controllers/channel";
 import Content from "./controllers/content/content";
 import ContentDelete from "./controllers/content/contentDelete";
+import ContentLocation from "./controllers/contentLocation";
 import { Faqs } from "./controllers/faqs";
 import { Form } from "./controllers/form";
 import { Framework } from "./controllers/framework";
@@ -607,14 +608,35 @@ export class Router {
 
     app.get("/api/desktop/v1/system-info", async (req, res) => {
       try {
-        const systemInfo = await containerAPI
+        const contentLocation = new ContentLocation(manifest.id);
+        const contentBasePath = await contentLocation.get();
+        const systemInfo: any = await containerAPI
           .getSystemSDKInstance(manifest.id)
           .getDeviceInfo();
+        systemInfo.contentBasePath = contentBasePath;
         return res.send(Response.success("api.desktop.system-info", systemInfo, req));
       } catch (err) {
         logger.error(`ReqId = "${req.headers["X-msgid"]}": Received error while processing desktop app systemInfo request where err = ${err}`);
         res.status(500);
-        return res.send(Response.error("api.desktop.update", 500));
+        return res.send(Response.error("api.desktop.system-info", 500));
+      }
+    });
+
+    app.post("/api/desktop/v1/change-content-location", async (req, res) => {
+      try {
+        const contentPath = _.get(req.body, "request.path");
+        const contentLocation = new ContentLocation(manifest.id);
+        const status = contentLocation.set(path.join(contentPath));
+        if (status) {
+          return res.send(Response.success("api.desktop.change-content-location", status, req));
+        } else {
+          res.status(500);
+          return res.send(Response.error("api.desktop.change-content-location", 500));
+        }
+      } catch (err) {
+        logger.error(`ReqId = "${req.headers["X-msgid"]}": Received error while processing desktop app systemInfo request where err = ${err}`);
+        res.status(500);
+        return res.send(Response.error("api.desktop.change-content-location", 500));
       }
     });
 
